@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAVEMORE | Admin</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    background: #f7f9f8;
+    color: #222;
+}
+
+header {
+    background: #075e3b;
+    color: white;
+    padding: 18px 6%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header a {
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ff8c00;
+}
+
+main {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.box {
+    background: white;
+    padding: 35px 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.login-box {
+    max-width: 420px;
+    margin: 50px auto;
+}
+
+h2 {
+    color: #075e3b;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    color: #075e3b;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+button {
+    padding: 10px 20px;
+    background: #ff8c00;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+button.full {
+    width: 100%;
+    padding: 13px;
+    border-radius: 30px;
+    font-size: 15px;
+}
+
+button.secondary {
+    background: #eef7f2;
+    color: #075e3b;
+}
+
+.error-msg {
+    background: #fdecea;
+    color: #b3261e;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    display: none;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.member-card {
+    background: white;
+    border: 1px solid #eee;
+    border-left: 4px solid #075e3b;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 18px;
+}
+
+.member-card h3 {
+    color: #075e3b;
+    margin-bottom: 4px;
+}
+
+.member-meta {
+    font-size: 13px;
+    color: #777;
+    margin-bottom: 14px;
+}
+
+.field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.field-row label {
+    margin-bottom: 4px;
+}
+
+.save-status {
+    font-size: 13px;
+    margin-left: 12px;
+    color: #075e3b;
+    display: none;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.progress-track {
+    background: #eee;
+    border-radius: 10px;
+    height: 16px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.progress-fill {
+    background: #ff8c00;
+    height: 100%;
+    border-radius: 10px;
+}
+
+.progress-label {
+    font-size: 13px;
+    color: #555;
+}
+
+.loading {
+    text-align: center;
+    color: #555;
+    padding: 30px 0;
+}
+
+@media(max-width: 600px) {
+    .field-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo">SAVEMORE</div>
+<a href="index.html">← Back to website</a>
+</header>
+
+<main>
+
+<!-- LOADING -->
+<div class="box loading" id="loadingBox">Loading...</div>
+
+<!-- LOGIN -->
+<div class="box login-box hidden" id="loginBox">
+<h2>Admin Login</h2>
+<div class="error-msg" id="loginError"></div>
+<label for="loginEmail">Email</label>
+<input type="email" id="loginEmail" placeholder="admin@example.com">
+<label for="loginPassword">Password</label>
+<input type="password" id="loginPassword" placeholder="Your password">
+<button class="full" onclick="doLogin()">Log In</button>
+</div>
+
+<!-- NOT AUTHORIZED -->
+<div class="box hidden" id="notAuthBox">
+<h2>Access Denied</h2>
+<p style="text-align:center; margin-bottom:20px;">
+This account is not authorized to access the admin panel.
+</p>
+<button class="full" onclick="doLogout()">Log Out</button>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="hidden" id="adminPanel">
+
+<div class="top-bar">
+<h2 style="margin:0;">Members (<span id="memberCount">0</span>)</h2>
+<button class="secondary" onclick="doLogout()">Log Out</button>
+</div>
+
+<div id="membersList"></div>
+
+</div>
+
+</main>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBj8opxzN423qkwPGy5IhhxWHBPAZlwOJo",
+  authDomain: "savemore-portal.firebaseapp.com",
+  projectId: "savemore-portal",
+  storageBucket: "savemore-portal.firebasestorage.app",
+  messagingSenderId: "32261102803",
+  appId: "1:32261102803:web:82ad3eaf3eb3998621c826"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+function showBox(id) {
+    ['loadingBox','loginBox','notAuthBox','adminPanel'].forEach(function(box) {
+        document.getElementById(box).classList.add('hidden');
+    });
+    document.getElementById(id).classList.remove('hidden');
+}
+
+function showError(boxId, message) {
+    var el = document.getElementById(boxId);
+    el.textContent = message;
+    el.style.display = 'block';
+}
+
+auth.onAuthStateChanged(function(user) {
+    if (user) {
+        checkAdminAndLoad(user);
+    } else {
+        showBox('loginBox');
+    }
+});
+
+function doLogin() {
+    var email = document.getElementById('loginEmail').value.trim();
+    var password = document.getElementById('loginPassword').value;
+
+    if (!email || !password) {
+        showError('loginError', 'Please enter your email and password.');
+        return;
+    }
+
+    document.getElementById('loginError').style.display = 'none';
+
+    auth.signInWithEmailAndPassword(email, password)
+        .catch(function(error) {
+            showError('loginError', 'Incorrect email or password.');
+        });
+}
+
+function doLogout() {
+    auth.signOut();
+}
+
+function checkAdminAndLoad(user) {
+    db.collection('admins').doc(user.uid).get().then(function(doc) {
+        if (doc.exists) {
+            loadMembers();
+        } else {
+            showBox('notAuthBox');
+        }
+    }).catch(function() {
+        showBox('notAuthBox');
+    });
+}
+
+function loadMembers() {
+    showBox('adminPanel');
+    var list = document.getElementById('membersList');
+    list.innerHTML = '<p>Loading members...</p>';
+
+    db.collection('members').get().then(function(snapshot) {
+        list.innerHTML = '';
+        document.getElementById('memberCount').textContent = snapshot.size;
+
+        if (snapshot.empty) {
+            list.innerHTML = '<p>No members yet.</p>';
+            return;
+        }
+
+        snapshot.forEach(function(doc) {
+            var m = doc.data();
+            var id = doc.id;
+
+            var card = document.createElement('div');
+            card.className = 'member-card';
+            card.innerHTML =
+                '<h3>' + escapeHtml(m.name || 'Unnamed') + '</h3>' +
+                '<div class="member-meta">' + escapeHtml(m.email || '') + ' · ' + escapeHtml(m.phone || '') + '</div>' +
+                '<div class="field-row">' +
+                    '<div>' +
+                        '<label>Occupation</label>' +
+                        '<input type="text" id="occupation-' + id + '" value="' + escapeHtml(m.occupation || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>NIN</label>' +
+                        '<input type="text" id="nin-' + id + '" value="' + escapeHtml(m.nin || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Bank Name</label>' +
+                        '<input type="text" id="bankName-' + id + '" value="' + escapeHtml(m.bankName || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Account Number</label>' +
+                        '<input type="text" id="accountNumber-' + id + '" value="' + escapeHtml(m.accountNumber || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Account Name</label>' +
+                        '<input type="text" id="accountName-' + id + '" value="' + escapeHtml(m.accountName || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Residential Address</label>' +
+                        '<input type="text" id="residentialAddress-' + id + '" value="' + escapeHtml(m.residentialAddress || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Shop/Office Address</label>' +
+                        '<input type="text" id="shopAddress-' + id + '" value="' + escapeHtml(m.shopAddress || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Next of Kin Name</label>' +
+                        '<input type="text" id="nokName-' + id + '" value="' + escapeHtml(m.nokName || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Next of Kin Phone</label>' +
+                        '<input type="text" id="nokPhone-' + id + '" value="' + escapeHtml(m.nokPhone || '') + '">' +
+                    '</div>' +
+                '</div>' +
+                '<div class="field-row" style="margin-top:12px;">' +
+                    '<div>' +
+                        '<label>Savings Product</label>' +
+                        '<select id="product-' + id + '">' +
+                            productOption(m.product, 'Not yet assigned') +
+                            productOption(m.product, 'Investment Savings Account') +
+                            productOption(m.product, 'Emergency Savings Account') +
+                            productOption(m.product, 'In-Dollar Savings Account') +
+                            productOption(m.product, '100 Days Savings Challenge') +
+                        '</select>' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Status</label>' +
+                        '<select id="status-' + id + '">' +
+                            statusOption(m.status, 'Pending Review') +
+                            statusOption(m.status, 'Active') +
+                            statusOption(m.status, 'Suspended') +
+                        '</select>' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Participation Shares</label>' +
+                        '<input type="number" id="shares-' + id + '" value="' + (m.shares || 0) + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Savings Goal (₦)</label>' +
+                        '<input type="number" id="goal-' + id + '" value="' + (m.savingsGoal || 0) + '">' +
+                    '</div>' +
+                '</div>' +
+                '<div class="field-row" style="margin-top:12px;">' +
+                    '<div>' +
+                        '<label>Investment Savings (₦)</label>' +
+                        '<input type="number" id="prod-investment-' + id + '" value="' + ((m.savingsByProduct && m.savingsByProduct.investment) || 0) + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Emergency Savings (₦)</label>' +
+                        '<input type="number" id="prod-emergency-' + id + '" value="' + ((m.savingsByProduct && m.savingsByProduct.emergency) || 0) + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>In-Dollar Savings (₦ equiv.)</label>' +
+                        '<input type="number" id="prod-dollar-' + id + '" value="' + ((m.savingsByProduct && m.savingsByProduct.dollar) || 0) + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>100 Days Challenge (₦)</label>' +
+                        '<input type="number" id="prod-challenge-' + id + '" value="' + ((m.savingsByProduct && m.savingsByProduct.challenge) || 0) + '">' +
+                    '</div>' +
+                '</div>' +
+                progressBarHtml(m) +
+                '<button onclick="saveMember(\'' + id + '\')">Save Changes</button>' +
+                '<span class="save-status" id="saveStatus-' + id + '">✓ Saved</span>' +
+
+                '<details ontoggle="if(this.open) loadTransactions(\'' + id + '\')" style="margin-top:18px;">' +
+                '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Transaction History</summary>' +
+                '<div style="margin-top:14px;">' +
+
+                '<div class="field-row" style="margin-bottom:10px;">' +
+                    '<div>' +
+                        '<label>Date</label>' +
+                        '<input type="date" id="txDate-' + id + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Product</label>' +
+                        '<select id="txProduct-' + id + '">' +
+                            '<option value="Investment Savings Account">Investment Savings Account</option>' +
+                            '<option value="Emergency Savings Account">Emergency Savings Account</option>' +
+                            '<option value="In-Dollar Savings Account">In-Dollar Savings Account</option>' +
+                            '<option value="100 Days Savings Challenge">100 Days Savings Challenge</option>' +
+                        '</select>' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Description</label>' +
+                        '<input type="text" id="txDesc-' + id + '" placeholder="e.g. Weekly savings">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Amount (₦)</label>' +
+                        '<input type="number" id="txAmount-' + id + '" placeholder="e.g. 1000">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Status</label>' +
+                        '<select id="txStatus-' + id + '">' +
+                            '<option value="Confirmed">Confirmed</option>' +
+                            '<option value="Pending">Pending</option>' +
+                        '</select>' +
+                    '</div>' +
+                '</div>' +
+                '<button onclick="addTransaction(\'' + id + '\')">Add Transaction</button>' +
+
+                '<div id="txList-' + id + '" style="margin-top:16px;">Loading transactions...</div>' +
+
+                '</div>' +
+                '</details>' +
+
+                '<details ontoggle="if(this.open) loadCertificates(\'' + id + '\')" style="margin-top:14px;">' +
+                '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Certificates</summary>' +
+                '<div style="margin-top:14px;">' +
+
+                '<div class="field-row" style="margin-bottom:10px;">' +
+                    '<div>' +
+                        '<label>Month/Year</label>' +
+                        '<input type="month" id="certPeriod-' + id + '">' +
+                    '</div>' +
+                    '<div style="grid-column: span 2;">' +
+                        '<label>Recognition Note</label>' +
+                        '<input type="text" id="certNote-' + id + '" placeholder="e.g. Consistent Weekly Saver">' +
+                    '</div>' +
+                '</div>' +
+                '<button onclick="issueCertificate(\'' + id + '\')">Issue Certificate</button>' +
+
+                '<div id="certList-' + id + '" style="margin-top:16px;">Loading certificates...</div>' +
+
+                '</div>' +
+                '</details>';
+
+            list.appendChild(card);
+        });
+    }).catch(function(error) {
+        list.innerHTML = '<p>Unable to load members: ' + escapeHtml(error.message) + '</p>';
+    });
+}
+
+function productOption(current, value) {
+    var selected = (current === value) ? ' selected' : '';
+    return '<option value="' + value + '"' + selected + '>' + value + '</option>';
+}
+
+function statusOption(current, value) {
+    var selected = (current === value || (!current && value === 'Pending Review')) ? ' selected' : '';
+    return '<option value="' + value + '"' + selected + '>' + value + '</option>';
+}
+
+var PRODUCT_KEYS = {
+    'Investment Savings Account': 'investment',
+    'Emergency Savings Account': 'emergency',
+    'In-Dollar Savings Account': 'dollar',
+    '100 Days Savings Challenge': 'challenge'
+};
+
+function computeTotal(m) {
+    var p = m.savingsByProduct || {};
+    return (p.investment || 0) + (p.emergency || 0) + (p.dollar || 0) + (p.challenge || 0);
+}
+
+function progressBarHtml(m) {
+    var total = computeTotal(m);
+    var goal = m.savingsGoal || 0;
+    var pct = goal > 0 ? Math.min(100, Math.round((total / goal) * 100)) : 0;
+    var label = goal > 0
+        ? ('₦' + total.toLocaleString('en-NG') + ' / ₦' + goal.toLocaleString('en-NG') + ' (' + pct + '%)')
+        : ('₦' + total.toLocaleString('en-NG') + ' saved — no goal set');
+
+    return '<div style="margin-top:14px;">' +
+        '<div class="progress-track"><div class="progress-fill" style="width:' + pct + '%;"></div></div>' +
+        '<div class="progress-label">' + label + '</div>' +
+        '</div>';
+}
+
+function saveMember(id) {
+    var product = document.getElementById('product-' + id).value;
+    var status = document.getElementById('status-' + id).value;
+    var shares = parseFloat(document.getElementById('shares-' + id).value) || 0;
+    var goal = parseFloat(document.getElementById('goal-' + id).value) || 0;
+    var pInvestment = parseFloat(document.getElementById('prod-investment-' + id).value) || 0;
+    var pEmergency = parseFloat(document.getElementById('prod-emergency-' + id).value) || 0;
+    var pDollar = parseFloat(document.getElementById('prod-dollar-' + id).value) || 0;
+    var pChallenge = parseFloat(document.getElementById('prod-challenge-' + id).value) || 0;
+    var occupation = document.getElementById('occupation-' + id).value.trim();
+    var nin = document.getElementById('nin-' + id).value.trim();
+    var bankName = document.getElementById('bankName-' + id).value.trim();
+    var accountNumber = document.getElementById('accountNumber-' + id).value.trim();
+    var accountName = document.getElementById('accountName-' + id).value.trim();
+    var residentialAddress = document.getElementById('residentialAddress-' + id).value.trim();
+    var shopAddress = document.getElementById('shopAddress-' + id).value.trim();
+    var nokName = document.getElementById('nokName-' + id).value.trim();
+    var nokPhone = document.getElementById('nokPhone-' + id).value.trim();
+    var total = pInvestment + pEmergency + pDollar + pChallenge;
+
+    db.collection('members').doc(id).update({
+        product: product,
+        status: status,
+        shares: shares,
+        savingsGoal: goal,
+        savingsByProduct: {
+            investment: pInvestment,
+            emergency: pEmergency,
+            dollar: pDollar,
+            challenge: pChallenge
+        },
+        totalSavings: total,
+        occupation: occupation,
+        nin: nin,
+        bankName: bankName,
+        accountNumber: accountNumber,
+        accountName: accountName,
+        residentialAddress: residentialAddress,
+        shopAddress: shopAddress,
+        nokName: nokName,
+        nokPhone: nokPhone
+    }).then(function() {
+        var statusEl = document.getElementById('saveStatus-' + id);
+        statusEl.style.display = 'inline';
+        setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
+    }).catch(function(error) {
+        alert('Failed to save: ' + error.message);
+    });
+}
+
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+}
+
+// ---- TRANSACTIONS ----
+function loadTransactions(memberId) {
+    var container = document.getElementById('txList-' + memberId);
+    container.innerHTML = 'Loading transactions...';
+
+    db.collection('members').doc(memberId).collection('transactions')
+        .orderBy('date', 'desc')
+        .get()
+        .then(function(snapshot) {
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="color:#777; font-size:14px;">No transactions recorded yet.</p>';
+                return;
+            }
+
+            var html = '<table style="width:100%; border-collapse:collapse; font-size:14px;">';
+            html += '<tr style="text-align:left; border-bottom:1px solid #ddd;">' +
+                    '<th style="padding:6px;">Date</th>' +
+                    '<th style="padding:6px;">Product</th>' +
+                    '<th style="padding:6px;">Description</th>' +
+                    '<th style="padding:6px;">Amount</th>' +
+                    '<th style="padding:6px;">Status</th>' +
+                    '<th style="padding:6px;"></th>' +
+                    '</tr>';
+
+            snapshot.forEach(function(doc) {
+                var t = doc.data();
+                html += '<tr style="border-bottom:1px solid #eee;">' +
+                    '<td style="padding:6px;">' + escapeHtml(t.date || '') + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(t.product || '—') + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(t.description || '') + '</td>' +
+                    '<td style="padding:6px;">₦' + (t.amount || 0).toLocaleString('en-NG') + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(t.status || '') + '</td>' +
+                    '<td style="padding:6px;"><button style="padding:4px 10px; font-size:12px;" onclick="deleteTransaction(\'' + memberId + '\',\'' + doc.id + '\',' + (t.amount || 0) + ',\'' + t.status + '\',\'' + (t.productKey || '') + '\')">Delete</button></td>' +
+                    '</tr>';
+            });
+
+            html += '</table>';
+            container.innerHTML = html;
+        })
+        .catch(function(error) {
+            container.innerHTML = '<p style="color:#b3261e;">Unable to load transactions: ' + escapeHtml(error.message) + '</p>';
+        });
+}
+
+function addTransaction(memberId) {
+    var date = document.getElementById('txDate-' + memberId).value;
+    var product = document.getElementById('txProduct-' + memberId).value;
+    var description = document.getElementById('txDesc-' + memberId).value.trim();
+    var amount = parseFloat(document.getElementById('txAmount-' + memberId).value);
+    var status = document.getElementById('txStatus-' + memberId).value;
+    var productKey = PRODUCT_KEYS[product];
+
+    if (!date || !description || isNaN(amount) || amount <= 0) {
+        alert('Please fill in date, description, and a valid amount.');
+        return;
+    }
+
+    var memberRef = db.collection('members').doc(memberId);
+
+    memberRef.collection('transactions').add({
+        date: date,
+        product: product,
+        productKey: productKey,
+        description: description,
+        amount: amount,
+        status: status,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        if (status === 'Confirmed') {
+            var update = {
+                totalSavings: firebase.firestore.FieldValue.increment(amount)
+            };
+            update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(amount);
+            return memberRef.update(update);
+        }
+    }).then(function() {
+        document.getElementById('txDate-' + memberId).value = '';
+        document.getElementById('txDesc-' + memberId).value = '';
+        document.getElementById('txAmount-' + memberId).value = '';
+        loadTransactions(memberId);
+        loadMembers(); // refresh totals shown on the card
+    }).catch(function(error) {
+        alert('Failed to add transaction: ' + error.message);
+    });
+}
+
+function deleteTransaction(memberId, txId, amount, status, productKey) {
+    if (!confirm('Delete this transaction? This cannot be undone.')) {
+        return;
+    }
+
+    var memberRef = db.collection('members').doc(memberId);
+
+    memberRef.collection('transactions').doc(txId).delete()
+        .then(function() {
+            if (status === 'Confirmed') {
+                var update = {
+                    totalSavings: firebase.firestore.FieldValue.increment(-amount)
+                };
+                if (productKey) {
+                    update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(-amount);
+                }
+                return memberRef.update(update);
+            }
+        })
+        .then(function() {
+            loadTransactions(memberId);
+            loadMembers();
+        })
+        .catch(function(error) {
+            alert('Failed to delete transaction: ' + error.message);
+        });
+}
+
+// ---- CERTIFICATES ----
+function monthYearLabel(periodValue) {
+    // periodValue is "YYYY-MM" from <input type="month">
+    var parts = periodValue.split('-');
+    var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return months[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+}
+
+function loadCertificates(memberId) {
+    var container = document.getElementById('certList-' + memberId);
+    container.innerHTML = 'Loading certificates...';
+
+    db.collection('members').doc(memberId).collection('certificates')
+        .orderBy('issuedAt', 'desc')
+        .get()
+        .then(function(snapshot) {
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="color:#777; font-size:14px;">No certificates issued yet.</p>';
+                return;
+            }
+
+            var html = '<table style="width:100%; border-collapse:collapse; font-size:14px;">';
+            html += '<tr style="text-align:left; border-bottom:1px solid #ddd;">' +
+                    '<th style="padding:6px;">Period</th>' +
+                    '<th style="padding:6px;">Note</th>' +
+                    '<th style="padding:6px;"></th>' +
+                    '</tr>';
+
+            snapshot.forEach(function(doc) {
+                var c = doc.data();
+                html += '<tr style="border-bottom:1px solid #eee;">' +
+                    '<td style="padding:6px;">' + escapeHtml(c.period || '') + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(c.note || '') + '</td>' +
+                    '<td style="padding:6px;"><button style="padding:4px 10px; font-size:12px;" onclick="deleteCertificate(\'' + memberId + '\',\'' + doc.id + '\')">Delete</button></td>' +
+                    '</tr>';
+            });
+
+            html += '</table>';
+            container.innerHTML = html;
+        })
+        .catch(function(error) {
+            container.innerHTML = '<p style="color:#b3261e;">Unable to load certificates: ' + escapeHtml(error.message) + '</p>';
+        });
+}
+
+function issueCertificate(memberId) {
+    var periodValue = document.getElementById('certPeriod-' + memberId).value;
+    var note = document.getElementById('certNote-' + memberId).value.trim();
+
+    if (!periodValue) {
+        alert('Please select a month/year for this certificate.');
+        return;
+    }
+
+    var periodLabel = monthYearLabel(periodValue);
+
+    db.collection('members').doc(memberId).collection('certificates').add({
+        period: periodLabel,
+        note: note,
+        issuedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        document.getElementById('certPeriod-' + memberId).value = '';
+        document.getElementById('certNote-' + memberId).value = '';
+        loadCertificates(memberId);
+    }).catch(function(error) {
+        alert('Failed to issue certificate: ' + error.message);
+    });
+}
+
+function deleteCertificate(memberId, certId) {
+    if (!confirm('Delete this certificate? This cannot be undone.')) {
+        return;
+    }
+
+    db.collection('members').doc(memberId).collection('certificates').doc(certId).delete()
+        .then(function() {
+            loadCertificates(memberId);
+        })
+        .catch(function(error) {
+            alert('Failed to delete certificate: ' + error.message);
+        });
+}
+</script>
+
+</body>
+</html>

@@ -138,6 +138,18 @@ button.secondary {
     margin-bottom: 14px;
 }
 
+.member-card > details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.member-card > details > summary::after {
+    content: "▾ tap to view details";
+    display: block;
+    font-size: 12px;
+    color: #ff8c00;
+    margin-top: 6px;
+}
+
 .field-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -335,8 +347,13 @@ function loadMembers() {
             var card = document.createElement('div');
             card.className = 'member-card';
             card.innerHTML =
-                '<h3>' + escapeHtml(m.name || 'Unnamed') + '</h3>' +
-                '<div class="member-meta">' + escapeHtml(m.email || '') + ' · ' + escapeHtml(m.phone || '') + '</div>' +
+                '<details>' +
+                '<summary style="cursor:pointer; list-style:none;">' +
+                    '<h3 style="display:inline;">' + escapeHtml(m.name || 'Unnamed') + '</h3>' +
+                    ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">' + escapeHtml(m.status || 'Pending Review') + '</span>' +
+                    '<div class="member-meta">' + escapeHtml(m.email || '') + ' · ' + escapeHtml(m.phone || '') + '</div>' +
+                '</summary>' +
+                '<div style="margin-top:16px;">' +
                 '<div class="field-row">' +
                     '<div>' +
                         '<label>Occupation</label>' +
@@ -395,7 +412,7 @@ function loadMembers() {
                         '</select>' +
                     '</div>' +
                     '<div>' +
-                        '<label>Participation Shares</label>' +
+                        '<label>(MORE) Participation Shares</label>' +
                         '<input type="number" id="shares-' + id + '" value="' + (m.shares || 0) + '">' +
                     '</div>' +
                     '<div>' +
@@ -483,6 +500,9 @@ function loadMembers() {
                 '<button onclick="issueCertificate(\'' + id + '\')">Issue Certificate</button>' +
 
                 '<div id="certList-' + id + '" style="margin-top:16px;">Loading certificates...</div>' +
+
+                '</div>' +
+                '</details>' +
 
                 '</div>' +
                 '</details>';

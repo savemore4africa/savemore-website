@@ -247,6 +247,25 @@ This account is not authorized to access the admin panel.
 <button class="secondary" onclick="doLogout()">Log Out</button>
 </div>
 
+<div class="member-card" style="border-left-color:#ff8c00;">
+<h3 style="color:#ff8c00;">MORE Reference Value</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">
+Set using SAVEMORE's formula: ₦5n (where n = total paid applicants). This value is shown to members on their dashboard.
+</p>
+<div class="field-row">
+<div>
+<label>Reference Value per MORE (₦)</label>
+<input type="number" id="moreRefValue" placeholder="e.g. 195">
+</div>
+<div>
+<label>Total Paid Applicants (n) — optional, for your reference</label>
+<input type="number" id="moreApplicantCount" placeholder="e.g. 39">
+</div>
+</div>
+<button onclick="saveMoreSettings()">Save MORE Value</button>
+<span class="save-status" id="moreSaveStatus">✓ Saved</span>
+</div>
+
 <div id="membersList"></div>
 
 </div>
@@ -318,11 +337,41 @@ function checkAdminAndLoad(user) {
     db.collection('admins').doc(user.uid).get().then(function(doc) {
         if (doc.exists) {
             loadMembers();
+            loadMoreSettings();
         } else {
             showBox('notAuthBox');
         }
     }).catch(function() {
         showBox('notAuthBox');
+    });
+}
+
+function loadMoreSettings() {
+    db.collection('settings').doc('more').get().then(function(doc) {
+        if (doc.exists) {
+            var data = doc.data();
+            document.getElementById('moreRefValue').value = data.referenceValuePerUnit || '';
+            document.getElementById('moreApplicantCount').value = data.applicantCount || '';
+        }
+    }).catch(function(error) {
+        console.error('Unable to load MORE settings:', error);
+    });
+}
+
+function saveMoreSettings() {
+    var refValue = parseFloat(document.getElementById('moreRefValue').value) || 0;
+    var applicantCount = parseFloat(document.getElementById('moreApplicantCount').value) || 0;
+
+    db.collection('settings').doc('more').set({
+        referenceValuePerUnit: refValue,
+        applicantCount: applicantCount,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        var statusEl = document.getElementById('moreSaveStatus');
+        statusEl.style.display = 'inline';
+        setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
+    }).catch(function(error) {
+        alert('Failed to save MORE settings: ' + error.message);
     });
 }
 
@@ -351,7 +400,7 @@ function loadMembers() {
                 '<summary style="cursor:pointer; list-style:none;">' +
                     '<h3 style="display:inline;">' + escapeHtml(m.name || 'Unnamed') + '</h3>' +
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">' + escapeHtml(m.status || 'Pending Review') + '</span>' +
-                    '<div class="member-meta">' + escapeHtml(m.email || '') + ' · ' + escapeHtml(m.phone || '') + '</div>' +
+                    '<div class="member-meta">ID: ' + escapeHtml(m.memberId || 'not assigned') + ' · ' + escapeHtml(m.email || '') + ' · ' + escapeHtml(m.phone || '') + '</div>' +
                 '</summary>' +
                 '<div style="margin-top:16px;">' +
                 '<div class="field-row">' +
@@ -450,6 +499,14 @@ function loadMembers() {
                     '<div>' +
                         '<label>Date</label>' +
                         '<input type="date" id="txDate-' + id + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Type</label>' +
+                        '<select id="txType-' + id + '">' +
+                            '<option value="Deposit">Deposit</option>' +
+                            '<option value="Withdrawal">Withdrawal</option>' +
+                            '<option value="Adjustment">Adjustment</option>' +
+                        '</select>' +
                     '</div>' +
                     '<div>' +
                         '<label>Product</label>' +
@@ -612,7 +669,7 @@ function loadTransactions(memberId) {
     container.innerHTML = 'Loading transactions...';
 
     db.collection('members').doc(memberId).collection('transactions')
-        .orderBy('date', 'desc')
+        .orderBy('date', 'asc')
         .get()
         .then(function(snapshot) {
             if (snapshot.empty) {
@@ -620,25 +677,46 @@ function loadTransactions(memberId) {
                 return;
             }
 
-            var html = '<table style="width:100%; border-collapse:collapse; font-size:14px;">';
+            // Compute running balance chronologically (oldest first), only Confirmed entries affect balance
+            var runningBalance = 0;
+            var rows = [];
+            snapshot.forEach(function(doc) {
+                var t = doc.data();
+                var signed = (typeof t.signedAmount === 'number') ? t.signedAmount : (t.amount || 0);
+                if (t.status === 'Confirmed') {
+                    runningBalance += signed;
+                }
+                rows.push({ id: doc.id, data: t, balanceAfter: runningBalance });
+            });
+
+            rows.reverse(); // show newest first
+
+            var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
             html += '<tr style="text-align:left; border-bottom:1px solid #ddd;">' +
                     '<th style="padding:6px;">Date</th>' +
+                    '<th style="padding:6px;">Type</th>' +
+                    '<th style="padding:6px;">Reference</th>' +
                     '<th style="padding:6px;">Product</th>' +
                     '<th style="padding:6px;">Description</th>' +
                     '<th style="padding:6px;">Amount</th>' +
+                    '<th style="padding:6px;">Balance</th>' +
                     '<th style="padding:6px;">Status</th>' +
                     '<th style="padding:6px;"></th>' +
                     '</tr>';
 
-            snapshot.forEach(function(doc) {
-                var t = doc.data();
+            rows.forEach(function(row) {
+                var t = row.data;
+                var signed = (typeof t.signedAmount === 'number') ? t.signedAmount : (t.amount || 0);
                 html += '<tr style="border-bottom:1px solid #eee;">' +
                     '<td style="padding:6px;">' + escapeHtml(t.date || '') + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(t.type || 'Deposit') + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(t.reference || '—') + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.product || '—') + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.description || '') + '</td>' +
-                    '<td style="padding:6px;">₦' + (t.amount || 0).toLocaleString('en-NG') + '</td>' +
+                    '<td style="padding:6px;">' + (signed < 0 ? '-' : '') + '₦' + Math.abs(t.amount || 0).toLocaleString('en-NG') + '</td>' +
+                    '<td style="padding:6px;">₦' + row.balanceAfter.toLocaleString('en-NG') + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.status || '') + '</td>' +
-                    '<td style="padding:6px;"><button style="padding:4px 10px; font-size:12px;" onclick="deleteTransaction(\'' + memberId + '\',\'' + doc.id + '\',' + (t.amount || 0) + ',\'' + t.status + '\',\'' + (t.productKey || '') + '\')">Delete</button></td>' +
+                    '<td style="padding:6px;"><button style="padding:4px 10px; font-size:12px;" onclick="deleteTransaction(\'' + memberId + '\',\'' + row.id + '\',' + signed + ',\'' + t.status + '\',\'' + (t.productKey || '') + '\')">Delete</button></td>' +
                     '</tr>';
             });
 
@@ -650,35 +728,47 @@ function loadTransactions(memberId) {
         });
 }
 
+function generateReference() {
+    return 'TXN-' + Date.now().toString().slice(-8) + '-' + Math.floor(Math.random() * 900 + 100);
+}
+
 function addTransaction(memberId) {
     var date = document.getElementById('txDate-' + memberId).value;
+    var type = document.getElementById('txType-' + memberId).value;
     var product = document.getElementById('txProduct-' + memberId).value;
     var description = document.getElementById('txDesc-' + memberId).value.trim();
     var amount = parseFloat(document.getElementById('txAmount-' + memberId).value);
     var status = document.getElementById('txStatus-' + memberId).value;
     var productKey = PRODUCT_KEYS[product];
+    var reference = generateReference();
 
     if (!date || !description || isNaN(amount) || amount <= 0) {
         alert('Please fill in date, description, and a valid amount.');
         return;
     }
 
+    // Withdrawals reduce the balance; Deposits and positive Adjustments increase it
+    var signedAmount = (type === 'Withdrawal') ? -amount : amount;
+
     var memberRef = db.collection('members').doc(memberId);
 
     memberRef.collection('transactions').add({
         date: date,
+        type: type,
+        reference: reference,
         product: product,
         productKey: productKey,
         description: description,
         amount: amount,
+        signedAmount: signedAmount,
         status: status,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function() {
         if (status === 'Confirmed') {
             var update = {
-                totalSavings: firebase.firestore.FieldValue.increment(amount)
+                totalSavings: firebase.firestore.FieldValue.increment(signedAmount)
             };
-            update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(amount);
+            update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(signedAmount);
             return memberRef.update(update);
         }
     }).then(function() {
@@ -692,7 +782,7 @@ function addTransaction(memberId) {
     });
 }
 
-function deleteTransaction(memberId, txId, amount, status, productKey) {
+function deleteTransaction(memberId, txId, signedAmount, status, productKey) {
     if (!confirm('Delete this transaction? This cannot be undone.')) {
         return;
     }
@@ -703,10 +793,10 @@ function deleteTransaction(memberId, txId, amount, status, productKey) {
         .then(function() {
             if (status === 'Confirmed') {
                 var update = {
-                    totalSavings: firebase.firestore.FieldValue.increment(-amount)
+                    totalSavings: firebase.firestore.FieldValue.increment(-signedAmount)
                 };
                 if (productKey) {
-                    update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(-amount);
+                    update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(-signedAmount);
                 }
                 return memberRef.update(update);
             }

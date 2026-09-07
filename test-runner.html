@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAVEMORE | Automated Test Runner</title>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; line-height: 1.6; background: #f7f9f8; color: #222; }
+header { background: #075e3b; color: white; padding: 18px 6%; }
+header .logo { font-size: 22px; font-weight: bold; color: #ff8c00; }
+.banner { background: #fdecea; color: #b3261e; padding: 12px 6%; font-size: 13px; font-weight: bold; text-align: center; }
+main { max-width: 700px; margin: 30px auto; padding: 0 20px; }
+.box { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
+label { display: block; font-weight: bold; color: #075e3b; font-size: 14px; margin-bottom: 6px; }
+input { width: 100%; padding: 10px; margin-bottom: 14px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
+button { padding: 12px 20px; background: #ff8c00; color: white; border: none; border-radius: 25px; font-weight: bold; font-size: 14px; cursor: pointer; }
+button:disabled { background: #ccc; cursor: not-allowed; }
+.hidden { display: none !important; }
+.error-msg { background: #fdecea; color: #b3261e; padding: 10px 14px; border-radius: 8px; font-size: 14px; margin-bottom: 14px; display: none; }
+.result-row { padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
+.result-pass { background: #eef7f2; color: #075e3b; }
+.result-fail { background: #fdecea; color: #b3261e; }
+.result-info { background: #f0f0f0; color: #555; }
+</style>
+</head>
+
+<body>
+
+<header><div class="logo">SAVEMORE</div></header>
+<div class="banner">⚠ TESTING TOOL — not part of the production site. Do not link this page publicly. Delete or unlist it after use.</div>
+
+<main>
+
+<div class="box" id="loginBox">
+<h2 style="color:#075e3b; margin-bottom:15px;">Admin Login (required to run tests)</h2>
+<div class="error-msg" id="loginError"></div>
+<label for="adminEmail">Admin Email</label>
+<input type="email" id="adminEmail">
+<label for="adminPassword">Admin Password</label>
+<input type="password" id="adminPassword">
+<button onclick="doAdminLogin()">Log In &amp; Prepare Tests</button>
+</div>
+
+<div class="box hidden" id="runBox">
+<h2 style="color:#075e3b; margin-bottom:10px;">Ready to Run Automated Tests</h2>
+<p style="font-size:13px; color:#777; margin-bottom:15px;">
+This will create a temporary test member, run deposits/withdrawals/certificate/MORE checks against it, verify results, then clean up. Your real member data is not touched.
+</p>
+<button onclick="runAllTests()" id="runBtn">Run Automated Tests</button>
+</div>
+
+<div class="box hidden" id="resultsBox">
+<h2 style="color:#075e3b; margin-bottom:15px;">Results</h2>
+<div id="resultsList"></div>
+</div>
+
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBj8opxzN423qkwPGy5IhhxWHBPAZlwOJo",
+  authDomain: "savemore-portal.firebaseapp.com",
+  projectId: "savemore-portal",
+  storageBucket: "savemore-portal.firebasestorage.app",
+  messagingSenderId: "32261102803",
+  appId: "1:32261102803:web:82ad3eaf3eb3998621c826"
+};
+
+var primaryApp = firebase.initializeApp(firebaseConfig, "primary");
+var secondaryApp = firebase.initializeApp(firebaseConfig, "secondary");
+
+var primaryAuth = primaryApp.auth();
+var primaryDb = primaryApp.firestore();
+var secondaryAuth = secondaryApp.auth();
+var secondaryDb = secondaryApp.firestore();
+
+var testUid = null;
+var testEmail = 'test-' + Date.now() + '@savemoretest.local';
+var testPassword = 'TestPass' + Date.now() + '!';
+var savedMoreSettings = null;
+
+function logResult(label, passed, detail) {
+    var box = document.getElementById('resultsBox');
+    box.classList.remove('hidden');
+    var row = document.createElement('div');
+    row.className = 'result-row ' + (passed === null ? 'result-info' : (passed ? 'result-pass' : 'result-fail'));
+    var icon = passed === null ? 'ℹ️' : (passed ? '✅' : '❌');
+    row.textContent = icon + ' ' + label + (detail ? ' — ' + detail : '');
+    document.getElementById('resultsList').appendChild(row);
+}
+
+function doAdminLogin() {
+    var email = document.getElementById('adminEmail').value.trim();
+    var password = document.getElementById('adminPassword').value;
+    var errorEl = document.getElementById('loginError');
+    errorEl.style.display = 'none';
+
+    if (!email || !password) {
+        errorEl.textContent = 'Please enter your admin email and password.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    primaryAuth.signInWithEmailAndPassword(email, password)
+        .then(function(cred) {
+            return primaryDb.collection('admins').doc(cred.user.uid).get();
+        })
+        .then(function(doc) {
+            if (!doc.exists) {
+                errorEl.textContent = 'This account is not authorized as an admin.';
+                errorEl.style.display = 'block';
+                primaryAuth.signOut();
+                return;
+            }
+            document.getElementById('loginBox').classList.add('hidden');
+            document.getElementById('runBox').classList.remove('hidden');
+        })
+        .catch(function(error) {
+            errorEl.textContent = error.message;
+            errorEl.style.display = 'block';
+        });
+}
+
+function generateMemberId() {
+    var year = new Date().getFullYear();
+    var random = Math.floor(100000 + Math.random() * 900000);
+    return 'SM-' + year + '-' + random;
+}
+
+async function runAllTests() {
+    document.getElementById('runBtn').disabled = true;
+    document.getElementById('resultsList').innerHTML = '';
+    logResult('Starting automated test run', null, testEmail);
+
+    // 1. Create temporary test member account
+    try {
+        var cred = await secondaryAuth.createUserWithEmailAndPassword(testEmail, testPassword);
+        testUid = cred.user.uid;
+        await secondaryDb.collection('members').doc(testUid).set({
+            memberId: generateMemberId(),
+            name: 'Automated Test User',
+            phone: '00000000000',
+            email: testEmail,
+            product: 'Investment Savings Account',
+            occupation: 'Test',
+            dob: '2000-01-01',
+            bankName: 'Test Bank',
+            accountNumber: '0000000000',
+            accountName: 'Automated Test User',
+            nin: '00000000000',
+            residentialAddress: 'Test Address',
+            shopAddress: '',
+            nokName: 'Test NOK',
+            nokPhone: '00000000000',
+            totalSavings: 0,
+            shares: 3,
+            savingsByProduct: { investment: 0, emergency: 0, dollar: 0, challenge: 0 },
+            status: 'Active',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        logResult('Create test member account', true);
+    } catch (e) {
+        logResult('Create test member account', false, e.message);
+        finishTests();
+        return;
+    }
+
+    // 2. Admin can read the new member
+    try {
+        var readBack = await primaryDb.collection('members').doc(testUid).get();
+        logResult('Admin can read member record', readBack.exists);
+    } catch (e) {
+        logResult('Admin can read member record', false, e.message);
+    }
+
+    // 3. Admin adds a Deposit transaction
+    try {
+        await primaryDb.collection('members').doc(testUid).collection('transactions').add({
+            date: new Date().toISOString().slice(0, 10),
+            type: 'Deposit',
+            reference: 'TEST-DEP-' + Date.now(),
+            product: 'Investment Savings Account',
+            productKey: 'investment',
+            description: 'Automated test deposit',
+            amount: 5000,
+            signedAmount: 5000,
+            status: 'Confirmed',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await primaryDb.collection('members').doc(testUid).update({
+            totalSavings: firebase.firestore.FieldValue.increment(5000),
+            'savingsByProduct.investment': firebase.firestore.FieldValue.increment(5000)
+        });
+        logResult('Admin records a Deposit (₦5,000)', true);
+    } catch (e) {
+        logResult('Admin records a Deposit (₦5,000)', false, e.message);
+    }
+
+    // 4. Admin adds a Withdrawal transaction
+    try {
+        await primaryDb.collection('members').doc(testUid).collection('transactions').add({
+            date: new Date().toISOString().slice(0, 10),
+            type: 'Withdrawal',
+            reference: 'TEST-WD-' + Date.now(),
+            product: 'Investment Savings Account',
+            productKey: 'investment',
+            description: 'Automated test withdrawal',
+            amount: 2000,
+            signedAmount: -2000,
+            status: 'Confirmed',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await primaryDb.collection('members').doc(testUid).update({
+            totalSavings: firebase.firestore.FieldValue.increment(-2000),
+            'savingsByProduct.investment': firebase.firestore.FieldValue.increment(-2000)
+        });
+        logResult('Admin records a Withdrawal (₦2,000)', true);
+    } catch (e) {
+        logResult('Admin records a Withdrawal (₦2,000)', false, e.message);
+    }
+
+    // 5. Verify balance math is correct (5000 - 2000 = 3000)
+    try {
+        var afterTx = await primaryDb.collection('members').doc(testUid).get();
+        var total = afterTx.data().totalSavings;
+        logResult('Balance after deposit + withdrawal equals ₦3,000', total === 3000, 'actual: ₦' + total);
+    } catch (e) {
+        logResult('Balance verification', false, e.message);
+    }
+
+    // 6. Member can read their own transactions
+    try {
+        var txSnap = await secondaryDb.collection('members').doc(testUid).collection('transactions').get();
+        logResult('Member can read their own transaction history', txSnap.size === 2, txSnap.size + ' transaction(s) found');
+    } catch (e) {
+        logResult('Member can read their own transaction history', false, e.message);
+    }
+
+    // 7. MORE settings round-trip (backs up and restores your real value)
+    try {
+        var settingsDoc = await primaryDb.collection('settings').doc('more').get();
+        savedMoreSettings = settingsDoc.exists ? settingsDoc.data() : null;
+
+        await primaryDb.collection('settings').doc('more').set({
+            referenceValuePerUnit: 999,
+            applicantCount: 999,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        var memberReadOfSettings = await secondaryDb.collection('settings').doc('more').get();
+        logResult('Member can read MORE reference value', memberReadOfSettings.data().referenceValuePerUnit === 999);
+
+        // restore original value immediately
+        if (savedMoreSettings) {
+            await primaryDb.collection('settings').doc('more').set(savedMoreSettings);
+        } else {
+            await primaryDb.collection('settings').doc('more').delete();
+        }
+        logResult('Restored your real MORE settings after test', true);
+    } catch (e) {
+        logResult('MORE settings test', false, e.message);
+    }
+
+    // 8. Certificate issue + member read
+    try {
+        var certRef = await primaryDb.collection('members').doc(testUid).collection('certificates').add({
+            period: 'Test Period',
+            note: 'Automated test certificate',
+            issuedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        var certSnap = await secondaryDb.collection('members').doc(testUid).collection('certificates').get();
+        logResult('Certificate issued by admin, readable by member', certSnap.size === 1);
+    } catch (e) {
+        logResult('Certificate test', false, e.message);
+    }
+
+    // 9. Unauthorized access is blocked (sign out, try reading without auth)
+    try {
+        await secondaryAuth.signOut();
+        var deniedRead = false;
+        try {
+            await secondaryDb.collection('members').doc(testUid).get();
+        } catch (permError) {
+            deniedRead = true;
+        }
+        logResult('Unauthorized (logged-out) access is blocked', deniedRead);
+    } catch (e) {
+        logResult('Unauthorized access test', false, e.message);
+    }
+
+    // 10. Cleanup
+    await cleanupTestData();
+
+    logResult('Test run complete', null);
+    document.getElementById('runBtn').disabled = false;
+}
+
+async function cleanupTestData() {
+    try {
+        var memberRef = primaryDb.collection('members').doc(testUid);
+
+        var txSnap = await memberRef.collection('transactions').get();
+        for (var i = 0; i < txSnap.docs.length; i++) {
+            await txSnap.docs[i].ref.delete();
+        }
+
+        var certSnap = await memberRef.collection('certificates').get();
+        for (var j = 0; j < certSnap.docs.length; j++) {
+            await certSnap.docs[j].ref.delete();
+        }
+
+        try {
+            await memberRef.delete();
+            logResult('Cleaned up test member document', true);
+        } catch (delErr) {
+            logResult('Cleaned up test member document', false, 'Could not delete member doc — add "allow delete: if isAdmin();" under /members/{userId} in your Firestore rules, then delete this test record manually from the admins panel.');
+        }
+
+        // Re-sign-in as the test user to delete the auth account itself
+        try {
+            var reCred = await secondaryAuth.signInWithEmailAndPassword(testEmail, testPassword);
+            await reCred.user.delete();
+            logResult('Deleted temporary test login account', true);
+        } catch (authDelErr) {
+            logResult('Deleted temporary test login account', false, authDelErr.message);
+        }
+    } catch (e) {
+        logResult('Cleanup', false, e.message);
+    }
+}
+
+function finishTests() {
+    document.getElementById('runBtn').disabled = false;
+}
+</script>
+
+</body>
+</html>

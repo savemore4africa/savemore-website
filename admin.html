@@ -264,6 +264,21 @@ Set using SAVEMORE's formula: ₦5n (where n = total paid applicants). This valu
 </div>
 <button onclick="saveMoreSettings()">Save MORE Value</button>
 <span class="save-status" id="moreSaveStatus">✓ Saved</span>
+
+<div class="field-row" style="margin-top:18px; border-top:1px solid #eee; padding-top:14px;">
+<div>
+<label>Total MORE Supply</label>
+<div style="font-size:20px; font-weight:bold; color:#075e3b;">200</div>
+</div>
+<div>
+<label>Allotted to Members</label>
+<div style="font-size:20px; font-weight:bold; color:#075e3b;" id="moreAllotted">—</div>
+</div>
+<div>
+<label>Held by Moresales Venture</label>
+<div style="font-size:20px; font-weight:bold; color:#ff8c00;" id="moreRemaining">—</div>
+</div>
+</div>
 </div>
 
 <div id="membersList"></div>
@@ -276,6 +291,7 @@ Set using SAVEMORE's formula: ₦5n (where n = total paid applicants). This valu
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -290,6 +306,26 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// ---- EMAILJS CONFIG (fill these in — see setup instructions) ----
+var EMAILJS_PUBLIC_KEY = 'tQIFvSkFV_20xBJOd';
+var EMAILJS_SERVICE_ID = 'service_5vq4ugg';
+var EMAILJS_ACCOUNT_UPDATE_TEMPLATE_ID = 'template_jamuuwp';
+if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY.indexOf('YOUR_') !== 0) {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+}
+
+function notifyMemberAccountUpdate(memberEmail, memberName) {
+    if (typeof emailjs === 'undefined' || EMAILJS_PUBLIC_KEY.indexOf('YOUR_') === 0 || !memberEmail) {
+        return; // EmailJS not configured yet, or no email on file
+    }
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ACCOUNT_UPDATE_TEMPLATE_ID, {
+        to_email: memberEmail,
+        member_name: memberName
+    }).catch(function(error) {
+        console.error('Member notification email failed:', error);
+    });
+}
 
 function showBox(id) {
     ['loadingBox','loginBox','notAuthBox','adminPanel'].forEach(function(box) {
@@ -358,6 +394,11 @@ function loadMoreSettings() {
     });
 }
 
+function updateMoreCirculationDisplay(totalAllotted) {
+    document.getElementById('moreAllotted').textContent = totalAllotted;
+    document.getElementById('moreRemaining').textContent = Math.max(0, 200 - totalAllotted);
+}
+
 function saveMoreSettings() {
     var refValue = parseFloat(document.getElementById('moreRefValue').value) || 0;
     var applicantCount = parseFloat(document.getElementById('moreApplicantCount').value) || 0;
@@ -384,6 +425,13 @@ function loadMembers() {
         list.innerHTML = '';
         document.getElementById('memberCount').textContent = snapshot.size;
 
+        var totalAllotted = 0;
+        snapshot.forEach(function(doc) {
+            totalAllotted += (doc.data().shares || 0);
+        });
+        updateMoreCirculationDisplay(totalAllotted);
+        db.collection('settings').doc('more').set({ totalAllotted: totalAllotted }, { merge: true }).catch(function() {});
+
         if (snapshot.empty) {
             list.innerHTML = '<p>No members yet.</p>';
             return;
@@ -392,6 +440,7 @@ function loadMembers() {
         snapshot.forEach(function(doc) {
             var m = doc.data();
             var id = doc.id;
+            memberCache[id] = { email: m.email || '', name: m.name || 'Member' };
 
             var card = document.createElement('div');
             card.className = 'member-card';
@@ -561,6 +610,15 @@ function loadMembers() {
                 '</div>' +
                 '</details>' +
 
+                '<details ontoggle="if(this.open) loadSellRequestsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
+                '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Sell-Back Requests</summary>' +
+                '<div id="sellReqList-' + id + '" style="margin-top:14px;">Loading requests...</div>' +
+                '</details>' +
+
+                '<div style="margin-top:20px; border-top:1px solid #eee; padding-top:14px;">' +
+                '<button style="background:#b3261e;" onclick="deleteMember(\'' + id + '\', \'' + escapeHtml(m.name || 'this member').replace(/'/g, "\\'") + '\')">Delete Member</button>' +
+                '</div>' +
+
                 '</div>' +
                 '</details>';
 
@@ -580,6 +638,8 @@ function statusOption(current, value) {
     var selected = (current === value || (!current && value === 'Pending Review')) ? ' selected' : '';
     return '<option value="' + value + '"' + selected + '>' + value + '</option>';
 }
+
+var memberCache = {};
 
 var PRODUCT_KEYS = {
     'Investment Savings Account': 'investment',
@@ -652,6 +712,11 @@ function saveMember(id) {
         var statusEl = document.getElementById('saveStatus-' + id);
         statusEl.style.display = 'inline';
         setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
+
+        var cached = memberCache[id];
+        if (cached) {
+            notifyMemberAccountUpdate(cached.email, cached.name);
+        }
     }).catch(function(error) {
         alert('Failed to save: ' + error.message);
     });
@@ -891,6 +956,112 @@ function deleteCertificate(memberId, certId) {
         .catch(function(error) {
             alert('Failed to delete certificate: ' + error.message);
         });
+}
+
+// ---- SELL-BACK REQUESTS (ADMIN) ----
+function loadSellRequestsAdmin(memberId) {
+    var container = document.getElementById('sellReqList-' + memberId);
+    container.innerHTML = 'Loading requests...';
+
+    db.collection('members').doc(memberId).collection('sellRequests')
+        .orderBy('requestedAt', 'desc')
+        .get()
+        .then(function(snapshot) {
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="color:#777; font-size:14px;">No sell-back requests.</p>';
+                return;
+            }
+
+            var html = '';
+            snapshot.forEach(function(doc) {
+                var r = doc.data();
+                var actions = '';
+                if (r.status === 'Pending') {
+                    actions =
+                        '<button style="padding:4px 10px; font-size:12px;" onclick="approveSellRequest(\'' + memberId + '\',\'' + doc.id + '\',' + r.unitsRequested + ')">Approve</button> ' +
+                        '<button style="padding:4px 10px; font-size:12px; background:#999;" onclick="rejectSellRequest(\'' + memberId + '\',\'' + doc.id + '\')">Reject</button>';
+                }
+                html += '<div style="padding:10px; border-bottom:1px solid #eee; font-size:14px;">' +
+                    escapeHtml(r.unitsRequested + ' units') + ' — reference value at request: ₦' + (r.referenceValueAtRequest || 0).toLocaleString('en-NG') +
+                    ' — est. payout: ₦' + (r.estimatedPayout || 0).toLocaleString('en-NG') +
+                    ' — status: <strong>' + escapeHtml(r.status || 'Pending') + '</strong><br>' + actions +
+                    '</div>';
+            });
+
+            container.innerHTML = html;
+        })
+        .catch(function(error) {
+            container.innerHTML = '<p style="color:#b3261e;">Unable to load requests: ' + escapeHtml(error.message) + '</p>';
+        });
+}
+
+function approveSellRequest(memberId, requestId, units) {
+    if (!confirm('Approve this sell-back? This will reduce the member\'s MORE units by ' + units + ' and return them to Moresales Venture. Make sure payout has been arranged before approving.')) {
+        return;
+    }
+
+    var memberRef = db.collection('members').doc(memberId);
+
+    memberRef.collection('sellRequests').doc(requestId).update({
+        status: 'Approved',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        return memberRef.update({
+            shares: firebase.firestore.FieldValue.increment(-units)
+        });
+    }).then(function() {
+        loadSellRequestsAdmin(memberId);
+        loadMembers();
+        var cached = memberCache[memberId];
+        if (cached) {
+            notifyMemberAccountUpdate(cached.email, cached.name);
+        }
+    }).catch(function(error) {
+        alert('Failed to approve request: ' + error.message);
+    });
+}
+
+function rejectSellRequest(memberId, requestId) {
+    db.collection('members').doc(memberId).collection('sellRequests').doc(requestId).update({
+        status: 'Rejected',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        loadSellRequestsAdmin(memberId);
+    }).catch(function(error) {
+        alert('Failed to reject request: ' + error.message);
+    });
+}
+
+// ---- DELETE MEMBER ----
+async function deleteMember(memberId, memberName) {
+    var confirmed = confirm('Permanently delete ' + memberName + '\'s record, including all their transactions, certificates and sell requests? This cannot be undone.\n\nNote: this only removes their data record — their login account must be separately disabled in Firebase Console → Authentication → Users.');
+    if (!confirmed) return;
+
+    try {
+        var memberRef = db.collection('members').doc(memberId);
+
+        var txSnap = await memberRef.collection('transactions').get();
+        for (var i = 0; i < txSnap.docs.length; i++) {
+            await txSnap.docs[i].ref.delete();
+        }
+
+        var certSnap = await memberRef.collection('certificates').get();
+        for (var j = 0; j < certSnap.docs.length; j++) {
+            await certSnap.docs[j].ref.delete();
+        }
+
+        var sellSnap = await memberRef.collection('sellRequests').get();
+        for (var k = 0; k < sellSnap.docs.length; k++) {
+            await sellSnap.docs[k].ref.delete();
+        }
+
+        await memberRef.delete();
+
+        alert('Member record deleted. Remember to also remove their login from Firebase Console → Authentication → Users if needed.');
+        loadMembers();
+    } catch (error) {
+        alert('Failed to delete member: ' + error.message + '\n\nMake sure your Firestore rules include "allow delete: if isAdmin();" under the members match block.');
+    }
 }
 </script>
 

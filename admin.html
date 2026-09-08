@@ -250,6 +250,8 @@ This account is not authorized to access the admin panel.
 </div>
 </div>
 
+<div id="newMembersBanner" style="display:none; background:#fff4e5; color:#ff8c00; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:bold;"></div>
+
 <div class="member-card" style="border-left-color:#ff8c00;">
 <h3 style="color:#ff8c00;">MORE Reference Value</h3>
 <p style="font-size:13px; color:#777; margin-bottom:12px;">
@@ -372,17 +374,62 @@ function doLogout() {
     auth.signOut();
 }
 
+var newMemberIdsSinceLastLogin = new Set();
+
 function checkAdminAndLoad(user) {
     db.collection('admins').doc(user.uid).get().then(function(doc) {
         if (doc.exists) {
-            loadMembers();
-            loadMoreSettings();
+            var lastSeenAt = doc.data().lastSeenAt || null;
+
+            db.collection('members').get().then(function(snapshot) {
+                snapshot.forEach(function(d) {
+                    var createdAt = d.data().createdAt;
+                    if (lastSeenAt && createdAt && createdAt.toMillis() > lastSeenAt.toMillis()) {
+                        newMemberIdsSinceLastLogin.add(d.id);
+                    }
+                });
+
+                db.collection('admins').doc(user.uid).update({
+                    lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
+                }).catch(function() {});
+
+                loadMembers();
+                loadMoreSettings();
+            }).catch(function() {
+                loadMembers();
+                loadMoreSettings();
+            });
         } else {
             showBox('notAuthBox');
         }
     }).catch(function() {
         showBox('notAuthBox');
     });
+}
+
+function updateNewMembersBanner() {
+    var banner = document.getElementById('newMembersBanner');
+    if (!banner) return;
+    if (newMemberIdsSinceLastLogin.size > 0) {
+        banner.innerHTML = '🆕 ' + newMemberIdsSinceLastLogin.size + ' new member(s) registered since your last login — look for the orange "NEW" tag below.';
+        banner.style.display = 'block';
+    } else {
+        banner.style.display = 'none';
+    }
+}
+
+function checkPendingSellDot(memberId) {
+    db.collection('members').doc(memberId).collection('sellRequests')
+        .where('status', '==', 'Pending')
+        .limit(1)
+        .get()
+        .then(function(snapshot) {
+            var dotEl = document.getElementById('sellDot-' + memberId);
+            if (dotEl && !snapshot.empty) {
+                dotEl.innerHTML = ' <span title="Pending sell-back request" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#b3261e; margin-left:4px;"></span>';
+            }
+        })
+        .catch(function() {});
 }
 
 function loadMoreSettings() {
@@ -471,7 +518,7 @@ function loadMembers() {
     var list = document.getElementById('membersList');
     list.innerHTML = '<p>Loading members...</p>';
 
-    db.collection('members').get().then(function(snapshot) {
+    db.collection('members').orderBy('name').get().then(function(snapshot) {
         list.innerHTML = '';
         document.getElementById('memberCount').textContent = snapshot.size;
 
@@ -481,6 +528,8 @@ function loadMembers() {
         });
         updateMoreCirculationDisplay(totalAllotted);
         db.collection('settings').doc('more').set({ totalAllotted: totalAllotted }, { merge: true }).catch(function() {});
+
+        updateNewMembersBanner();
 
         if (snapshot.empty) {
             list.innerHTML = '<p>No members yet.</p>';
@@ -492,6 +541,9 @@ function loadMembers() {
             var id = doc.id;
             memberCache[id] = { email: m.email || '', name: m.name || 'Member' };
 
+            var isNew = newMemberIdsSinceLastLogin.has(id);
+            var newBadge = isNew ? ' <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:#ff8c00; color:white;">NEW</span>' : '';
+
             var card = document.createElement('div');
             card.className = 'member-card';
             card.innerHTML =
@@ -499,6 +551,9 @@ function loadMembers() {
                 '<summary style="cursor:pointer; list-style:none;">' +
                     '<h3 style="display:inline;">' + escapeHtml(m.name || 'Unnamed') + '</h3>' +
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">' + escapeHtml(m.status || 'Pending Review') + '</span>' +
+                    ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#fff4e5; color:#ff8c00;">MORE: ' + (m.shares || 0) + '</span>' +
+                    '<span id="sellDot-' + id + '"></span>' +
+                    newBadge +
                     '<div class="member-meta">ID: ' + escapeHtml(m.memberId || 'Not assigned') +
                         (m.memberId ? '' : ' <button style="padding:2px 10px; font-size:11px; margin-left:6px;" onclick="event.preventDefault(); event.stopPropagation(); assignMemberId(\'' + id + '\');">Generate ID</button>') +
                         ' · ' + escapeHtml(m.email || '') + ' · ' + escapeHtml(m.phone || '') + '</div>' +
@@ -675,6 +730,7 @@ function loadMembers() {
                 '</details>';
 
             list.appendChild(card);
+            checkPendingSellDot(id);
         });
     }).catch(function(error) {
         list.innerHTML = '<p>Unable to load members: ' + escapeHtml(error.message) + '</p>';

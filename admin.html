@@ -366,7 +366,7 @@ function doLogin() {
 
     auth.signInWithEmailAndPassword(email, password)
         .catch(function(error) {
-            showError('loginError', 'Incorrect email or password.');
+            showError('loginError', 'Login failed: ' + error.code + ' — ' + error.message);
         });
 }
 

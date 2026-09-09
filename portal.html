@@ -241,6 +241,10 @@ Loading...
 <input type="email" id="signupEmail" placeholder="you@example.com">
 <label for="signupPassword">Password</label>
 <input type="password" id="signupPassword" placeholder="Choose a password (min 6 characters)">
+<label style="display:flex; align-items:flex-start; gap:8px; font-weight:normal; font-size:13px; margin-bottom:16px;">
+<input type="checkbox" id="signupAgreeTerms" style="width:auto; margin-top:3px;">
+<span>I have read and agree to SAVEMORE's <a href="terms.html" target="_blank" style="color:#075e3b;">Terms & Conditions</a>, <a href="privacy.html" target="_blank" style="color:#075e3b;">Privacy Policy</a>, and <a href="risk.html" target="_blank" style="color:#075e3b;">Risk Disclosure</a>.</span>
+</label>
 <button onclick="doSignup()">Create Account</button>
 <button class="secondary" onclick="showLogin()">Already have an account? Log in</button>
 </div>
@@ -294,6 +298,26 @@ savings — it is not automatically converted or combined with them. The
 USDT selling price shown is set by SAVEMORE and may be updated from time
 to time; it does not affect your USDT balance itself.
 </p>
+
+<div style="margin-top:20px; padding:16px; background:#eef7f2; border-radius:10px;">
+<label for="wdProduct" style="display:block; font-weight:bold; color:#075e3b; margin-bottom:6px; font-size:14px;">Request a Withdrawal</label>
+<select id="wdProduct" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
+<option value="Investment Savings Account">Investment Savings Account</option>
+<option value="Emergency Savings Account">Emergency Savings Account</option>
+<option value="In-Dollar Savings Account">In-Dollar Savings Account</option>
+<option value="100 Days Savings Challenge">100 Days Savings Challenge</option>
+</select>
+<input type="number" id="wdAmount" placeholder="Amount to withdraw" min="1" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
+<input type="text" id="wdReason" placeholder="Reason (optional)" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
+<button onclick="requestWithdrawal()">Submit Withdrawal Request</button>
+<p style="font-size:12px; color:#777; margin-top:8px;">
+Withdrawal requests are reviewed by SAVEMORE according to the applicable
+product terms (including any lock-up period). You'll see the status
+update below once reviewed.
+</p>
+</div>
+
+<div id="withdrawalRequestsList" style="margin-top:14px;"></div>
 
 <h2 style="margin-top:30px; font-size:18px;">Savings Progress</h2>
 <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
@@ -425,6 +449,7 @@ function doSignup() {
     var nokPhone = document.getElementById('signupNokPhone').value.trim();
     var email = document.getElementById('signupEmail').value.trim();
     var password = document.getElementById('signupPassword').value;
+    var agreedTerms = document.getElementById('signupAgreeTerms').checked;
 
     if (!name || !phone || !product || !occupation || !dob || !bankName || !accountNumber || !accountName || !nin || !residentialAddress || !nokName || !nokPhone || !email || !password) {
         showError('signupError', 'Please fill in all required fields (Shop/Office Address is optional).');
@@ -432,6 +457,10 @@ function doSignup() {
     }
     if (password.length < 6) {
         showError('signupError', 'Password must be at least 6 characters.');
+        return;
+    }
+    if (!agreedTerms) {
+        showError('signupError', 'Please confirm you have read and agree to the Terms & Conditions, Privacy Policy, and Risk Disclosure.');
         return;
     }
 
@@ -458,6 +487,7 @@ function doSignup() {
                 totalSavings: 0,
                 shares: 0,
                 status: 'Pending Review',
+                agreedToTermsAt: firebase.firestore.FieldValue.serverTimestamp(),
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         })
@@ -582,6 +612,76 @@ function loadMoreValue(shares) {
 }
 
 // ---- SELL-BACK REQUESTS ----
+// ---- WITHDRAWAL REQUESTS ----
+function requestWithdrawal() {
+    var product = document.getElementById('wdProduct').value;
+    var amount = parseFloat(document.getElementById('wdAmount').value);
+    var reason = document.getElementById('wdReason').value.trim();
+
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid amount to withdraw.');
+        return;
+    }
+
+    var uid = auth.currentUser.uid;
+    var unit = (product === 'In-Dollar Savings Account') ? 'USDT' : '₦';
+
+    db.collection('members').doc(uid).collection('withdrawalRequests').add({
+        product: product,
+        amountRequested: amount,
+        unit: unit,
+        reason: reason,
+        status: 'Pending',
+        requestedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        document.getElementById('wdAmount').value = '';
+        document.getElementById('wdReason').value = '';
+        alert('Your withdrawal request has been submitted. SAVEMORE will review it according to the applicable product terms.');
+        loadWithdrawalRequests(uid);
+    }).catch(function(error) {
+        alert('Failed to submit request: ' + error.message);
+    });
+}
+
+function loadWithdrawalRequests(uid) {
+    var container = document.getElementById('withdrawalRequestsList');
+    container.innerHTML = '';
+
+    db.collection('members').doc(uid).collection('withdrawalRequests')
+        .orderBy('requestedAt', 'desc')
+        .get()
+        .then(function(snapshot) {
+            if (snapshot.empty) {
+                return;
+            }
+
+            var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+            html += '<tr style="text-align:left; border-bottom:1px solid #ddd;">' +
+                    '<th style="padding:6px;">Product</th>' +
+                    '<th style="padding:6px;">Amount</th>' +
+                    '<th style="padding:6px;">Status</th>' +
+                    '</tr>';
+
+            snapshot.forEach(function(doc) {
+                var r = doc.data();
+                var amountDisplay = (r.unit === 'USDT')
+                    ? (r.amountRequested || 0).toLocaleString('en-NG') + ' USDT'
+                    : '₦' + (r.amountRequested || 0).toLocaleString('en-NG');
+                html += '<tr style="border-bottom:1px solid #eee;">' +
+                    '<td style="padding:6px;">' + escapeHtml(r.product || '') + '</td>' +
+                    '<td style="padding:6px;">' + amountDisplay + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(r.status || 'Pending') + '</td>' +
+                    '</tr>';
+            });
+
+            html += '</table>';
+            container.innerHTML = html;
+        })
+        .catch(function() {
+            container.innerHTML = '';
+        });
+}
+
 function requestSellBack() {
     var units = parseInt(document.getElementById('sellUnits').value, 10);
 
@@ -705,6 +805,7 @@ function loadDashboard(user) {
             loadUsdtPriceDisplay();
             loadMoreValue(shares);
             loadSellRequests(user.uid);
+            loadWithdrawalRequests(user.uid);
 
             if (data.status === 'Pending Review') {
                 var info = document.getElementById('dashboardInfo');

@@ -480,6 +480,18 @@ function checkPendingSellDot(memberId) {
             }
         })
         .catch(function() {});
+
+    db.collection('members').doc(memberId).collection('withdrawalRequests')
+        .where('status', '==', 'Pending')
+        .limit(1)
+        .get()
+        .then(function(snapshot) {
+            var dotEl = document.getElementById('wdDot-' + memberId);
+            if (dotEl && !snapshot.empty) {
+                dotEl.innerHTML = ' <span title="Pending withdrawal request" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#ff8c00; margin-left:4px;"></span>';
+            }
+        })
+        .catch(function() {});
 }
 
 function loadMoreSettings() {
@@ -662,6 +674,7 @@ function loadMembers() {
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">Balance: ₦' + nairaBalanceSummary.toLocaleString('en-NG') + '</span>' +
                     usdtBadge +
                     '<span id="sellDot-' + id + '"></span>' +
+                    '<span id="wdDot-' + id + '"></span>' +
                     newBadge +
                     '<div class="member-meta">ID: ' + escapeHtml(m.memberId || 'Not assigned') +
                         (m.memberId ? '' : ' <button style="padding:2px 10px; font-size:11px; margin-left:6px;" onclick="event.preventDefault(); event.stopPropagation(); assignMemberId(\'' + id + '\');">Generate ID</button>') +
@@ -829,6 +842,11 @@ function loadMembers() {
                 '<details ontoggle="if(this.open) loadSellRequestsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
                 '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Sell-Back Requests</summary>' +
                 '<div id="sellReqList-' + id + '" style="margin-top:14px;">Loading requests...</div>' +
+                '</details>' +
+
+                '<details ontoggle="if(this.open) loadWithdrawalRequestsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
+                '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Withdrawal Requests</summary>' +
+                '<div id="wdReqList-' + id + '" style="margin-top:14px;">Loading requests...</div>' +
                 '</details>' +
 
                 '<div style="margin-top:20px; border-top:1px solid #eee; padding-top:14px;">' +
@@ -1274,6 +1292,108 @@ function rejectSellRequest(memberId, requestId) {
     });
 }
 
+// ---- WITHDRAWAL REQUESTS (ADMIN) ----
+function loadWithdrawalRequestsAdmin(memberId) {
+    var container = document.getElementById('wdReqList-' + memberId);
+    container.innerHTML = 'Loading requests...';
+
+    db.collection('members').doc(memberId).collection('withdrawalRequests')
+        .orderBy('requestedAt', 'desc')
+        .get()
+        .then(function(snapshot) {
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="color:#777; font-size:14px;">No withdrawal requests.</p>';
+                return;
+            }
+
+            var html = '';
+            snapshot.forEach(function(doc) {
+                var r = doc.data();
+                var amountDisplay = (r.unit === 'USDT')
+                    ? (r.amountRequested || 0).toLocaleString('en-NG') + ' USDT'
+                    : '₦' + (r.amountRequested || 0).toLocaleString('en-NG');
+                var actions = '';
+                if (r.status === 'Pending') {
+                    actions =
+                        '<button style="padding:4px 10px; font-size:12px;" onclick="approveWithdrawalRequest(\'' + memberId + '\',\'' + doc.id + '\')">Approve</button> ' +
+                        '<button style="padding:4px 10px; font-size:12px; background:#999;" onclick="rejectWithdrawalRequest(\'' + memberId + '\',\'' + doc.id + '\')">Reject</button>';
+                }
+                html += '<div style="padding:10px; border-bottom:1px solid #eee; font-size:14px;">' +
+                    escapeHtml(r.product || '') + ' — ' + amountDisplay +
+                    (r.reason ? (' — reason: ' + escapeHtml(r.reason)) : '') +
+                    ' — status: <strong>' + escapeHtml(r.status || 'Pending') + '</strong><br>' + actions +
+                    '</div>';
+            });
+
+            container.innerHTML = html;
+        })
+        .catch(function(error) {
+            container.innerHTML = '<p style="color:#b3261e;">Unable to load requests: ' + escapeHtml(error.message) + '</p>';
+        });
+}
+
+function approveWithdrawalRequest(memberId, requestId) {
+    var memberRef = db.collection('members').doc(memberId);
+
+    memberRef.collection('withdrawalRequests').doc(requestId).get().then(function(reqDoc) {
+        if (!reqDoc.exists) return;
+        var r = reqDoc.data();
+
+        if (!confirm('Approve this withdrawal of ' + (r.unit === 'USDT' ? r.amountRequested + ' USDT' : '₦' + r.amountRequested.toLocaleString('en-NG')) + ' for ' + r.product + '? This will record a Withdrawal transaction and reduce the member\'s balance. Make sure payout has been arranged before approving.')) {
+            return;
+        }
+
+        var productKey = PRODUCT_KEYS[r.product];
+        var signedAmount = -r.amountRequested;
+        var reference = generateReference();
+
+        memberRef.collection('transactions').add({
+            date: new Date().toISOString().slice(0, 10),
+            type: 'Withdrawal',
+            reference: reference,
+            product: r.product,
+            productKey: productKey,
+            description: 'Member-requested withdrawal' + (r.reason ? (' — ' + r.reason) : ''),
+            amount: r.amountRequested,
+            signedAmount: signedAmount,
+            status: 'Confirmed',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function() {
+            var update = {};
+            if (productKey !== 'dollar') {
+                update.totalSavings = firebase.firestore.FieldValue.increment(signedAmount);
+            }
+            update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(signedAmount);
+            return memberRef.update(update);
+        }).then(function() {
+            return memberRef.collection('withdrawalRequests').doc(requestId).update({
+                status: 'Approved',
+                resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }).then(function() {
+            loadWithdrawalRequestsAdmin(memberId);
+            loadMembers();
+            var cached = memberCache[memberId];
+            if (cached) {
+                notifyMemberAccountUpdate(cached.email, cached.name);
+            }
+        }).catch(function(error) {
+            alert('Failed to approve withdrawal: ' + error.message);
+        });
+    });
+}
+
+function rejectWithdrawalRequest(memberId, requestId) {
+    db.collection('members').doc(memberId).collection('withdrawalRequests').doc(requestId).update({
+        status: 'Rejected',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        loadWithdrawalRequestsAdmin(memberId);
+    }).catch(function(error) {
+        alert('Failed to reject request: ' + error.message);
+    });
+}
+
 // ---- DELETE MEMBER ----
 async function deleteMember(memberId, memberName) {
     var confirmed = confirm('Permanently delete ' + memberName + '\'s record, including all their transactions, certificates and sell requests? This cannot be undone.\n\nNote: this only removes their data record — their login account must be separately disabled in Firebase Console → Authentication → Users.');
@@ -1295,6 +1415,11 @@ async function deleteMember(memberId, memberName) {
         var sellSnap = await memberRef.collection('sellRequests').get();
         for (var k = 0; k < sellSnap.docs.length; k++) {
             await sellSnap.docs[k].ref.delete();
+        }
+
+        var wdSnap = await memberRef.collection('withdrawalRequests').get();
+        for (var w = 0; w < wdSnap.docs.length; w++) {
+            await wdSnap.docs[w].ref.delete();
         }
 
         await memberRef.delete();

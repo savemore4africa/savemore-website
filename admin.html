@@ -366,7 +366,10 @@ function doLogin() {
 
     auth.signInWithEmailAndPassword(email, password)
         .catch(function(error) {
-            showError('loginError', 'Login failed: ' + error.code + ' — ' + error.message);
+            var friendlyMsg = (error.code === 'auth/network-request-failed')
+        ? 'Unable to reach the server. Please check your internet connection and try again.'
+        : 'Incorrect email or password.';
+    showError('loginError', friendlyMsg);
         });
 }
 

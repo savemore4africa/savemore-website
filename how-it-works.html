@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How SAVEMORE Handles Your Savings | SAVEMORE</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; line-height: 1.7; background: #f7f9f8; color: #222; }
+header { background: #075e3b; color: white; padding: 18px 6%; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; position: sticky; top: 0; z-index: 100; }
+.logo { font-size: 24px; font-weight: bold; color: #ff8c00; text-decoration: none; }
+nav a { color: white; text-decoration: none; margin-left: 14px; font-size: 13px; }
+main { max-width: 850px; margin: 0 auto; padding: 45px 6% 70px; }
+h1 { color: #075e3b; font-size: 30px; margin-bottom: 8px; }
+.updated { color: #777; font-size: 13px; margin-bottom: 30px; }
+h2 { color: #075e3b; font-size: 20px; margin: 32px 0 10px; }
+h3 { color: #075e3b; font-size: 16px; margin: 20px 0 8px; }
+p, li { font-size: 15px; margin-bottom: 10px; }
+ul, ol { margin-left: 22px; margin-bottom: 12px; }
+.callout { background: #eef7f2; border-left: 4px solid #075e3b; padding: 14px 18px; border-radius: 8px; margin: 18px 0; font-size: 14px; }
+.warn { background: #fff4e5; border-left: 4px solid #ff8c00; padding: 14px 18px; border-radius: 8px; margin: 18px 0; font-size: 14px; }
+.steps-list { counter-reset: step; list-style: none; margin-left: 0; }
+.steps-list li { counter-increment: step; margin-bottom: 16px; padding-left: 45px; position: relative; }
+.steps-list li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 0;
+    width: 30px; height: 30px;
+    background: #075e3b; color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 14px;
+}
+.button { display: inline-block; margin-top: 15px; padding: 12px 22px; background: #ff8c00; color: white; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 14px; }
+footer { background: #063d28; color: white; text-align: center; padding: 25px; font-size: 13px; }
+footer a { color: rgba(255,255,255,0.75); text-decoration: none; margin: 0 8px; }
+footer .legal-links { margin-top: 12px; font-size: 12px; }
+footer .legal-links a { display: inline-block; margin: 4px 8px; }
+@media(max-width: 700px) {
+    header { flex-direction: column; align-items: flex-start; }
+    nav a { margin: 4px 8px 4px 0; }
+}
+</style>
+</head>
+<body>
+
+<header>
+<a href="index.html" class="logo">SAVEMORE</a>
+<nav>
+<a href="index.html">Home</a>
+<a href="index.html#products">Products</a>
+<a href="index.html#more">MORE</a>
+<a href="portal.html">Member Portal</a>
+</nav>
+</header>
+
+<main>
+
+<h1>How SAVEMORE Handles Your Savings</h1>
+<p class="updated">Last updated: September 2026</p>
+
+<p>
+We believe members should clearly understand what happens to their money
+from the moment they join SAVEMORE. Here is the process, step by step.
+</p>
+
+<h2>The Savings Process</h2>
+<ol class="steps-list">
+<li>You create a SAVEMORE member account through the Member Portal.</li>
+<li>You complete the applicable KYC requirements, including identification and next of kin details.</li>
+<li>You select a savings product: Investment Savings, Emergency Savings, In-Dollar Savings, or the 100 Days Savings Challenge.</li>
+<li>You make a contribution/deposit according to the terms of your chosen product.</li>
+<li>SAVEMORE records the transaction, including the date, amount, and product.</li>
+<li>Your savings balance is updated and reflected on your Member Portal dashboard.</li>
+<li>You can monitor your account at any time and request a withdrawal according to the applicable product terms.</li>
+</ol>
+
+<h2>How the In-Dollar Savings Account Works</h2>
+<div class="warn">
+This section explains a mechanism that involves currency exchange-rate
+risk. Please read it carefully before choosing this product.
+</div>
+<ul>
+<li>When you deposit into the In-Dollar Savings Account, SAVEMORE uses that deposit to acquire USDT (a US-dollar-pegged digital asset) at the applicable rate at the time of your deposit.</li>
+<li>Your savings are then held in this USDT-equivalent form.</li>
+<li>When you request a withdrawal, the USDT is sold at the applicable rate at that time.</li>
+<li>Because exchange rates move over time, the naira value you receive at withdrawal may be different — higher or lower — than the naira amount you originally deposited.</li>
+</ul>
+<p>
+This is not a guaranteed-return product. Its value depends on movements in
+the exchange rate between the time of deposit and the time of withdrawal.
+</p>
+
+<h2>How Other Products Work</h2>
+<p>
+The Investment Savings Account, Emergency Savings Account, and 100 Days
+Savings Challenge operate on a straightforward record-keeping basis: your
+contributions are recorded by SAVEMORE in naira, and your balance grows as
+you contribute, according to the minimum amounts, lock-up periods, and
+durations of each product (see our
+<a href="fees.html">Fees & Charges</a> page for specific figures).
+</p>
+
+<h2>Transparency Through the Member Portal</h2>
+<p>
+Every confirmed transaction is recorded and visible to you on your Member
+Portal dashboard, including the date, product, description, amount, and
+your running balance. You can also download a receipt for confirmed
+transactions.
+</p>
+
+<a href="portal.html" class="button">Go to Member Portal</a>
+
+</main>
+
+<footer>
+<p>© 2026 SAVEMORE. All Rights Reserved.</p>
+<p>Saving Today, Building Tomorrow.</p>
+<div class="legal-links">
+<a href="terms.html">Terms & Conditions</a> |
+<a href="privacy.html">Privacy Policy</a> |
+<a href="fees.html">Fees & Charges</a> |
+<a href="risk.html">Risk Disclosure</a> |
+<a href="how-it-works.html">How Your Money Is Handled</a> |
+<a href="index.html#kyc">KYC</a>
+</div>
+<p style="margin-top: 15px;">
+<a href="admin.html" style="color: rgba(255,255,255,0.35); text-decoration: none; font-size: 11px;">Staff Login</a>
+</p>
+</footer>
+
+</body>
+</html>

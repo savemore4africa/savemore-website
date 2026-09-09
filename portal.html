@@ -279,14 +279,21 @@ To correct any of this information, please contact SAVEMORE on WhatsApp — prof
 <h2 style="margin-top:30px; font-size:18px;">My Savings</h2>
 <div class="dashboard-row"><span>Investment Savings</span><span id="dashInvestment">₦0</span></div>
 <div class="dashboard-row"><span>Emergency Savings</span><span id="dashEmergency">₦0</span></div>
-<div class="dashboard-row"><span>In-Dollar Savings (₦ equiv.)</span><span id="dashDollar">₦0</span></div>
-<p style="font-size:12px; color:#888; margin: -6px 0 10px;">
-In-Dollar Savings deposits are used by SAVEMORE to acquire USDT at
-the time of deposit, and converted back at the applicable rate at
-withdrawal. The figure above is the current ₦ equivalent on record.
-</p>
 <div class="dashboard-row"><span>100 Days Challenge</span><span id="dashChallenge">₦0</span></div>
-<div class="dashboard-row"><span><strong>Total Savings</strong></span><span id="dashSavings"><strong>₦0</strong></span></div>
+<div class="dashboard-row"><span><strong>Total Savings (Naira Accounts)</strong></span><span id="dashSavings"><strong>₦0</strong></span></div>
+
+<h2 style="margin-top:30px; font-size:18px;">In-Dollar Savings Account</h2>
+<div class="dashboard-row"><span>My USDT Balance</span><span id="dashDollar">0 USDT</span></div>
+<div class="dashboard-row"><span>Current USDT Price</span><span id="dashUsdtPrice">Not set yet</span></div>
+<div class="dashboard-row"><span>Price Last Updated</span><span id="dashUsdtUpdated">—</span></div>
+<p style="font-size:12px; color:#888; margin: 6px 0 0;">
+In-Dollar Savings deposits are used by SAVEMORE to acquire USDT at the
+time of deposit, and sold at the applicable rate at withdrawal. Your
+balance above is shown in USDT and is kept separate from your naira
+savings — it is not automatically converted or combined with them. The
+USDT selling price shown is set by SAVEMORE and may be updated from time
+to time; it does not affect your USDT balance itself.
+</p>
 
 <h2 style="margin-top:30px; font-size:18px;">Savings Progress</h2>
 <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
@@ -534,6 +541,26 @@ function toggleSensitiveInfo() {
 var currentSharesHeld = 0;
 var currentMoreRefValue = 0;
 
+function loadUsdtPriceDisplay() {
+    db.collection('settings').doc('usdt').get().then(function(doc) {
+        if (doc.exists) {
+            var data = doc.data();
+            var price = data.pricePerUsdt || 0;
+            if (price > 0) {
+                document.getElementById('dashUsdtPrice').textContent = '₦' + price.toLocaleString('en-NG') + ' / USDT';
+            } else {
+                document.getElementById('dashUsdtPrice').textContent = 'Not set yet';
+            }
+            if (data.updatedAt) {
+                var d = data.updatedAt.toDate();
+                document.getElementById('dashUsdtUpdated').textContent = d.toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
+            }
+        }
+    }).catch(function() {
+        document.getElementById('dashUsdtPrice').textContent = '—';
+    });
+}
+
 function loadMoreValue(shares) {
     currentSharesHeld = shares;
     db.collection('settings').doc('more').get().then(function(doc) {
@@ -656,25 +683,26 @@ function loadDashboard(user) {
             var emergency = prod.emergency || 0;
             var dollar = prod.dollar || 0;
             var challenge = prod.challenge || 0;
-            var total = investment + emergency + dollar + challenge;
+            var nairaTotal = investment + emergency + challenge; // USDT kept separate — never combined
             var goal = data.savingsGoal || 0;
 
             document.getElementById('dashInvestment').textContent = '₦' + investment.toLocaleString('en-NG');
             document.getElementById('dashEmergency').textContent = '₦' + emergency.toLocaleString('en-NG');
-            document.getElementById('dashDollar').textContent = '₦' + dollar.toLocaleString('en-NG');
+            document.getElementById('dashDollar').textContent = dollar.toLocaleString('en-NG') + ' USDT';
             document.getElementById('dashChallenge').textContent = '₦' + challenge.toLocaleString('en-NG');
-            document.getElementById('dashSavings').innerHTML = '<strong>₦' + total.toLocaleString('en-NG') + '</strong>';
+            document.getElementById('dashSavings').innerHTML = '<strong>₦' + nairaTotal.toLocaleString('en-NG') + '</strong>';
 
             if (goal > 0) {
-                var pct = Math.min(100, Math.round((total / goal) * 100));
+                var pct = Math.min(100, Math.round((nairaTotal / goal) * 100));
                 document.getElementById('progressFill').style.width = pct + '%';
                 document.getElementById('progressLabel').textContent =
-                    '₦' + total.toLocaleString('en-NG') + ' / ₦' + goal.toLocaleString('en-NG') + ' (' + pct + '%)';
+                    '₦' + nairaTotal.toLocaleString('en-NG') + ' / ₦' + goal.toLocaleString('en-NG') + ' (' + pct + '%)';
             } else {
                 document.getElementById('progressFill').style.width = '0%';
                 document.getElementById('progressLabel').textContent = 'No savings goal set yet — contact SAVEMORE to set one.';
             }
 
+            loadUsdtPriceDisplay();
             loadMoreValue(shares);
             loadSellRequests(user.uid);
 
@@ -712,16 +740,23 @@ function loadTransactionHistory(uid) {
             }
 
             // Compute running balance chronologically, then show newest first
-            var runningBalance = 0;
+            // Naira and USDT balances are tracked SEPARATELY — never mixed
+            var runningBalanceNaira = 0;
+            var runningBalanceUsdt = 0;
             var rows = [];
             snapshot.forEach(function(doc) {
                 var t = doc.data();
                 currentTransactions[doc.id] = t;
                 var signed = (typeof t.signedAmount === 'number') ? t.signedAmount : (t.amount || 0);
+                var isUsdt = (t.product === 'In-Dollar Savings Account');
                 if (t.status === 'Confirmed') {
-                    runningBalance += signed;
+                    if (isUsdt) {
+                        runningBalanceUsdt += signed;
+                    } else {
+                        runningBalanceNaira += signed;
+                    }
                 }
-                rows.push({ id: doc.id, data: t, balanceAfter: runningBalance });
+                rows.push({ id: doc.id, data: t, balanceAfter: isUsdt ? runningBalanceUsdt : runningBalanceNaira, isUsdt: isUsdt });
             });
             rows.reverse();
 
@@ -744,14 +779,20 @@ function loadTransactionHistory(uid) {
                 var receiptBtn = (t.status === 'Confirmed')
                     ? '<button style="padding:4px 10px; font-size:12px;" onclick="downloadReceipt(\'' + row.id + '\')">Receipt</button>'
                     : '';
+                var amountDisplay = row.isUsdt
+                    ? (signed < 0 ? '-' : '') + Math.abs(t.amount || 0).toLocaleString('en-NG') + ' USDT'
+                    : (signed < 0 ? '-' : '') + '₦' + Math.abs(t.amount || 0).toLocaleString('en-NG');
+                var balanceDisplay = row.isUsdt
+                    ? row.balanceAfter.toLocaleString('en-NG') + ' USDT'
+                    : '₦' + row.balanceAfter.toLocaleString('en-NG');
                 html += '<tr style="border-bottom:1px solid #eee;">' +
                     '<td style="padding:6px;">' + escapeHtml(t.date || '') + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.type || 'Deposit') + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.reference || '—') + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.product || '—') + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.description || '') + '</td>' +
-                    '<td style="padding:6px;">' + (signed < 0 ? '-' : '') + '₦' + Math.abs(t.amount || 0).toLocaleString('en-NG') + '</td>' +
-                    '<td style="padding:6px;">₦' + row.balanceAfter.toLocaleString('en-NG') + '</td>' +
+                    '<td style="padding:6px;">' + amountDisplay + '</td>' +
+                    '<td style="padding:6px;">' + balanceDisplay + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.status || '') + '</td>' +
                     '<td style="padding:6px;">' + receiptBtn + '</td>' +
                     '</tr>';
@@ -815,13 +856,17 @@ function downloadReceipt(txId) {
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
 
+    var amountLabel = (t.product === 'In-Dollar Savings Account')
+        ? (t.amount || 0).toLocaleString('en-NG') + ' USDT'
+        : '₦' + (t.amount || 0).toLocaleString('en-NG');
+
     var lines = [
         ['Receipt Reference:', txId],
         ['Member Name:', currentMemberName],
         ['Date:', t.date || '—'],
         ['Savings Product:', t.product || '—'],
         ['Description:', t.description || '—'],
-        ['Amount:', '₦' + (t.amount || 0).toLocaleString('en-NG')],
+        ['Amount:', amountLabel],
         ['Status:', t.status || '—']
     ];
 

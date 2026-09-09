@@ -286,6 +286,51 @@ Set using SAVEMORE's formula: ₦5n (where n = total paid applicants). This valu
 </div>
 </div>
 
+<div class="member-card" style="border-left-color:#075e3b;">
+<h3 style="color:#075e3b;">Total Balances by Product</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">
+Naira savings and USDT savings are kept separate and are never combined.
+</p>
+<div class="field-row">
+<div>
+<label>Investment Savings Account</label>
+<div style="font-size:18px; font-weight:bold; color:#075e3b;" id="totalInvestment">₦0</div>
+</div>
+<div>
+<label>Emergency Savings Account</label>
+<div style="font-size:18px; font-weight:bold; color:#075e3b;" id="totalEmergency">₦0</div>
+</div>
+<div>
+<label>100 Days Savings Challenge</label>
+<div style="font-size:18px; font-weight:bold; color:#075e3b;" id="totalChallenge">₦0</div>
+</div>
+<div>
+<label>In-Dollar Savings Account</label>
+<div style="font-size:18px; font-weight:bold; color:#3346a8;" id="totalDollar">0 USDT</div>
+</div>
+</div>
+</div>
+
+<div class="member-card" style="border-left-color:#3346a8;">
+<h3 style="color:#3346a8;">USDT Selling Price</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">
+This is a price you set manually — not an automatically calculated market
+price. It is shown to members on their dashboard.
+</p>
+<div class="field-row">
+<div>
+<label>USDT Selling Price (₦ per USDT)</label>
+<input type="number" id="usdtPrice" placeholder="e.g. 1550">
+</div>
+<div>
+<label>Last Updated</label>
+<div style="font-size:14px; color:#555; padding-top:8px;" id="usdtPriceUpdated">Not set yet</div>
+</div>
+</div>
+<button onclick="saveUsdtPrice()">Save USDT Price</button>
+<span class="save-status" id="usdtSaveStatus">✓ Saved</span>
+</div>
+
 <div id="membersList"></div>
 
 </div>
@@ -398,9 +443,11 @@ function checkAdminAndLoad(user) {
 
                 loadMembers();
                 loadMoreSettings();
+                loadUsdtPrice();
             }).catch(function() {
                 loadMembers();
                 loadMoreSettings();
+                loadUsdtPrice();
             });
         } else {
             showBox('notAuthBox');
@@ -444,6 +491,41 @@ function loadMoreSettings() {
         }
     }).catch(function(error) {
         console.error('Unable to load MORE settings:', error);
+    });
+}
+
+function loadUsdtPrice() {
+    db.collection('settings').doc('usdt').get().then(function(doc) {
+        if (doc.exists) {
+            var data = doc.data();
+            document.getElementById('usdtPrice').value = data.pricePerUsdt || '';
+            if (data.updatedAt) {
+                var d = data.updatedAt.toDate();
+                document.getElementById('usdtPriceUpdated').textContent = d.toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
+            }
+        }
+    }).catch(function(error) {
+        console.error('Unable to load USDT price:', error);
+    });
+}
+
+function saveUsdtPrice() {
+    var price = parseFloat(document.getElementById('usdtPrice').value);
+    if (isNaN(price) || price <= 0) {
+        alert('Please enter a valid USDT price.');
+        return;
+    }
+
+    db.collection('settings').doc('usdt').set({
+        pricePerUsdt: price,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        var statusEl = document.getElementById('usdtSaveStatus');
+        statusEl.style.display = 'inline';
+        setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
+        loadUsdtPrice();
+    }).catch(function(error) {
+        alert('Failed to save USDT price: ' + error.message);
     });
 }
 
@@ -526,11 +608,26 @@ function loadMembers() {
         document.getElementById('memberCount').textContent = snapshot.size;
 
         var totalAllotted = 0;
+        var sumInvestment = 0;
+        var sumEmergency = 0;
+        var sumChallenge = 0;
+        var sumDollar = 0;
         snapshot.forEach(function(doc) {
-            totalAllotted += (doc.data().shares || 0);
+            var d = doc.data();
+            totalAllotted += (d.shares || 0);
+            var p = d.savingsByProduct || {};
+            sumInvestment += (p.investment || 0);
+            sumEmergency += (p.emergency || 0);
+            sumChallenge += (p.challenge || 0);
+            sumDollar += (p.dollar || 0);
         });
         updateMoreCirculationDisplay(totalAllotted);
         db.collection('settings').doc('more').set({ totalAllotted: totalAllotted }, { merge: true }).catch(function() {});
+
+        document.getElementById('totalInvestment').textContent = '₦' + sumInvestment.toLocaleString('en-NG');
+        document.getElementById('totalEmergency').textContent = '₦' + sumEmergency.toLocaleString('en-NG');
+        document.getElementById('totalChallenge').textContent = '₦' + sumChallenge.toLocaleString('en-NG');
+        document.getElementById('totalDollar').textContent = sumDollar.toLocaleString('en-NG') + ' USDT';
 
         updateNewMembersBanner();
 
@@ -547,6 +644,13 @@ function loadMembers() {
             var isNew = newMemberIdsSinceLastLogin.has(id);
             var newBadge = isNew ? ' <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:#ff8c00; color:white;">NEW</span>' : '';
 
+            var prodSummary = m.savingsByProduct || {};
+            var nairaBalanceSummary = (prodSummary.investment || 0) + (prodSummary.emergency || 0) + (prodSummary.challenge || 0);
+            var usdtBalanceSummary = prodSummary.dollar || 0;
+            var usdtBadge = usdtBalanceSummary > 0
+                ? ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef2ff; color:#3346a8;">USDT: ' + usdtBalanceSummary.toLocaleString('en-NG') + '</span>'
+                : '';
+
             var card = document.createElement('div');
             card.className = 'member-card';
             card.innerHTML =
@@ -555,6 +659,8 @@ function loadMembers() {
                     '<h3 style="display:inline;">' + escapeHtml(m.name || 'Unnamed') + '</h3>' +
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">' + escapeHtml(m.status || 'Pending Review') + '</span>' +
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#fff4e5; color:#ff8c00;">MORE: ' + (m.shares || 0) + '</span>' +
+                    ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">Balance: ₦' + nairaBalanceSummary.toLocaleString('en-NG') + '</span>' +
+                    usdtBadge +
                     '<span id="sellDot-' + id + '"></span>' +
                     newBadge +
                     '<div class="member-meta">ID: ' + escapeHtml(m.memberId || 'Not assigned') +
@@ -638,7 +744,7 @@ function loadMembers() {
                         '<input type="number" id="prod-emergency-' + id + '" value="' + ((m.savingsByProduct && m.savingsByProduct.emergency) || 0) + '">' +
                     '</div>' +
                     '<div>' +
-                        '<label>In-Dollar Savings (₦ equiv.)</label>' +
+                        '<label>In-Dollar Savings (USDT)</label>' +
                         '<input type="number" id="prod-dollar-' + id + '" value="' + ((m.savingsByProduct && m.savingsByProduct.dollar) || 0) + '">' +
                     '</div>' +
                     '<div>' +
@@ -669,7 +775,7 @@ function loadMembers() {
                     '</div>' +
                     '<div>' +
                         '<label>Product</label>' +
-                        '<select id="txProduct-' + id + '">' +
+                        '<select id="txProduct-' + id + '" onchange="updateTxAmountLabel(\'' + id + '\')">' +
                             '<option value="Investment Savings Account">Investment Savings Account</option>' +
                             '<option value="Emergency Savings Account">Emergency Savings Account</option>' +
                             '<option value="In-Dollar Savings Account">In-Dollar Savings Account</option>' +
@@ -681,7 +787,7 @@ function loadMembers() {
                         '<input type="text" id="txDesc-' + id + '" placeholder="e.g. Weekly savings">' +
                     '</div>' +
                     '<div>' +
-                        '<label>Amount (₦)</label>' +
+                        '<label>Amount (<span id="txAmountUnit-' + id + '">₦</span>)</label>' +
                         '<input type="number" id="txAmount-' + id + '" placeholder="e.g. 1000">' +
                     '</div>' +
                     '<div>' +
@@ -761,7 +867,7 @@ var PRODUCT_KEYS = {
 
 function computeTotal(m) {
     var p = m.savingsByProduct || {};
-    return (p.investment || 0) + (p.emergency || 0) + (p.dollar || 0) + (p.challenge || 0);
+    return (p.investment || 0) + (p.emergency || 0) + (p.challenge || 0); // naira accounts only — USDT (p.dollar) kept separate
 }
 
 function progressBarHtml(m) {
@@ -796,7 +902,7 @@ function saveMember(id) {
     var shopAddress = document.getElementById('shopAddress-' + id).value.trim();
     var nokName = document.getElementById('nokName-' + id).value.trim();
     var nokPhone = document.getElementById('nokPhone-' + id).value.trim();
-    var total = pInvestment + pEmergency + pDollar + pChallenge;
+    var total = pInvestment + pEmergency + pChallenge; // naira accounts only — USDT (pDollar) kept separate
 
     db.collection('members').doc(id).update({
         product: product,
@@ -840,6 +946,19 @@ function escapeHtml(str) {
 }
 
 // ---- TRANSACTIONS ----
+function updateTxAmountLabel(id) {
+    var product = document.getElementById('txProduct-' + id).value;
+    var unitEl = document.getElementById('txAmountUnit-' + id);
+    unitEl.textContent = (product === 'In-Dollar Savings Account') ? 'USDT' : '₦';
+}
+
+function formatAmountByProduct(product, amount) {
+    if (product === 'In-Dollar Savings Account') {
+        return amount.toLocaleString('en-NG') + ' USDT';
+    }
+    return '₦' + amount.toLocaleString('en-NG');
+}
+
 function loadTransactions(memberId) {
     var container = document.getElementById('txList-' + memberId);
     container.innerHTML = 'Loading transactions...';
@@ -854,15 +973,22 @@ function loadTransactions(memberId) {
             }
 
             // Compute running balance chronologically (oldest first), only Confirmed entries affect balance
-            var runningBalance = 0;
+            // Naira and USDT balances are tracked SEPARATELY — never mixed
+            var runningBalanceNaira = 0;
+            var runningBalanceUsdt = 0;
             var rows = [];
             snapshot.forEach(function(doc) {
                 var t = doc.data();
                 var signed = (typeof t.signedAmount === 'number') ? t.signedAmount : (t.amount || 0);
+                var isUsdt = (t.product === 'In-Dollar Savings Account');
                 if (t.status === 'Confirmed') {
-                    runningBalance += signed;
+                    if (isUsdt) {
+                        runningBalanceUsdt += signed;
+                    } else {
+                        runningBalanceNaira += signed;
+                    }
                 }
-                rows.push({ id: doc.id, data: t, balanceAfter: runningBalance });
+                rows.push({ id: doc.id, data: t, balanceAfter: isUsdt ? runningBalanceUsdt : runningBalanceNaira, isUsdt: isUsdt });
             });
 
             rows.reverse(); // show newest first
@@ -883,14 +1009,17 @@ function loadTransactions(memberId) {
             rows.forEach(function(row) {
                 var t = row.data;
                 var signed = (typeof t.signedAmount === 'number') ? t.signedAmount : (t.amount || 0);
+                var balanceDisplay = row.isUsdt
+                    ? row.balanceAfter.toLocaleString('en-NG') + ' USDT'
+                    : '₦' + row.balanceAfter.toLocaleString('en-NG');
                 html += '<tr style="border-bottom:1px solid #eee;">' +
                     '<td style="padding:6px;">' + escapeHtml(t.date || '') + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.type || 'Deposit') + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.reference || '—') + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.product || '—') + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.description || '') + '</td>' +
-                    '<td style="padding:6px;">' + (signed < 0 ? '-' : '') + '₦' + Math.abs(t.amount || 0).toLocaleString('en-NG') + '</td>' +
-                    '<td style="padding:6px;">₦' + row.balanceAfter.toLocaleString('en-NG') + '</td>' +
+                    '<td style="padding:6px;">' + (signed < 0 ? '-' : '') + formatAmountByProduct(t.product, Math.abs(t.amount || 0)) + '</td>' +
+                    '<td style="padding:6px;">' + balanceDisplay + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(t.status || '') + '</td>' +
                     '<td style="padding:6px;"><button style="padding:4px 10px; font-size:12px;" onclick="deleteTransaction(\'' + memberId + '\',\'' + row.id + '\',' + signed + ',\'' + t.status + '\',\'' + (t.productKey || '') + '\')">Delete</button></td>' +
                     '</tr>';
@@ -941,9 +1070,10 @@ function addTransaction(memberId) {
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function() {
         if (status === 'Confirmed') {
-            var update = {
-                totalSavings: firebase.firestore.FieldValue.increment(signedAmount)
-            };
+            var update = {};
+            if (productKey !== 'dollar') {
+                update.totalSavings = firebase.firestore.FieldValue.increment(signedAmount);
+            }
             update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(signedAmount);
             return memberRef.update(update);
         }
@@ -968,9 +1098,10 @@ function deleteTransaction(memberId, txId, signedAmount, status, productKey) {
     memberRef.collection('transactions').doc(txId).delete()
         .then(function() {
             if (status === 'Confirmed') {
-                var update = {
-                    totalSavings: firebase.firestore.FieldValue.increment(-signedAmount)
-                };
+                var update = {};
+                if (productKey !== 'dollar') {
+                    update.totalSavings = firebase.firestore.FieldValue.increment(-signedAmount);
+                }
                 if (productKey) {
                     update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(-signedAmount);
                 }

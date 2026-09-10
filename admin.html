@@ -241,6 +241,31 @@ This account is not authorized to access the admin panel.
 <button class="full" onclick="doLogout()">Log Out</button>
 </div>
 
+<!-- PIN SETUP (first time) -->
+<div class="box login-box hidden" id="pinSetupBox">
+<h2>Set Up Security PIN</h2>
+<p style="text-align:center; font-size:13px; color:#777; margin-bottom:20px;">
+As an extra layer of protection, create a 4–6 digit PIN. You'll need this
+PIN (in addition to your password) every time you log in.
+</p>
+<div class="error-msg" id="pinSetupError"></div>
+<label for="pinSetupNew">New PIN</label>
+<input type="password" id="pinSetupNew" inputmode="numeric" maxlength="6" placeholder="4-6 digits">
+<label for="pinSetupConfirm">Confirm PIN</label>
+<input type="password" id="pinSetupConfirm" inputmode="numeric" maxlength="6" placeholder="Re-enter PIN">
+<button class="full" onclick="doPinSetup()">Save PIN & Continue</button>
+</div>
+
+<!-- PIN VERIFY (returning admin) -->
+<div class="box login-box hidden" id="pinVerifyBox">
+<h2>Enter Security PIN</h2>
+<div class="error-msg" id="pinVerifyError"></div>
+<label for="pinVerifyInput">PIN</label>
+<input type="password" id="pinVerifyInput" inputmode="numeric" maxlength="6" placeholder="Enter your PIN">
+<button class="full" onclick="doPinVerify()">Verify & Continue</button>
+<button class="full secondary" onclick="doLogout()" style="margin-top:10px;">Log Out</button>
+</div>
+
 <!-- ADMIN PANEL -->
 <div class="hidden" id="adminPanel">
 
@@ -248,6 +273,7 @@ This account is not authorized to access the admin panel.
 <h2 style="margin:0;">Members (<span id="memberCount">0</span>)</h2>
 <div>
 <button class="secondary" onclick="assignAllMissingIds()" style="margin-right:8px;">Assign IDs to All Missing</button>
+<button class="secondary" onclick="changePin()" style="margin-right:8px;">Change PIN</button>
 <button class="secondary" onclick="doLogout()">Log Out</button>
 </div>
 </div>
@@ -380,7 +406,7 @@ function notifyMemberAccountUpdate(memberEmail, memberName) {
 }
 
 function showBox(id) {
-    ['loadingBox','loginBox','notAuthBox','adminPanel'].forEach(function(box) {
+    ['loadingBox','loginBox','notAuthBox','pinSetupBox','pinVerifyBox','adminPanel'].forEach(function(box) {
         document.getElementById(box).classList.add('hidden');
     });
     document.getElementById(id).classList.remove('hidden');
@@ -450,37 +476,130 @@ function doLogout() {
 }
 
 var newMemberIdsSinceLastLogin = new Set();
+var currentAdminUser = null;
+var currentAdminPinHash = null;
+
+async function hashPin(pin) {
+    var enc = new TextEncoder().encode(pin);
+    var hashBuffer = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(hashBuffer)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
 
 function checkAdminAndLoad(user) {
+    currentAdminUser = user;
     db.collection('admins').doc(user.uid).get().then(function(doc) {
         if (doc.exists) {
-            var lastSeenAt = doc.data().lastSeenAt || null;
-
-            db.collection('members').get().then(function(snapshot) {
-                snapshot.forEach(function(d) {
-                    var createdAt = d.data().createdAt;
-                    if (lastSeenAt && createdAt && createdAt.toMillis() > lastSeenAt.toMillis()) {
-                        newMemberIdsSinceLastLogin.add(d.id);
-                    }
-                });
-
-                db.collection('admins').doc(user.uid).update({
-                    lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
-                }).catch(function() {});
-
-                loadMembers();
-                loadMoreSettings();
-                loadUsdtPrice();
-            }).catch(function() {
-                loadMembers();
-                loadMoreSettings();
-                loadUsdtPrice();
-            });
+            var data = doc.data();
+            if (data.pinHash) {
+                currentAdminPinHash = data.pinHash;
+                showBox('pinVerifyBox');
+            } else {
+                showBox('pinSetupBox');
+            }
         } else {
             showBox('notAuthBox');
         }
     }).catch(function() {
         showBox('notAuthBox');
+    });
+}
+
+function doPinSetup() {
+    var pin = document.getElementById('pinSetupNew').value.trim();
+    var confirmPin = document.getElementById('pinSetupConfirm').value.trim();
+    var errorEl = document.getElementById('pinSetupError');
+    errorEl.style.display = 'none';
+
+    if (!/^\d{4,6}$/.test(pin)) {
+        errorEl.textContent = 'PIN must be 4-6 digits.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (pin !== confirmPin) {
+        errorEl.textContent = 'PINs do not match.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    hashPin(pin).then(function(hash) {
+        return db.collection('admins').doc(currentAdminUser.uid).update({ pinHash: hash });
+    }).then(function() {
+        document.getElementById('pinSetupNew').value = '';
+        document.getElementById('pinSetupConfirm').value = '';
+        proceedToAdminPanel();
+    }).catch(function(error) {
+        errorEl.textContent = 'Failed to save PIN: ' + error.message;
+        errorEl.style.display = 'block';
+    });
+}
+
+function doPinVerify() {
+    var pin = document.getElementById('pinVerifyInput').value.trim();
+    var errorEl = document.getElementById('pinVerifyError');
+    errorEl.style.display = 'none';
+
+    hashPin(pin).then(function(hash) {
+        if (hash === currentAdminPinHash) {
+            document.getElementById('pinVerifyInput').value = '';
+            proceedToAdminPanel();
+        } else {
+            errorEl.textContent = 'Incorrect PIN.';
+            errorEl.style.display = 'block';
+        }
+    });
+}
+
+function changePin() {
+    var current = prompt('Enter your current PIN:');
+    if (current === null) return;
+
+    hashPin(current.trim()).then(function(hash) {
+        if (hash !== currentAdminPinHash) {
+            alert('Current PIN is incorrect.');
+            return;
+        }
+        var newPin = prompt('Enter your new PIN (4-6 digits):');
+        if (newPin === null) return;
+        if (!/^\d{4,6}$/.test(newPin.trim())) {
+            alert('PIN must be 4-6 digits.');
+            return;
+        }
+        hashPin(newPin.trim()).then(function(newHash) {
+            db.collection('admins').doc(currentAdminUser.uid).update({ pinHash: newHash }).then(function() {
+                currentAdminPinHash = newHash;
+                alert('PIN updated successfully.');
+            }).catch(function(error) {
+                alert('Failed to update PIN: ' + error.message);
+            });
+        });
+    });
+}
+
+function proceedToAdminPanel() {
+    var user = currentAdminUser;
+    db.collection('admins').doc(user.uid).get().then(function(doc) {
+        var lastSeenAt = doc.exists ? (doc.data().lastSeenAt || null) : null;
+
+        db.collection('members').get().then(function(snapshot) {
+            snapshot.forEach(function(d) {
+                var createdAt = d.data().createdAt;
+                if (lastSeenAt && createdAt && createdAt.toMillis() > lastSeenAt.toMillis()) {
+                    newMemberIdsSinceLastLogin.add(d.id);
+                }
+            });
+
+            db.collection('admins').doc(user.uid).update({
+                lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(function() {});
+
+            loadMembers();
+            loadMoreSettings();
+            loadUsdtPrice();
+        }).catch(function() {
+            loadMembers();
+            loadMoreSettings();
+            loadUsdtPrice();
+        });
     });
 }
 

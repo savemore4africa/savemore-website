@@ -272,13 +272,14 @@ PIN (in addition to your password) every time you log in.
 <div class="top-bar">
 <h2 style="margin:0;">Members (<span id="memberCount">0</span>)</h2>
 <div>
-<button class="secondary" onclick="assignAllMissingIds()" style="margin-right:8px;">Assign IDs to All Missing</button>
 <button class="secondary" onclick="changePin()" style="margin-right:8px;">Change PIN</button>
 <button class="secondary" onclick="doLogout()">Log Out</button>
 </div>
 </div>
 
 <div id="newMembersBanner" style="display:none; background:#fff4e5; color:#ff8c00; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:bold;"></div>
+
+<div id="pendingRequestsBanner" style="display:none; background:#fdecea; color:#b3261e; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:bold;"></div>
 
 <div class="member-card" style="border-left-color:#ff8c00;">
 <h3 style="color:#ff8c00;">MORE Reference Value</h3>
@@ -625,30 +626,48 @@ function updateNewMembersBanner() {
     }
 }
 
+var pendingSellCountGlobal = 0;
+var pendingWithdrawalCountGlobal = 0;
+
 function checkPendingSellDot(memberId) {
     db.collection('members').doc(memberId).collection('sellRequests')
         .where('status', '==', 'Pending')
-        .limit(1)
         .get()
         .then(function(snapshot) {
             var dotEl = document.getElementById('sellDot-' + memberId);
             if (dotEl && !snapshot.empty) {
                 dotEl.innerHTML = ' <span title="Pending sell-back request" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#b3261e; margin-left:4px;"></span>';
             }
+            pendingSellCountGlobal += snapshot.size;
+            updatePendingRequestsBanner();
         })
         .catch(function() {});
 
     db.collection('members').doc(memberId).collection('withdrawalRequests')
         .where('status', '==', 'Pending')
-        .limit(1)
         .get()
         .then(function(snapshot) {
             var dotEl = document.getElementById('wdDot-' + memberId);
             if (dotEl && !snapshot.empty) {
                 dotEl.innerHTML = ' <span title="Pending withdrawal request" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#ff8c00; margin-left:4px;"></span>';
             }
+            pendingWithdrawalCountGlobal += snapshot.size;
+            updatePendingRequestsBanner();
         })
         .catch(function() {});
+}
+
+function updatePendingRequestsBanner() {
+    var banner = document.getElementById('pendingRequestsBanner');
+    if (pendingSellCountGlobal > 0 || pendingWithdrawalCountGlobal > 0) {
+        var parts = [];
+        if (pendingSellCountGlobal > 0) parts.push(pendingSellCountGlobal + ' pending sell-back request' + (pendingSellCountGlobal > 1 ? 's' : ''));
+        if (pendingWithdrawalCountGlobal > 0) parts.push(pendingWithdrawalCountGlobal + ' pending withdrawal request' + (pendingWithdrawalCountGlobal > 1 ? 's' : ''));
+        banner.innerHTML = '🔔 ' + parts.join(' · ') + ' — expand a member below to review (look for the red/orange dot).';
+        banner.style.display = 'block';
+    } else {
+        banner.style.display = 'none';
+    }
 }
 
 function loadMoreSettings() {
@@ -715,36 +734,6 @@ function assignMemberId(id) {
         });
 }
 
-async function assignAllMissingIds() {
-    try {
-        var snapshot = await db.collection('members').get();
-        var toAssign = [];
-        snapshot.forEach(function(doc) {
-            if (!doc.data().memberId) {
-                toAssign.push(doc.id);
-            }
-        });
-
-        if (toAssign.length === 0) {
-            alert('Every member already has a Member ID.');
-            return;
-        }
-
-        if (!confirm('Assign a new Member ID to ' + toAssign.length + ' member(s) who don\'t have one yet?')) {
-            return;
-        }
-
-        for (var i = 0; i < toAssign.length; i++) {
-            await db.collection('members').doc(toAssign[i]).update({ memberId: generateMemberId() });
-        }
-
-        alert('Done — ' + toAssign.length + ' member(s) assigned a Member ID.');
-        loadMembers();
-    } catch (error) {
-        alert('Failed to assign IDs: ' + error.message);
-    }
-}
-
 function filterMemberCards() {
     var searchText = document.getElementById('memberSearch').value.trim().toLowerCase();
     var statusFilter = document.getElementById('memberStatusFilter').value;
@@ -794,6 +783,9 @@ function loadMembers() {
     showBox('adminPanel');
     var list = document.getElementById('membersList');
     list.innerHTML = '<p>Loading members...</p>';
+    pendingSellCountGlobal = 0;
+    pendingWithdrawalCountGlobal = 0;
+    document.getElementById('pendingRequestsBanner').style.display = 'none';
 
     db.collection('members').orderBy('name').get().then(function(snapshot) {
         list.innerHTML = '';

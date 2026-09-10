@@ -518,6 +518,24 @@ function notifyAdminNewMember(memberId, name, phone, email, product) {
     });
 }
 
+// Generic admin alert — reuses the same template for any event type
+// (withdrawal requests, sell-back requests, and future alert types)
+function notifyAdminEvent(title, line1, line2, line3, line4) {
+    if (typeof emailjs === 'undefined' || EMAILJS_PUBLIC_KEY.indexOf('YOUR_') === 0) {
+        return; // EmailJS not configured yet
+    }
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NEW_MEMBER_TEMPLATE_ID, {
+        to_email: SAVEMORE_ADMIN_EMAIL,
+        member_name: title,
+        member_id: line1 || '',
+        member_phone: line2 || '',
+        member_email: line3 || '',
+        member_product: line4 || ''
+    }).catch(function(error) {
+        console.error('Admin notification email failed:', error);
+    });
+}
+
 // ---- LOGIN ----
 // ---- FORGOT PASSWORD ----
 function doForgotPassword() {
@@ -666,6 +684,15 @@ function requestWithdrawal() {
         document.getElementById('wdReason').value = '';
         alert('Your withdrawal request has been submitted. SAVEMORE will review it according to the applicable product terms.');
         loadWithdrawalRequests(uid);
+
+        var amountText = (unit === 'USDT') ? (amount.toLocaleString('en-NG') + ' USDT') : ('₦' + amount.toLocaleString('en-NG'));
+        notifyAdminEvent(
+            '⚠️ New Withdrawal Request',
+            'Member: ' + currentMemberName,
+            'Product: ' + product,
+            'Amount: ' + amountText,
+            reason ? ('Reason: ' + reason) : 'No reason given'
+        );
     }).catch(function(error) {
         alert('Failed to submit request: ' + error.message);
     });
@@ -735,6 +762,14 @@ function requestSellBack() {
         document.getElementById('sellUnits').value = '';
         alert('Your sell-back request has been submitted. SAVEMORE will review and contact you.');
         loadSellRequests(uid);
+
+        notifyAdminEvent(
+            '⚠️ New Sell-Back Request',
+            'Member: ' + currentMemberName,
+            'Units: ' + units + ' MORE',
+            'Reference Value: ₦' + currentMoreRefValue.toLocaleString('en-NG') + ' per unit',
+            'Est. Payout: ₦' + estimatedPayout.toLocaleString('en-NG')
+        );
     }).catch(function(error) {
         alert('Failed to submit request: ' + error.message);
     });

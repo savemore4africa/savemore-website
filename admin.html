@@ -359,6 +359,17 @@ price. It is shown to members on their dashboard.
 <span class="save-status" id="usdtSaveStatus">✓ Saved</span>
 </div>
 
+<div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+<input type="text" id="memberSearch" placeholder="Search by name, Member ID, email, or phone…" oninput="filterMemberCards()" style="flex:1; min-width:200px; padding:10px; border:1px solid #ccc; border-radius:8px; font-size:14px;">
+<select id="memberStatusFilter" onchange="filterMemberCards()" style="padding:10px; border:1px solid #ccc; border-radius:8px; font-size:14px;">
+<option value="All">All Statuses</option>
+<option value="Pending Review">Pending Review</option>
+<option value="Active">Active</option>
+<option value="Suspended">Suspended</option>
+</select>
+</div>
+<p id="filterResultCount" style="font-size:13px; color:#777; margin-bottom:10px; display:none;"></p>
+
 <div id="membersList"></div>
 
 </div>
@@ -734,6 +745,29 @@ async function assignAllMissingIds() {
     }
 }
 
+function filterMemberCards() {
+    var searchText = document.getElementById('memberSearch').value.trim().toLowerCase();
+    var statusFilter = document.getElementById('memberStatusFilter').value;
+    var cards = document.querySelectorAll('#membersList .member-card');
+    var visibleCount = 0;
+
+    cards.forEach(function(card) {
+        var matchesSearch = !searchText || (card.getAttribute('data-search') || '').indexOf(searchText) !== -1;
+        var matchesStatus = statusFilter === 'All' || card.getAttribute('data-status') === statusFilter;
+        var show = matchesSearch && matchesStatus;
+        card.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+    });
+
+    var countEl = document.getElementById('filterResultCount');
+    if (searchText || statusFilter !== 'All') {
+        countEl.textContent = 'Showing ' + visibleCount + ' of ' + cards.length + ' member(s)';
+        countEl.style.display = 'block';
+    } else {
+        countEl.style.display = 'none';
+    }
+}
+
 function updateMoreCirculationDisplay(totalAllotted) {
     document.getElementById('moreAllotted').textContent = totalAllotted;
     document.getElementById('moreRemaining').textContent = Math.max(0, 200 - totalAllotted);
@@ -811,6 +845,10 @@ function loadMembers() {
 
             var card = document.createElement('div');
             card.className = 'member-card';
+            card.setAttribute('data-search', (
+                (m.name || '') + ' ' + (m.memberId || '') + ' ' + (m.email || '') + ' ' + (m.phone || '')
+            ).toLowerCase());
+            card.setAttribute('data-status', m.status || 'Pending Review');
             card.innerHTML =
                 '<details>' +
                 '<summary style="cursor:pointer; list-style:none;">' +

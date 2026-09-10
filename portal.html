@@ -193,11 +193,13 @@ Loading...
 <div class="box hidden" id="loginBox">
 <h2>Member Login</h2>
 <div class="error-msg" id="loginError"></div>
+<div class="info-msg" id="loginInfo"></div>
 <label for="loginEmail">Email</label>
 <input type="email" id="loginEmail" placeholder="you@example.com">
 <label for="loginPassword">Password</label>
 <input type="password" id="loginPassword" placeholder="Your password">
 <button onclick="doLogin()">Log In</button>
+<button class="secondary" onclick="doForgotPassword()">Forgot Password?</button>
 <button class="secondary" onclick="showSignup()">New member? Create an account</button>
 </div>
 
@@ -403,6 +405,7 @@ function showBox(id) {
 
 function showLogin() {
     document.getElementById('loginError').style.display = 'none';
+    document.getElementById('loginInfo').style.display = 'none';
     showBox('loginBox');
 }
 
@@ -516,6 +519,31 @@ function notifyAdminNewMember(memberId, name, phone, email, product) {
 }
 
 // ---- LOGIN ----
+// ---- FORGOT PASSWORD ----
+function doForgotPassword() {
+    var email = document.getElementById('loginEmail').value.trim();
+    var errorEl = document.getElementById('loginError');
+    var infoEl = document.getElementById('loginInfo');
+    errorEl.style.display = 'none';
+    infoEl.style.display = 'none';
+
+    if (!email) {
+        errorEl.textContent = 'Please enter your email address above first, then tap "Forgot Password?" again.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    auth.sendPasswordResetEmail(email)
+        .then(function() {
+            infoEl.textContent = 'A password reset link has been sent to ' + email + '. Please check your inbox (and spam folder).';
+            infoEl.style.display = 'block';
+        })
+        .catch(function(error) {
+            errorEl.textContent = 'Unable to send reset email: ' + error.message;
+            errorEl.style.display = 'block';
+        });
+}
+
 function doLogin() {
     var email = document.getElementById('loginEmail').value.trim();
     var password = document.getElementById('loginPassword').value;

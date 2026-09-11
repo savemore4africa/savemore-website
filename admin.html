@@ -81,6 +81,28 @@ input, select {
     font-size: 14px;
 }
 
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper input {
+    padding-right: 55px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 10px;
+    background: none;
+    border: none;
+    color: #075e3b;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    width: auto;
+    padding: 0;
+}
+
 button {
     padding: 10px 20px;
     background: #ff8c00;
@@ -227,7 +249,10 @@ button.secondary {
 <label for="loginEmail">Email</label>
 <input type="email" id="loginEmail" placeholder="admin@example.com">
 <label for="loginPassword">Password</label>
+<div class="password-wrapper">
 <input type="password" id="loginPassword" placeholder="Your password">
+<button type="button" class="password-toggle" onclick="togglePasswordVisibility('loginPassword', this)">Show</button>
+</div>
 <button class="full" onclick="doLogin()">Log In</button>
 <button class="full secondary" onclick="doForgotPassword()" style="margin-top:10px;">Forgot Password?</button>
 </div>
@@ -250,9 +275,15 @@ PIN (in addition to your password) every time you log in.
 </p>
 <div class="error-msg" id="pinSetupError"></div>
 <label for="pinSetupNew">New PIN</label>
+<div class="password-wrapper">
 <input type="password" id="pinSetupNew" inputmode="numeric" maxlength="6" placeholder="4-6 digits">
+<button type="button" class="password-toggle" onclick="togglePasswordVisibility('pinSetupNew', this)">Show</button>
+</div>
 <label for="pinSetupConfirm">Confirm PIN</label>
+<div class="password-wrapper">
 <input type="password" id="pinSetupConfirm" inputmode="numeric" maxlength="6" placeholder="Re-enter PIN">
+<button type="button" class="password-toggle" onclick="togglePasswordVisibility('pinSetupConfirm', this)">Show</button>
+</div>
 <button class="full" onclick="doPinSetup()">Save PIN & Continue</button>
 </div>
 
@@ -261,7 +292,10 @@ PIN (in addition to your password) every time you log in.
 <h2>Enter Security PIN</h2>
 <div class="error-msg" id="pinVerifyError"></div>
 <label for="pinVerifyInput">PIN</label>
+<div class="password-wrapper">
 <input type="password" id="pinVerifyInput" inputmode="numeric" maxlength="6" placeholder="Enter your PIN">
+<button type="button" class="password-toggle" onclick="togglePasswordVisibility('pinVerifyInput', this)">Show</button>
+</div>
 <button class="full" onclick="doPinVerify()">Verify & Continue</button>
 <button class="full secondary" onclick="doLogout()" style="margin-top:10px;">Log Out</button>
 </div>
@@ -415,6 +449,17 @@ function notifyMemberAccountUpdate(memberEmail, memberName) {
     }).catch(function(error) {
         console.error('Member notification email failed:', error);
     });
+}
+
+function togglePasswordVisibility(inputId, btn) {
+    var input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Hide';
+    } else {
+        input.type = 'password';
+        btn.textContent = 'Show';
+    }
 }
 
 function showBox(id) {

@@ -76,6 +76,28 @@ input {
     font-size: 15px;
 }
 
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper input {
+    padding-right: 55px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 11px;
+    background: none;
+    border: none;
+    color: #075e3b;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    width: auto;
+    padding: 0;
+}
+
 select {
     width: 100%;
     padding: 11px;
@@ -197,7 +219,10 @@ Loading...
 <label for="loginEmail">Email</label>
 <input type="email" id="loginEmail" placeholder="you@example.com">
 <label for="loginPassword">Password</label>
+<div class="password-wrapper">
 <input type="password" id="loginPassword" placeholder="Your password">
+<button type="button" class="password-toggle" onclick="togglePasswordVisibility('loginPassword', this)">Show</button>
+</div>
 <button onclick="doLogin()">Log In</button>
 <button class="secondary" onclick="doForgotPassword()">Forgot Password?</button>
 <button class="secondary" onclick="showSignup()">New member? Create an account</button>
@@ -242,7 +267,10 @@ Loading...
 <label for="signupEmail">Email</label>
 <input type="email" id="signupEmail" placeholder="you@example.com">
 <label for="signupPassword">Password</label>
+<div class="password-wrapper">
 <input type="password" id="signupPassword" placeholder="Choose a password (min 6 characters)">
+<button type="button" class="password-toggle" onclick="togglePasswordVisibility('signupPassword', this)">Show</button>
+</div>
 <label style="display:flex; align-items:flex-start; gap:8px; font-weight:normal; font-size:13px; margin-bottom:16px;">
 <input type="checkbox" id="signupAgreeTerms" style="width:auto; margin-top:3px;">
 <span>I have read and agree to SAVEMORE's <a href="terms.html" target="_blank" style="color:#075e3b;">Terms & Conditions</a>, <a href="privacy.html" target="_blank" style="color:#075e3b;">Privacy Policy</a>, and <a href="risk.html" target="_blank" style="color:#075e3b;">Risk Disclosure</a>.</span>
@@ -396,6 +424,17 @@ var sensitiveInfoVisible = false;
 
 
 // ---- UI HELPERS ----
+function togglePasswordVisibility(inputId, btn) {
+    var input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Hide';
+    } else {
+        input.type = 'password';
+        btn.textContent = 'Show';
+    }
+}
+
 function showBox(id) {
     ['loadingBox','loginBox','signupBox','dashboardBox'].forEach(function(box) {
         document.getElementById(box).classList.add('hidden');
@@ -615,6 +654,57 @@ function toggleSensitiveInfo() {
 
 // ---- MORE PARTICIPATION ----
 var currentSharesHeld = 0;
+var currentTxPinHash = null;
+
+async function hashPin(pin) {
+    var enc = new TextEncoder().encode(pin);
+    var hashBuffer = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(hashBuffer)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
+
+function loadTxPin(uid) {
+    db.collection('members').doc(uid).collection('security').doc('pin').get().then(function(doc) {
+        currentTxPinHash = doc.exists ? doc.data().pinHash : null;
+    }).catch(function() {
+        currentTxPinHash = null;
+    });
+}
+
+// Ensures a PIN exists (prompts to create one on first use) and verifies it.
+// Returns true (via promise) if the member is cleared to proceed.
+async function verifyTxPin() {
+    var uid = auth.currentUser.uid;
+
+    if (!currentTxPinHash) {
+        var newPin = prompt('For your security, set up a 4-6 digit PIN. You will need it for withdrawal and sell-back requests going forward.');
+        if (newPin === null) return false;
+        if (!/^\d{4,6}$/.test(newPin.trim())) {
+            alert('PIN must be 4-6 digits. Please try again.');
+            return false;
+        }
+        var confirmPin = prompt('Confirm your new PIN:');
+        if (confirmPin === null || confirmPin.trim() !== newPin.trim()) {
+            alert('PINs did not match. Please try again.');
+            return false;
+        }
+        var newHash = await hashPin(newPin.trim());
+        await db.collection('members').doc(uid).collection('security').doc('pin').set({
+            pinHash: newHash,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        currentTxPinHash = newHash;
+        return true;
+    }
+
+    var enteredPin = prompt('Enter your security PIN to continue:');
+    if (enteredPin === null) return false;
+    var enteredHash = await hashPin(enteredPin.trim());
+    if (enteredHash !== currentTxPinHash) {
+        alert('Incorrect PIN.');
+        return false;
+    }
+    return true;
+}
 var currentMoreRefValue = 0;
 
 function loadUsdtPriceDisplay() {
@@ -659,7 +749,7 @@ function loadMoreValue(shares) {
 
 // ---- SELL-BACK REQUESTS ----
 // ---- WITHDRAWAL REQUESTS ----
-function requestWithdrawal() {
+async function requestWithdrawal() {
     var product = document.getElementById('wdProduct').value;
     var amount = parseFloat(document.getElementById('wdAmount').value);
     var reason = document.getElementById('wdReason').value.trim();
@@ -668,6 +758,9 @@ function requestWithdrawal() {
         alert('Please enter a valid amount to withdraw.');
         return;
     }
+
+    var pinOk = await verifyTxPin();
+    if (!pinOk) return;
 
     var uid = auth.currentUser.uid;
     var unit = (product === 'In-Dollar Savings Account') ? 'USDT' : '₦';
@@ -738,7 +831,7 @@ function loadWithdrawalRequests(uid) {
         });
 }
 
-function requestSellBack() {
+async function requestSellBack() {
     var units = parseInt(document.getElementById('sellUnits').value, 10);
 
     if (!units || units <= 0) {
@@ -749,6 +842,9 @@ function requestSellBack() {
         alert('You cannot request to sell more MORE than you currently hold (' + currentSharesHeld + ').');
         return;
     }
+
+    var pinOk = await verifyTxPin();
+    if (!pinOk) return;
 
     var uid = auth.currentUser.uid;
     var estimatedPayout = units * currentMoreRefValue;
@@ -871,6 +967,7 @@ function loadDashboard(user) {
             loadMoreValue(shares);
             loadSellRequests(user.uid);
             loadWithdrawalRequests(user.uid);
+            loadTxPin(user.uid);
 
             if (data.status === 'Pending Review') {
                 var info = document.getElementById('dashboardInfo');

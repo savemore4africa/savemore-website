@@ -688,10 +688,15 @@ async function verifyTxPin() {
             return false;
         }
         var newHash = await hashPin(newPin.trim());
-        await db.collection('members').doc(uid).collection('security').doc('pin').set({
-            pinHash: newHash,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        try {
+            await db.collection('members').doc(uid).collection('security').doc('pin').set({
+                pinHash: newHash,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (error) {
+            alert('Unable to save PIN: ' + error.code + ' — ' + error.message);
+            return false;
+        }
         currentTxPinHash = newHash;
         return true;
     }

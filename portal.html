@@ -184,6 +184,16 @@ button.secondary {
     border-radius: 10px;
 }
 
+.quick-action-btn {
+    background: #ff8c00;
+    color: white;
+    text-decoration: none;
+    padding: 9px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
 .progress-label {
     font-size: 14px;
     color: #555;
@@ -281,6 +291,28 @@ Loading...
 
 <!-- DASHBOARD -->
 <div class="box hidden" id="dashboardBox">
+
+<div style="background:#075e3b; color:white; border-radius:12px; padding:22px; margin-bottom:20px;">
+<p style="font-size:12px; letter-spacing:1px; color:#ff8c00; font-weight:bold; margin-bottom:4px;">SAVEMORE MEMBER</p>
+<p style="font-size:18px; font-weight:bold; margin-bottom:16px;" id="summaryName">—</p>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:14px;">
+<div><span style="color:rgba(255,255,255,0.7);">Total Savings</span><br><strong id="summaryTotal">₦0</strong></div>
+<div><span style="color:rgba(255,255,255,0.7);">MORE</span><br><strong id="summaryMore">0</strong></div>
+<div><span style="color:rgba(255,255,255,0.7);">100 Days Challenge</span><br><strong id="summaryChallenge">₦0</strong></div>
+<div><span style="color:rgba(255,255,255,0.7);">In-Dollar Savings</span><br><strong id="summaryDollar">0 USDT</strong></div>
+<div style="grid-column: span 2;"><span style="color:rgba(255,255,255,0.7);">Available for Withdrawal (Emergency Savings)</span><br><strong id="summaryAvailable">₦0</strong></div>
+</div>
+</div>
+
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:25px;">
+<a href="https://wa.me/2348031509452?text=Hi%2C%20I%27d%20like%20to%20make%20a%20savings%20deposit" target="_blank" class="quick-action-btn">Save Money</a>
+<a href="#txHistorySection" class="quick-action-btn">View Transactions</a>
+<a href="#moreSection" class="quick-action-btn">MORE</a>
+<a href="#withdrawSection" class="quick-action-btn">Withdraw</a>
+<a href="#sellBackSection" class="quick-action-btn">Sell Back</a>
+<a href="index.html#education" target="_blank" class="quick-action-btn">Learn</a>
+</div>
+
 <h2>My SAVEMORE Dashboard</h2>
 <div class="info-msg" id="dashboardInfo"></div>
 
@@ -330,7 +362,7 @@ to time; it does not affect your USDT balance itself.
 </p>
 
 <div style="margin-top:20px; padding:16px; background:#eef7f2; border-radius:10px;">
-<label for="wdProduct" style="display:block; font-weight:bold; color:#075e3b; margin-bottom:6px; font-size:14px;">Request a Withdrawal</label>
+<label for="wdProduct" id="withdrawSection" style="display:block; font-weight:bold; color:#075e3b; margin-bottom:6px; font-size:14px;">Request a Withdrawal</label>
 <select id="wdProduct" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
 <option value="Investment Savings Account">Investment Savings Account</option>
 <option value="Emergency Savings Account">Emergency Savings Account</option>
@@ -353,14 +385,14 @@ update below once reviewed.
 <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
 <p class="progress-label" id="progressLabel">No goal set yet</p>
 
-<h2 style="margin-top:30px; font-size:18px;">MORE Participation</h2>
+<h2 id="moreSection" style="margin-top:30px; font-size:18px;">MORE Participation</h2>
 <div class="dashboard-row"><span>Total MORE Supply</span><span>200</span></div>
 <div class="dashboard-row"><span>(MORE) Units Held</span><span id="dashShares">—</span></div>
 <div class="dashboard-row"><span>Reference Value per MORE</span><span id="dashMoreValue">—</span></div>
 <div class="dashboard-row"><span><strong>Total MORE Value</strong></span><span id="dashMoreTotal"><strong>—</strong></span></div>
 
 <div style="margin-top:16px; padding:16px; background:#eef7f2; border-radius:10px;">
-<label for="sellUnits" style="display:block; font-weight:bold; color:#075e3b; margin-bottom:6px; font-size:14px;">Sell MORE Back to SAVEMORE</label>
+<label for="sellUnits" id="sellBackSection" style="display:block; font-weight:bold; color:#075e3b; margin-bottom:6px; font-size:14px;">Sell MORE Back to SAVEMORE</label>
 <input type="number" id="sellUnits" placeholder="Number of units to sell" min="1" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
 <button onclick="requestSellBack()">Request Sell-Back</button>
 <p style="font-size:12px; color:#777; margin-top:8px;">
@@ -374,7 +406,7 @@ MORE reference value is calculated by SAVEMORE using its participation formula a
 periodically. No dividend has been declared at this time.
 </p>
 
-<h2 style="margin-top:30px; font-size:18px;">Transaction History</h2>
+<h2 id="txHistorySection" style="margin-top:30px; font-size:18px;">Transaction History</h2>
 <div id="txHistory" style="margin-top:12px;">Loading...</div>
 
 <h2 style="margin-top:30px; font-size:18px;">My Certificates</h2>
@@ -957,6 +989,21 @@ function loadDashboard(user) {
             document.getElementById('dashDollar').textContent = dollar.toLocaleString('en-NG') + ' USDT';
             document.getElementById('dashChallenge').textContent = '₦' + challenge.toLocaleString('en-NG');
             document.getElementById('dashSavings').innerHTML = '<strong>₦' + nairaTotal.toLocaleString('en-NG') + '</strong>';
+
+            // Summary card at top of dashboard
+            document.getElementById('summaryName').textContent = data.name || 'Member';
+            document.getElementById('summaryTotal').textContent = '₦' + nairaTotal.toLocaleString('en-NG');
+            document.getElementById('summaryMore').textContent = shares;
+            document.getElementById('summaryDollar').textContent = dollar.toLocaleString('en-NG') + ' USDT';
+            document.getElementById('summaryAvailable').textContent = '₦' + emergency.toLocaleString('en-NG');
+
+            var challengeTarget = data.challengeTarget || 0;
+            if (challengeTarget > 0) {
+                var challengePct = Math.min(100, Math.round((challenge / challengeTarget) * 100));
+                document.getElementById('summaryChallenge').textContent = challengePct + '% complete';
+            } else {
+                document.getElementById('summaryChallenge').textContent = '₦' + challenge.toLocaleString('en-NG') + ' saved';
+            }
 
             if (goal > 0) {
                 var pct = Math.min(100, Math.round((nairaTotal / goal) * 100));

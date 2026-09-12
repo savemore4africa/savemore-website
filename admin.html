@@ -967,6 +967,10 @@ function loadMembers() {
                         '<label>Savings Goal (₦)</label>' +
                         '<input type="number" id="goal-' + id + '" value="' + (m.savingsGoal || 0) + '">' +
                     '</div>' +
+                    '<div>' +
+                        '<label>100 Days Challenge Target (₦)</label>' +
+                        '<input type="number" id="challengeTarget-' + id + '" value="' + (m.challengeTarget || 0) + '" placeholder="e.g. 50000">' +
+                    '</div>' +
                 '</div>' +
                 '<div class="field-row" style="margin-top:12px;">' +
                     '<div>' +
@@ -1128,6 +1132,7 @@ function saveMember(id) {
     var status = document.getElementById('status-' + id).value;
     var shares = parseFloat(document.getElementById('shares-' + id).value) || 0;
     var goal = parseFloat(document.getElementById('goal-' + id).value) || 0;
+    var challengeTarget = parseFloat(document.getElementById('challengeTarget-' + id).value) || 0;
     var pInvestment = parseFloat(document.getElementById('prod-investment-' + id).value) || 0;
     var pEmergency = parseFloat(document.getElementById('prod-emergency-' + id).value) || 0;
     var pDollar = parseFloat(document.getElementById('prod-dollar-' + id).value) || 0;
@@ -1148,6 +1153,7 @@ function saveMember(id) {
         status: status,
         shares: shares,
         savingsGoal: goal,
+        challengeTarget: challengeTarget,
         savingsByProduct: {
             investment: pInvestment,
             emergency: pEmergency,

@@ -379,6 +379,28 @@ footer {
     font-size: 14px;
 }
 
+.whatsapp-float {
+    position: fixed;
+    bottom: 22px;
+    right: 22px;
+    width: 58px;
+    height: 58px;
+    background: #25D366;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    z-index: 1000;
+    text-decoration: none;
+}
+
+.whatsapp-float svg {
+    width: 30px;
+    height: 30px;
+    fill: white;
+}
+
 @media(max-width: 700px) {
     header {
         flex-direction: column;
@@ -1455,7 +1477,7 @@ SAVEMORE applicants.
 <br>
 
 <p>
-Accordingly, with 39 paid applicants, the current reference value
+Accordingly, with 40 paid applicants, the current reference value
 of one MORE is:
 </p>
 
@@ -1892,6 +1914,10 @@ function calculateSavings() {
     document.getElementById('calcResult').style.display = 'block';
 }
 </script>
+
+<a href="https://wa.me/2348031509452?text=Hi%2C%20I%20have%20a%20question%20about%20SAVEMORE" target="_blank" class="whatsapp-float" aria-label="Chat with SAVEMORE on WhatsApp" title="Chat with us on WhatsApp">
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"></path><path d="M12.031 0h-.063C5.373 0 .312 5.062.312 11.406c0 2.531.788 4.878 2.13 6.807L1 24l6.007-1.577c1.86 1.024 3.996 1.615 6.286 1.615h.005c6.594 0 11.702-5.062 11.702-11.406C24.938 6.226 19.626 0 12.031 0zm5.943 17.302c-.876.876-2.386 1.379-4.246 1.379h-.004c-1.999 0-4.086-.622-5.855-1.717l-.42-.25-3.564.935.952-3.475-.273-.436C3.34 12.164 2.68 9.9 2.68 7.535 2.68 3.774 6.32.397 12.03.397c2.85 0 5.53 1.109 7.54 3.12 2.01 2.011 3.118 4.69 3.116 7.54-.002 4.076-3.712 6.245-4.712 6.245z"></path></svg>
+</a>
 
 </body>
 </html>

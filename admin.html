@@ -306,10 +306,14 @@ PIN (in addition to your password) every time you log in.
 <div class="top-bar">
 <h2 style="margin:0;">Members (<span id="memberCount">0</span>)</h2>
 <div>
+<button class="secondary" onclick="exportMembersCSV()" style="margin-right:8px;">Export Members (CSV)</button>
+<button class="secondary" onclick="exportTransactionsCSV()" style="margin-right:8px;">Export Transactions (CSV)</button>
 <button class="secondary" onclick="changePin()" style="margin-right:8px;">Change PIN</button>
 <button class="secondary" onclick="doLogout()">Log Out</button>
 </div>
 </div>
+
+<p id="exportStatus" style="display:none; font-size:13px; color:#075e3b; margin-bottom:16px;"></p>
 
 <div id="newMembersBanner" style="display:none; background:#fff4e5; color:#ff8c00; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:bold;"></div>
 
@@ -1182,6 +1186,105 @@ function saveMember(id) {
     }).catch(function(error) {
         alert('Failed to save: ' + error.message);
     });
+}
+
+// ---- CSV EXPORT ----
+function csvEscape(value) {
+    var str = (value === null || value === undefined) ? '' : String(value);
+    if (str.indexOf(',') !== -1 || str.indexOf('"') !== -1 || str.indexOf('\n') !== -1) {
+        str = '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+}
+
+function downloadCSV(filename, rows) {
+    var csvContent = rows.map(function(row) {
+        return row.map(csvEscape).join(',');
+    }).join('\n');
+
+    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function showExportStatus(msg) {
+    var el = document.getElementById('exportStatus');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(function() { el.style.display = 'none'; }, 4000);
+}
+
+function exportMembersCSV() {
+    showExportStatus('Preparing members export...');
+
+    db.collection('members').orderBy('name').get().then(function(snapshot) {
+        var rows = [[
+            'Member ID', 'Name', 'Email', 'Phone', 'Status', 'Product',
+            'Occupation', 'Date of Birth', 'Bank Name', 'Account Number', 'Account Name',
+            'NIN', 'Residential Address', 'Shop Address', 'Next of Kin Name', 'Next of Kin Phone',
+            'MORE Units', 'Investment Savings (₦)', 'Emergency Savings (₦)', 'In-Dollar Savings (USDT)',
+            '100 Days Challenge (₦)', 'Total Savings (₦)', 'Savings Goal (₦)', '100 Days Challenge Target (₦)'
+        ]];
+
+        snapshot.forEach(function(doc) {
+            var m = doc.data();
+            var p = m.savingsByProduct || {};
+            rows.push([
+                m.memberId || '', m.name || '', m.email || '', m.phone || '', m.status || '', m.product || '',
+                m.occupation || '', m.dob || '', m.bankName || '', m.accountNumber || '', m.accountName || '',
+                m.nin || '', m.residentialAddress || '', m.shopAddress || '', m.nokName || '', m.nokPhone || '',
+                m.shares || 0, p.investment || 0, p.emergency || 0, p.dollar || 0,
+                p.challenge || 0, m.totalSavings || 0, m.savingsGoal || 0, m.challengeTarget || 0
+            ]);
+        });
+
+        var dateStr = new Date().toISOString().slice(0, 10);
+        downloadCSV('SAVEMORE_Members_' + dateStr + '.csv', rows);
+        showExportStatus('✓ Members export downloaded (' + snapshot.size + ' members).');
+    }).catch(function(error) {
+        alert('Failed to export members: ' + error.message);
+    });
+}
+
+async function exportTransactionsCSV() {
+    showExportStatus('Preparing transactions export — this may take a moment...');
+
+    try {
+        var membersSnapshot = await db.collection('members').orderBy('name').get();
+        var rows = [[
+            'Member Name', 'Member ID', 'Date', 'Type', 'Reference', 'Product',
+            'Description', 'Amount', 'Status'
+        ]];
+        var totalTx = 0;
+
+        for (var i = 0; i < membersSnapshot.docs.length; i++) {
+            var memberDoc = membersSnapshot.docs[i];
+            var m = memberDoc.data();
+            var txSnapshot = await memberDoc.ref.collection('transactions').orderBy('date', 'desc').get();
+
+            txSnapshot.forEach(function(txDoc) {
+                var t = txDoc.data();
+                var unit = (t.product === 'In-Dollar Savings Account') ? ' USDT' : '';
+                rows.push([
+                    m.name || '', m.memberId || '', t.date || '', t.type || 'Deposit', t.reference || '',
+                    t.product || '', t.description || '', (t.amount || 0) + unit, t.status || ''
+                ]);
+                totalTx++;
+            });
+        }
+
+        var dateStr = new Date().toISOString().slice(0, 10);
+        downloadCSV('SAVEMORE_Transactions_' + dateStr + '.csv', rows);
+        showExportStatus('✓ Transactions export downloaded (' + totalTx + ' transactions across ' + membersSnapshot.size + ' members).');
+    } catch (error) {
+        alert('Failed to export transactions: ' + error.message);
+    }
 }
 
 function escapeHtml(str) {

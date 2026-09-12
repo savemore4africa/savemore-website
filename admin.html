@@ -308,9 +308,16 @@ PIN (in addition to your password) every time you log in.
 <div>
 <button class="secondary" onclick="exportMembersCSV()" style="margin-right:8px;">Export Members (CSV)</button>
 <button class="secondary" onclick="exportTransactionsCSV()" style="margin-right:8px;">Export Transactions (CSV)</button>
+<button class="secondary" onclick="toggleActivityLog()" style="margin-right:8px;">Activity Log</button>
 <button class="secondary" onclick="changePin()" style="margin-right:8px;">Change PIN</button>
 <button class="secondary" onclick="doLogout()">Log Out</button>
 </div>
+</div>
+
+<div id="activityLogPanel" class="member-card hidden" style="border-left-color:#3346a8;">
+<h3 style="color:#3346a8;">Activity Log</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">Most recent 50 admin actions across all administrators.</p>
+<div id="activityLogList">Loading...</div>
 </div>
 
 <p id="exportStatus" style="display:none; font-size:13px; color:#075e3b; margin-bottom:16px;"></p>
@@ -761,6 +768,7 @@ function saveUsdtPrice() {
         statusEl.style.display = 'inline';
         setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
         loadUsdtPrice();
+        logActivity('USDT price updated', '₦' + price.toLocaleString('en-NG') + ' per USDT');
     }).catch(function(error) {
         alert('Failed to save USDT price: ' + error.message);
     });
@@ -823,6 +831,7 @@ function saveMoreSettings() {
         var statusEl = document.getElementById('moreSaveStatus');
         statusEl.style.display = 'inline';
         setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
+        logActivity('MORE reference value updated', '₦' + refValue.toLocaleString('en-NG') + ' per unit (n=' + applicantCount + ')');
     }).catch(function(error) {
         alert('Failed to save MORE settings: ' + error.message);
     });
@@ -1182,6 +1191,7 @@ function saveMember(id) {
         var cached = memberCache[id];
         if (cached) {
             notifyMemberAccountUpdate(cached.email, cached.name);
+            logActivity('Updated member', cached.name + ' (status: ' + status + ', product: ' + product + ')');
         }
     }).catch(function(error) {
         alert('Failed to save: ' + error.message);
@@ -1285,6 +1295,64 @@ async function exportTransactionsCSV() {
     } catch (error) {
         alert('Failed to export transactions: ' + error.message);
     }
+}
+
+// ---- ACTIVITY LOG ----
+function toggleActivityLog() {
+    var panel = document.getElementById('activityLogPanel');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) {
+        loadActivityLog();
+    }
+}
+
+function logActivity(action, details) {
+    if (!currentAdminUser) return;
+    db.collection('activityLog').add({
+        adminUid: currentAdminUser.uid,
+        adminEmail: currentAdminUser.email || 'unknown',
+        action: action,
+        details: details || '',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function(error) {
+        console.error('Failed to log activity:', error);
+    });
+}
+
+function loadActivityLog() {
+    var container = document.getElementById('activityLogList');
+    container.innerHTML = 'Loading...';
+
+    db.collection('activityLog').orderBy('timestamp', 'desc').limit(50).get().then(function(snapshot) {
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color:#777; font-size:14px;">No activity recorded yet.</p>';
+            return;
+        }
+
+        var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+        html += '<tr style="text-align:left; border-bottom:1px solid #ddd;">' +
+                '<th style="padding:6px;">When</th>' +
+                '<th style="padding:6px;">Admin</th>' +
+                '<th style="padding:6px;">Action</th>' +
+                '<th style="padding:6px;">Details</th>' +
+                '</tr>';
+
+        snapshot.forEach(function(doc) {
+            var a = doc.data();
+            var when = a.timestamp ? a.timestamp.toDate().toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+            html += '<tr style="border-bottom:1px solid #eee;">' +
+                '<td style="padding:6px;">' + escapeHtml(when) + '</td>' +
+                '<td style="padding:6px;">' + escapeHtml(a.adminEmail || '') + '</td>' +
+                '<td style="padding:6px;">' + escapeHtml(a.action || '') + '</td>' +
+                '<td style="padding:6px;">' + escapeHtml(a.details || '') + '</td>' +
+                '</tr>';
+        });
+
+        html += '</table>';
+        container.innerHTML = html;
+    }).catch(function(error) {
+        container.innerHTML = '<p style="color:#b3261e;">Unable to load activity log: ' + escapeHtml(error.message) + '</p>';
+    });
 }
 
 function escapeHtml(str) {
@@ -1431,6 +1499,10 @@ function addTransaction(memberId) {
         document.getElementById('txAmount-' + memberId).value = '';
         loadTransactions(memberId);
         loadMembers(); // refresh totals shown on the card
+
+        var cached = memberCache[memberId];
+        var unit = (productKey === 'dollar') ? ' USDT' : '₦';
+        logActivity(type + ' recorded', (cached ? cached.name : memberId) + ' — ' + unit + amount.toLocaleString('en-NG') + ' (' + product + ', ' + status + ')');
     }).catch(function(error) {
         alert('Failed to add transaction: ' + error.message);
     });
@@ -1529,6 +1601,9 @@ function issueCertificate(memberId) {
         document.getElementById('certPeriod-' + memberId).value = '';
         document.getElementById('certNote-' + memberId).value = '';
         loadCertificates(memberId);
+
+        var cached = memberCache[memberId];
+        logActivity('Certificate issued', (cached ? cached.name : memberId) + ' — ' + periodLabel);
     }).catch(function(error) {
         alert('Failed to issue certificate: ' + error.message);
     });
@@ -1606,6 +1681,7 @@ function approveSellRequest(memberId, requestId, units) {
         if (cached) {
             notifyMemberAccountUpdate(cached.email, cached.name);
         }
+        logActivity('Sell-back approved', (cached ? cached.name : memberId) + ' — ' + units + ' MORE units');
     }).catch(function(error) {
         alert('Failed to approve request: ' + error.message);
     });
@@ -1707,6 +1783,8 @@ function approveWithdrawalRequest(memberId, requestId) {
             if (cached) {
                 notifyMemberAccountUpdate(cached.email, cached.name);
             }
+            var unitLabel = (r.unit === 'USDT') ? (r.amountRequested + ' USDT') : ('₦' + r.amountRequested.toLocaleString('en-NG'));
+            logActivity('Withdrawal approved', (cached ? cached.name : memberId) + ' — ' + unitLabel + ' (' + r.product + ')');
         }).catch(function(error) {
             alert('Failed to approve withdrawal: ' + error.message);
         });
@@ -1754,6 +1832,7 @@ async function deleteMember(memberId, memberName) {
 
         await memberRef.delete();
 
+        logActivity('Member deleted', memberName);
         alert('Member record deleted. Remember to also remove their login from Firebase Console → Authentication → Users if needed.');
         loadMembers();
     } catch (error) {

@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAVEMORE | Member Portal</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#075e3b">
 
 <style>
 * {
@@ -1327,6 +1331,14 @@ function downloadCertificate(certId) {
     doc.text('Issued by SAVEMORE — Saving Today, Building Tomorrow.', centerX, pageHeight - 15, { align: 'center' });
 
     doc.save('SAVEMORE_Certificate_' + c.period.replace(' ', '_') + '.pdf');
+}
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js').catch(function(error) {
+            console.error('Service worker registration failed:', error);
+        });
+    });
 }
 
 </script>

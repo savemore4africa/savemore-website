@@ -300,6 +300,8 @@ Loading...
 <input type="text" id="signupNokName" placeholder="Full name of next of kin">
 <label for="signupNokPhone">Next of Kin Phone Number</label>
 <input type="text" id="signupNokPhone" placeholder="08031509452">
+<label for="signupReferredBy">Referred By — Member ID (optional)</label>
+<input type="text" id="signupReferredBy" placeholder="e.g. SM-2026-123456, if someone referred you">
 <label for="signupEmail">Email</label>
 <input type="email" id="signupEmail" placeholder="you@example.com">
 <label for="signupPassword">Password</label>
@@ -547,6 +549,7 @@ function doSignup() {
     var shopAddress = document.getElementById('signupShopAddress').value.trim();
     var nokName = document.getElementById('signupNokName').value.trim();
     var nokPhone = document.getElementById('signupNokPhone').value.trim();
+    var referredBy = document.getElementById('signupReferredBy').value.trim();
     var email = document.getElementById('signupEmail').value.trim();
     var password = document.getElementById('signupPassword').value;
     var agreedTerms = document.getElementById('signupAgreeTerms').checked;
@@ -584,6 +587,7 @@ function doSignup() {
                 shopAddress: shopAddress,
                 nokName: nokName,
                 nokPhone: nokPhone,
+                referredBy: referredBy,
                 totalSavings: 0,
                 shares: 0,
                 status: 'Pending Review',

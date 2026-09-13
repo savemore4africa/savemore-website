@@ -854,6 +854,7 @@ function loadMembers() {
         var sumEmergency = 0;
         var sumChallenge = 0;
         var sumDollar = 0;
+        var referralCounts = {};
         snapshot.forEach(function(doc) {
             var d = doc.data();
             totalAllotted += (d.shares || 0);
@@ -862,6 +863,10 @@ function loadMembers() {
             sumEmergency += (p.emergency || 0);
             sumChallenge += (p.challenge || 0);
             sumDollar += (p.dollar || 0);
+            if (d.referredBy) {
+                var refId = d.referredBy.trim();
+                referralCounts[refId] = (referralCounts[refId] || 0) + 1;
+            }
         });
         updateMoreCirculationDisplay(totalAllotted);
         db.collection('settings').doc('more').set({ totalAllotted: totalAllotted }, { merge: true }).catch(function() {});
@@ -892,6 +897,10 @@ function loadMembers() {
             var usdtBadge = usdtBalanceSummary > 0
                 ? ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef2ff; color:#3346a8;">USDT: ' + usdtBalanceSummary.toLocaleString('en-NG') + '</span>'
                 : '';
+            var referralCount = (m.memberId && referralCounts[m.memberId]) ? referralCounts[m.memberId] : 0;
+            var referralBadge = referralCount > 0
+                ? ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#f0e6ff; color:#6b2fb3;">Referrals: ' + referralCount + '</span>'
+                : '';
 
             var card = document.createElement('div');
             card.className = 'member-card';
@@ -907,6 +916,7 @@ function loadMembers() {
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#fff4e5; color:#ff8c00;">MORE: ' + (m.shares || 0) + '</span>' +
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">Balance: ₦' + nairaBalanceSummary.toLocaleString('en-NG') + '</span>' +
                     usdtBadge +
+                    referralBadge +
                     '<span id="sellDot-' + id + '"></span>' +
                     '<span id="wdDot-' + id + '"></span>' +
                     newBadge +
@@ -951,6 +961,10 @@ function loadMembers() {
                     '<div>' +
                         '<label>Next of Kin Phone</label>' +
                         '<input type="text" id="nokPhone-' + id + '" value="' + escapeHtml(m.nokPhone || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Referred By (Member ID)</label>' +
+                        '<input type="text" id="referredBy-' + id + '" value="' + escapeHtml(m.referredBy || '') + '" placeholder="e.g. SM-2026-123456">' +
                     '</div>' +
                 '</div>' +
                 '<div class="field-row" style="margin-top:12px;">' +
@@ -1159,6 +1173,7 @@ function saveMember(id) {
     var shopAddress = document.getElementById('shopAddress-' + id).value.trim();
     var nokName = document.getElementById('nokName-' + id).value.trim();
     var nokPhone = document.getElementById('nokPhone-' + id).value.trim();
+    var referredBy = document.getElementById('referredBy-' + id).value.trim();
     var total = pInvestment + pEmergency + pChallenge; // naira accounts only — USDT (pDollar) kept separate
 
     db.collection('members').doc(id).update({
@@ -1182,7 +1197,8 @@ function saveMember(id) {
         residentialAddress: residentialAddress,
         shopAddress: shopAddress,
         nokName: nokName,
-        nokPhone: nokPhone
+        nokPhone: nokPhone,
+        referredBy: referredBy
     }).then(function() {
         var statusEl = document.getElementById('saveStatus-' + id);
         statusEl.style.display = 'inline';

@@ -697,6 +697,7 @@ function updateNewMembersBanner() {
 
 var pendingSellCountGlobal = 0;
 var pendingWithdrawalCountGlobal = 0;
+var pendingPaymentCountGlobal = 0;
 
 function checkPendingSellDot(memberId) {
     db.collection('members').doc(memberId).collection('sellRequests')
@@ -724,15 +725,29 @@ function checkPendingSellDot(memberId) {
             updatePendingRequestsBanner();
         })
         .catch(function() {});
+
+    db.collection('members').doc(memberId).collection('paymentClaims')
+        .where('status', '==', 'Pending')
+        .get()
+        .then(function(snapshot) {
+            var dotEl = document.getElementById('payDot-' + memberId);
+            if (dotEl && !snapshot.empty) {
+                dotEl.innerHTML = ' <span title="Pending payment claim" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#25D366; margin-left:4px;"></span>';
+            }
+            pendingPaymentCountGlobal += snapshot.size;
+            updatePendingRequestsBanner();
+        })
+        .catch(function() {});
 }
 
 function updatePendingRequestsBanner() {
     var banner = document.getElementById('pendingRequestsBanner');
-    if (pendingSellCountGlobal > 0 || pendingWithdrawalCountGlobal > 0) {
+    if (pendingSellCountGlobal > 0 || pendingWithdrawalCountGlobal > 0 || pendingPaymentCountGlobal > 0) {
         var parts = [];
+        if (pendingPaymentCountGlobal > 0) parts.push(pendingPaymentCountGlobal + ' pending payment claim' + (pendingPaymentCountGlobal > 1 ? 's' : ''));
         if (pendingSellCountGlobal > 0) parts.push(pendingSellCountGlobal + ' pending sell-back request' + (pendingSellCountGlobal > 1 ? 's' : ''));
         if (pendingWithdrawalCountGlobal > 0) parts.push(pendingWithdrawalCountGlobal + ' pending withdrawal request' + (pendingWithdrawalCountGlobal > 1 ? 's' : ''));
-        banner.innerHTML = '🔔 ' + parts.join(' · ') + ' — expand a member below to review (look for the red/orange dot).';
+        banner.innerHTML = '🔔 ' + parts.join(' · ') + ' — expand a member below to review (look for the colored dot).';
         banner.style.display = 'block';
     } else {
         banner.style.display = 'none';
@@ -948,6 +963,7 @@ function loadMembers() {
     list.innerHTML = '<p>Loading members...</p>';
     pendingSellCountGlobal = 0;
     pendingWithdrawalCountGlobal = 0;
+    pendingPaymentCountGlobal = 0;
     document.getElementById('pendingRequestsBanner').style.display = 'none';
 
     db.collection('members').orderBy('name').get().then(function(snapshot) {
@@ -1028,6 +1044,7 @@ function loadMembers() {
                     referralBadge +
                     '<span id="sellDot-' + id + '"></span>' +
                     '<span id="wdDot-' + id + '"></span>' +
+                    '<span id="payDot-' + id + '"></span>' +
                     newBadge +
                     '<div class="member-meta">ID: ' + escapeHtml(m.memberId || 'Not assigned') +
                         (m.memberId ? '' : ' <button style="padding:2px 10px; font-size:11px; margin-left:6px;" onclick="event.preventDefault(); event.stopPropagation(); assignMemberId(\'' + id + '\');">Generate ID</button>') +
@@ -1208,6 +1225,11 @@ function loadMembers() {
                 '<details ontoggle="if(this.open) loadWithdrawalRequestsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
                 '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Withdrawal Requests</summary>' +
                 '<div id="wdReqList-' + id + '" style="margin-top:14px;">Loading requests...</div>' +
+                '</details>' +
+
+                '<details ontoggle="if(this.open) loadPaymentClaimsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
+                '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Payment Claims</summary>' +
+                '<div id="paymentClaimsList-' + id + '" style="margin-top:14px;">Loading claims...</div>' +
                 '</details>' +
 
                 '<div style="margin-top:20px; border-top:1px solid #eee; padding-top:14px;">' +
@@ -1927,6 +1949,108 @@ function rejectWithdrawalRequest(memberId, requestId) {
     });
 }
 
+// ---- PAYMENT CLAIMS (ADMIN) ----
+function loadPaymentClaimsAdmin(memberId) {
+    var container = document.getElementById('paymentClaimsList-' + memberId);
+    container.innerHTML = 'Loading claims...';
+
+    db.collection('members').doc(memberId).collection('paymentClaims')
+        .orderBy('claimedAt', 'desc')
+        .get()
+        .then(function(snapshot) {
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="color:#777; font-size:14px;">No payment claims.</p>';
+                return;
+            }
+
+            var html = '';
+            snapshot.forEach(function(doc) {
+                var c = doc.data();
+                var amountDisplay = (c.unit === 'USDT')
+                    ? (c.amount || 0).toLocaleString('en-NG') + ' USDT'
+                    : '₦' + (c.amount || 0).toLocaleString('en-NG');
+                var actions = '';
+                if (c.status === 'Pending') {
+                    actions =
+                        '<button style="padding:4px 10px; font-size:12px;" onclick="confirmPaymentClaim(\'' + memberId + '\',\'' + doc.id + '\')">Confirm &amp; Record</button> ' +
+                        '<button style="padding:4px 10px; font-size:12px; background:#999;" onclick="rejectPaymentClaim(\'' + memberId + '\',\'' + doc.id + '\')">Reject</button>';
+                }
+                html += '<div style="padding:10px; border-bottom:1px solid #eee; font-size:14px;">' +
+                    escapeHtml(c.product || '') + ' — ' + amountDisplay +
+                    ' — status: <strong>' + escapeHtml(c.status || 'Pending') + '</strong><br>' + actions +
+                    '</div>';
+            });
+
+            container.innerHTML = html;
+        })
+        .catch(function(error) {
+            container.innerHTML = '<p style="color:#b3261e;">Unable to load claims: ' + escapeHtml(error.message) + '</p>';
+        });
+}
+
+function confirmPaymentClaim(memberId, claimId) {
+    var memberRef = db.collection('members').doc(memberId);
+
+    memberRef.collection('paymentClaims').doc(claimId).get().then(function(claimDoc) {
+        if (!claimDoc.exists) return;
+        var c = claimDoc.data();
+
+        if (!confirm('Confirm this payment and record it as a Deposit of ' + (c.unit === 'USDT' ? c.amount + ' USDT' : '₦' + c.amount.toLocaleString('en-NG')) + ' for ' + c.product + '?')) {
+            return;
+        }
+
+        var productKey = PRODUCT_KEYS[c.product];
+        var reference = generateReference();
+
+        memberRef.collection('transactions').add({
+            date: new Date().toISOString().slice(0, 10),
+            type: 'Deposit',
+            reference: reference,
+            product: c.product,
+            productKey: productKey,
+            description: 'Member-claimed payment, confirmed by admin',
+            amount: c.amount,
+            signedAmount: c.amount,
+            status: 'Confirmed',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function() {
+            var update = {};
+            if (productKey !== 'dollar') {
+                update.totalSavings = firebase.firestore.FieldValue.increment(c.amount);
+            }
+            update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(c.amount);
+            return memberRef.update(update);
+        }).then(function() {
+            return memberRef.collection('paymentClaims').doc(claimId).update({
+                status: 'Confirmed',
+                resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }).then(function() {
+            loadPaymentClaimsAdmin(memberId);
+            loadMembers();
+            var cached = memberCache[memberId];
+            if (cached) {
+                notifyMemberAccountUpdate(cached.email, cached.name);
+            }
+            var unitLabel = (c.unit === 'USDT') ? (c.amount + ' USDT') : ('₦' + c.amount.toLocaleString('en-NG'));
+            logActivity('Payment claim confirmed', (cached ? cached.name : memberId) + ' — ' + unitLabel + ' (' + c.product + ')');
+        }).catch(function(error) {
+            alert('Failed to confirm payment: ' + error.message);
+        });
+    });
+}
+
+function rejectPaymentClaim(memberId, claimId) {
+    db.collection('members').doc(memberId).collection('paymentClaims').doc(claimId).update({
+        status: 'Rejected',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        loadPaymentClaimsAdmin(memberId);
+    }).catch(function(error) {
+        alert('Failed to reject claim: ' + error.message);
+    });
+}
+
 // ---- DELETE MEMBER ----
 async function deleteMember(memberId, memberName) {
     var confirmed = confirm('Permanently delete ' + memberName + '\'s record, including all their transactions, certificates and sell requests? This cannot be undone.\n\nNote: this only removes their data record — their login account must be separately disabled in Firebase Console → Authentication → Users.');
@@ -1953,6 +2077,11 @@ async function deleteMember(memberId, memberName) {
         var wdSnap = await memberRef.collection('withdrawalRequests').get();
         for (var w = 0; w < wdSnap.docs.length; w++) {
             await wdSnap.docs[w].ref.delete();
+        }
+
+        var payClaimSnap = await memberRef.collection('paymentClaims').get();
+        for (var p = 0; p < payClaimSnap.docs.length; p++) {
+            await payClaimSnap.docs[p].ref.delete();
         }
 
         await memberRef.delete();

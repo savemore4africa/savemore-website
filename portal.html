@@ -460,6 +460,12 @@ periodically. No dividend has been declared at this time.
 <h2 id="txHistorySection" style="margin-top:30px; font-size:18px;">Transaction History</h2>
 <div id="txHistory" style="margin-top:12px;">Loading...</div>
 
+<div style="margin-top:16px; padding:16px; background:#eef7f2; border-radius:10px;">
+<label for="statementMonth" style="display:block; font-weight:bold; color:#075e3b; margin-bottom:6px; font-size:14px;">Download Monthly Statement</label>
+<input type="month" id="statementMonth" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
+<button onclick="downloadMonthlyStatement()">Download Statement</button>
+</div>
+
 <h2 style="margin-top:30px; font-size:18px;">My Certificates</h2>
 <div id="certHistory" style="margin-top:12px;">Loading...</div>
 
@@ -1156,6 +1162,9 @@ function loadDashboard(user) {
             loadSellRequests(user.uid);
             loadWithdrawalRequests(user.uid);
             loadPaymentClaims(user.uid);
+
+            var now = new Date();
+            document.getElementById('statementMonth').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
             loadTxPin(user.uid);
 
             if (data.status === 'Pending Review') {
@@ -1265,6 +1274,166 @@ function escapeHtml(str) {
 }
 
 // ---- DIGITAL RECEIPT ----
+// ---- MONTHLY STATEMENT ----
+async function downloadMonthlyStatement() {
+    var monthValue = document.getElementById('statementMonth').value; // "YYYY-MM"
+    if (!monthValue) {
+        var now = new Date();
+        monthValue = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    }
+
+    var uid = auth.currentUser.uid;
+
+    try {
+        var snapshot = await db.collection('members').doc(uid).collection('transactions')
+            .orderBy('date', 'asc')
+            .get();
+
+        var beforeMonthNaira = 0;
+        var beforeMonthUsdt = 0;
+        var monthRows = [];
+
+        snapshot.forEach(function(doc) {
+            var t = doc.data();
+            var signed = (typeof t.signedAmount === 'number') ? t.signedAmount : (t.amount || 0);
+            var isUsdt = (t.product === 'In-Dollar Savings Account');
+            var txMonth = (t.date || '').slice(0, 7);
+
+            if (txMonth < monthValue) {
+                if (t.status === 'Confirmed') {
+                    if (isUsdt) { beforeMonthUsdt += signed; } else { beforeMonthNaira += signed; }
+                }
+            } else if (txMonth === monthValue) {
+                monthRows.push({ t: t, signed: signed, isUsdt: isUsdt });
+            }
+        });
+
+        if (monthRows.length === 0) {
+            alert('No transactions found for that month.');
+            return;
+        }
+
+        var runningNaira = beforeMonthNaira;
+        var runningUsdt = beforeMonthUsdt;
+        var totalDepositsNaira = 0, totalWithdrawalsNaira = 0, totalDepositsUsdt = 0, totalWithdrawalsUsdt = 0;
+
+        monthRows.forEach(function(row) {
+            if (row.t.status === 'Confirmed') {
+                if (row.isUsdt) {
+                    runningUsdt += row.signed;
+                    if (row.signed >= 0) totalDepositsUsdt += row.signed; else totalWithdrawalsUsdt += Math.abs(row.signed);
+                } else {
+                    runningNaira += row.signed;
+                    if (row.signed >= 0) totalDepositsNaira += row.signed; else totalWithdrawalsNaira += Math.abs(row.signed);
+                }
+            }
+            row.balanceAfter = row.isUsdt ? runningUsdt : runningNaira;
+        });
+
+        var jsPDFLib = window.jspdf.jsPDF;
+        var doc = new jsPDFLib();
+        var pageWidth = doc.internal.pageSize.getWidth();
+        var pageHeight = doc.internal.pageSize.getHeight();
+        var centerX = pageWidth / 2;
+        var monthLabel = new Date(monthValue + '-01').toLocaleDateString('en-NG', { year: 'numeric', month: 'long' });
+
+        // Header
+        doc.setFillColor(7, 94, 59);
+        doc.rect(0, 0, pageWidth, 28, 'F');
+        try { doc.addImage(SAVEMORE_LOGO, 'JPEG', 14, 5, 18, 18); } catch (e) {}
+        doc.setTextColor(255, 140, 0);
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('SAVEMORE', centerX, 14, { align: 'center' });
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text('Monthly Statement — ' + monthLabel, centerX, 22, { align: 'center' });
+
+        doc.setTextColor(60, 60, 60);
+        doc.setFontSize(11);
+        var y = 38;
+        doc.text('Member: ' + currentMemberName, 14, y);
+        y += 15;
+
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text('Date', 14, y);
+        doc.text('Type', 40, y);
+        doc.text('Product', 65, y);
+        doc.text('Amount', 130, y);
+        doc.text('Balance', 160, y);
+        doc.text('Status', 185, y);
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, y + 2, pageWidth - 14, y + 2);
+        y += 8;
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9);
+
+        monthRows.forEach(function(row) {
+            if (y > pageHeight - 25) {
+                doc.addPage();
+                y = 20;
+            }
+            var t = row.t;
+            var unit = row.isUsdt ? ' USDT' : '';
+            var amtText = (row.signed < 0 ? '-' : '') + (row.isUsdt ? '' : '₦') + Math.abs(t.amount || 0).toLocaleString('en-NG') + unit;
+            var balText = (row.isUsdt ? '' : '₦') + row.balanceAfter.toLocaleString('en-NG') + (row.isUsdt ? ' USDT' : '');
+
+            doc.text(t.date || '', 14, y);
+            doc.text(t.type || 'Deposit', 40, y);
+            doc.text((t.product || '').slice(0, 28), 65, y);
+            doc.text(amtText, 130, y);
+            doc.text(balText, 160, y);
+            doc.text(t.status || '', 185, y);
+            y += 7;
+        });
+
+        y += 8;
+        if (y > pageHeight - 40) { doc.addPage(); y = 20; }
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, y, pageWidth - 14, y);
+        y += 10;
+
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(7, 94, 59);
+        doc.text('Summary (Naira Accounts)', 14, y);
+        y += 7;
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(60, 60, 60);
+        doc.text('Opening Balance: ₦' + beforeMonthNaira.toLocaleString('en-NG'), 14, y); y += 6;
+        doc.text('Total Deposits: ₦' + totalDepositsNaira.toLocaleString('en-NG'), 14, y); y += 6;
+        doc.text('Total Withdrawals: ₦' + totalWithdrawalsNaira.toLocaleString('en-NG'), 14, y); y += 6;
+        doc.setFont(undefined, 'bold');
+        doc.text('Closing Balance: ₦' + runningNaira.toLocaleString('en-NG'), 14, y);
+        y += 12;
+
+        if (beforeMonthUsdt !== 0 || totalDepositsUsdt !== 0 || totalWithdrawalsUsdt !== 0 || runningUsdt !== 0) {
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(7, 94, 59);
+            doc.text('Summary (In-Dollar Savings — USDT)', 14, y);
+            y += 7;
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(60, 60, 60);
+            doc.text('Opening Balance: ' + beforeMonthUsdt.toLocaleString('en-NG') + ' USDT', 14, y); y += 6;
+            doc.text('Total Deposits: ' + totalDepositsUsdt.toLocaleString('en-NG') + ' USDT', 14, y); y += 6;
+            doc.text('Total Withdrawals: ' + totalWithdrawalsUsdt.toLocaleString('en-NG') + ' USDT', 14, y); y += 6;
+            doc.setFont(undefined, 'bold');
+            doc.text('Closing Balance: ' + runningUsdt.toLocaleString('en-NG') + ' USDT', 14, y);
+        }
+
+        doc.setFontSize(8);
+        doc.setTextColor(130, 130, 130);
+        doc.setFont(undefined, 'normal');
+        doc.text('Generated on ' + new Date().toLocaleDateString('en-NG', { year: 'numeric', month: 'long', day: 'numeric' }) + ' — SAVEMORE, Saving Today, Building Tomorrow.', centerX, pageHeight - 10, { align: 'center' });
+
+        doc.save('SAVEMORE_Statement_' + monthValue + '.pdf');
+    } catch (error) {
+        alert('Failed to generate statement: ' + error.message);
+    }
+}
+
 function downloadReceipt(txId) {
     var t = currentTransactions[txId];
     if (!t) {

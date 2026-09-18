@@ -252,8 +252,8 @@ Loading...
 <h2>Member Login</h2>
 <div class="error-msg" id="loginError"></div>
 <div class="info-msg" id="loginInfo"></div>
-<label for="loginEmail">Email</label>
-<input type="email" id="loginEmail" placeholder="you@example.com">
+<label for="loginEmail">Email or Member ID</label>
+<input type="text" id="loginEmail" placeholder="you@example.com or SM-2026-123456">
 <label for="loginPassword">Password</label>
 <div class="password-wrapper">
 <input type="password" id="loginPassword" placeholder="Your password">
@@ -625,6 +625,9 @@ function doSignup() {
             });
         })
         .then(function() {
+            return db.collection('memberIdLookup').doc(memberId).set({ email: email });
+        })
+        .then(function() {
             notifyAdminNewMember(memberId, name, phone, email, product);
         })
         .catch(function(error) {
@@ -668,17 +671,35 @@ function notifyAdminEvent(title, line1, line2, line3, line4) {
 
 // ---- LOGIN ----
 // ---- FORGOT PASSWORD ----
-function doForgotPassword() {
-    var email = document.getElementById('loginEmail').value.trim();
+async function doForgotPassword() {
+    var input = document.getElementById('loginEmail').value.trim();
     var errorEl = document.getElementById('loginError');
     var infoEl = document.getElementById('loginInfo');
     errorEl.style.display = 'none';
     infoEl.style.display = 'none';
 
-    if (!email) {
-        errorEl.textContent = 'Please enter your email address above first, then tap "Forgot Password?" again.';
+    if (!input) {
+        errorEl.textContent = 'Please enter your email or Member ID above first, then tap "Forgot Password?" again.';
         errorEl.style.display = 'block';
         return;
+    }
+
+    var email = input;
+
+    if (input.indexOf('@') === -1) {
+        try {
+            var lookupDoc = await db.collection('memberIdLookup').doc(input).get();
+            if (!lookupDoc.exists) {
+                errorEl.textContent = 'No account found with that Member ID.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            email = lookupDoc.data().email;
+        } catch (error) {
+            errorEl.textContent = 'Unable to look up that Member ID: ' + error.message;
+            errorEl.style.display = 'block';
+            return;
+        }
     }
 
     auth.sendPasswordResetEmail(email)
@@ -692,20 +713,40 @@ function doForgotPassword() {
         });
 }
 
-function doLogin() {
-    var email = document.getElementById('loginEmail').value.trim();
+async function doLogin() {
+    var input = document.getElementById('loginEmail').value.trim();
     var password = document.getElementById('loginPassword').value;
 
-    if (!email || !password) {
-        showError('loginError', 'Please enter your email and password.');
+    if (!input || !password) {
+        showError('loginError', 'Please enter your email or Member ID, and your password.');
         return;
+    }
+
+    var email = input;
+
+    if (input.indexOf('@') === -1) {
+        // Treat as a Member ID — look up the matching email first
+        try {
+            var lookupDoc = await db.collection('memberIdLookup').doc(input).get();
+            if (!lookupDoc.exists) {
+                showError('loginError', 'No account found with that Member ID.');
+                return;
+            }
+            email = lookupDoc.data().email;
+        } catch (error) {
+            var friendlyMsg = (error.code === 'auth/network-request-failed' || error.code === 'unavailable')
+                ? 'Unable to reach the server. Please check your internet connection and try again.'
+                : 'Unable to look up that Member ID: ' + error.message;
+            showError('loginError', friendlyMsg);
+            return;
+        }
     }
 
     auth.signInWithEmailAndPassword(email, password)
         .catch(function(error) {
             var friendlyMsg = (error.code === 'auth/network-request-failed')
                 ? 'Unable to reach the server. Please check your internet connection and try again.'
-                : 'Incorrect email or password.';
+                : 'Incorrect email/Member ID or password.';
             showError('loginError', friendlyMsg);
         });
 }

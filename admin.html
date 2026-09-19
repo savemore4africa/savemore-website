@@ -309,6 +309,7 @@ PIN (in addition to your password) every time you log in.
 <button class="secondary" onclick="exportMembersCSV()" style="margin-right:8px;">Export Members (CSV)</button>
 <button class="secondary" onclick="exportTransactionsCSV()" style="margin-right:8px;">Export Transactions (CSV)</button>
 <button class="secondary" onclick="toggleActivityLog()" style="margin-right:8px;">Activity Log</button>
+<button class="secondary" onclick="backfillMemberIdLookups()" style="margin-right:8px;">Fix Member ID Logins</button>
 <button class="secondary" onclick="changePin()" style="margin-right:8px;">Change PIN</button>
 <button class="secondary" onclick="doLogout()">Log Out</button>
 </div>
@@ -817,6 +818,33 @@ function assignMemberId(id) {
         .catch(function(error) {
             alert('Failed to assign Member ID: ' + error.message);
         });
+}
+
+async function backfillMemberIdLookups() {
+    if (!confirm('This will create Member ID login entries for any existing member who doesn\'t have one yet (needed for older accounts to log in using their Member ID). Continue?')) {
+        return;
+    }
+
+    try {
+        var snapshot = await db.collection('members').get();
+        var fixed = 0;
+        var skipped = 0;
+
+        for (var i = 0; i < snapshot.docs.length; i++) {
+            var m = snapshot.docs[i].data();
+            if (!m.memberId || !m.email) {
+                skipped++;
+                continue;
+            }
+            await db.collection('memberIdLookup').doc(m.memberId).set({ email: m.email });
+            fixed++;
+        }
+
+        alert('Done — ' + fixed + ' member(s) can now log in with their Member ID.' + (skipped > 0 ? ' (' + skipped + ' skipped — missing Member ID or email.)' : ''));
+        logActivity('Backfilled Member ID logins', fixed + ' member(s) fixed');
+    } catch (error) {
+        alert('Failed to backfill: ' + error.message);
+    }
 }
 
 function filterMemberCards() {

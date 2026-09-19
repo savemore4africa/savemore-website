@@ -825,26 +825,33 @@ async function backfillMemberIdLookups() {
         return;
     }
 
-    try {
-        var snapshot = await db.collection('members').get();
-        var fixed = 0;
-        var skipped = 0;
+    var snapshot = await db.collection('members').get();
+    var fixed = 0;
+    var skipped = 0;
+    var failed = 0;
 
-        for (var i = 0; i < snapshot.docs.length; i++) {
-            var m = snapshot.docs[i].data();
-            if (!m.memberId || !m.email) {
+    for (var i = 0; i < snapshot.docs.length; i++) {
+        var m = snapshot.docs[i].data();
+        if (!m.memberId || !m.email) {
+            skipped++;
+            continue;
+        }
+        try {
+            var existing = await db.collection('memberIdLookup').doc(m.memberId).get();
+            if (existing.exists) {
                 skipped++;
                 continue;
             }
             await db.collection('memberIdLookup').doc(m.memberId).set({ email: m.email });
             fixed++;
+        } catch (error) {
+            failed++;
+            console.error('Backfill failed for ' + m.memberId + ':', error);
         }
-
-        alert('Done — ' + fixed + ' member(s) can now log in with their Member ID.' + (skipped > 0 ? ' (' + skipped + ' skipped — missing Member ID or email.)' : ''));
-        logActivity('Backfilled Member ID logins', fixed + ' member(s) fixed');
-    } catch (error) {
-        alert('Failed to backfill: ' + error.message);
     }
+
+    alert('Done — ' + fixed + ' member(s) fixed. ' + skipped + ' already had one or were skipped.' + (failed > 0 ? ' ' + failed + ' failed — check console for details.' : ''));
+    logActivity('Backfilled Member ID logins', fixed + ' member(s) fixed, ' + skipped + ' skipped, ' + failed + ' failed');
 }
 
 function filterMemberCards() {

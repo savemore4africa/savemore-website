@@ -237,7 +237,10 @@ button.secondary {
 
 <header>
 <div class="logo">SAVEMORE</div>
+<div style="display:flex; align-items:center; gap:14px;">
+<button id="installAppBtn" type="button" onclick="installApp()" style="display:none; width:auto; padding:7px 14px; margin:0; font-size:12px; background:#ff8c00; color:white; border:none; border-radius:20px; font-weight:bold; cursor:pointer;">📲 Install App</button>
 <a href="index.html">← Back to website</a>
+</div>
 </header>
 
 <main>
@@ -1683,6 +1686,28 @@ if ('serviceWorker' in navigator) {
         });
     });
 }
+
+// ---- INSTALL APP BUTTON ----
+var deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', function(event) {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    document.getElementById('installAppBtn').style.display = 'inline-block';
+});
+
+function installApp() {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(function() {
+        deferredInstallPrompt = null;
+        document.getElementById('installAppBtn').style.display = 'none';
+    });
+}
+
+window.addEventListener('appinstalled', function() {
+    document.getElementById('installAppBtn').style.display = 'none';
+});
 
 </script>
 

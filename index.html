@@ -154,10 +154,50 @@ nav a.portal-btn {
     margin-bottom: 15px;
 }
 
-.hero p {
+.hero p.hero-text {
     font-size: 19px;
     max-width: 700px;
     margin: auto;
+}
+
+.hero-eyebrow {
+    display: inline-block;
+    font-size: 13px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.15);
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-bottom: 18px;
+}
+
+.hero-actions {
+    margin-top: 10px;
+}
+
+.button-lg {
+    font-size: 17px;
+    padding: 15px 30px;
+}
+
+.hero-trust {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 26px;
+    margin: 34px auto 0;
+    padding-top: 22px;
+    border-top: 1px solid rgba(255,255,255,0.25);
+    max-width: 760px;
+    font-size: 15px;
+}
+
+.hero-trust li::before {
+    content: "\2713";
+    color: #ffb347;
+    font-weight: bold;
+    margin-right: 8px;
 }
 
 .button {
@@ -615,8 +655,27 @@ footer {
         font-size: 32px;
     }
 
-    .hero p {
+    .hero p.hero-text {
         font-size: 16px;
+    }
+
+    .hero-actions .button {
+        display: block;
+        margin: 12px auto 0;
+        max-width: 320px;
+    }
+
+    .hero-actions .button-outline {
+        margin-left: auto;
+    }
+
+    .hero-trust {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 14px;
+        text-align: left;
+        font-size: 14px;
+        margin-top: 26px;
     }
 }
 </style>
@@ -689,23 +748,33 @@ SAVEMORE
 
 <section class="hero">
 
+<p class="hero-eyebrow">Savings &amp; Financial Education &middot; Modakeke, Osun State</p>
+
 <h1>Saving Today. Building Tomorrow.</h1>
 
-<p>
+<p class="hero-text">
 SAVEMORE helps individuals develop disciplined saving habits,
 prepare for financial needs and build a stronger financial future.
 </p>
 
-<a class="button"
-href="https://wa.me/2348031509452"
-target="_blank">
-Join SAVEMORE on WhatsApp
+<div class="hero-actions">
+<a class="button button-lg"
+href="https://wa.me/2348031509452?text=Hello%20SAVEMORE%2C%20I%27d%20like%20to%20register."
+target="_blank" rel="noopener">
+Register on WhatsApp
 </a>
-
-<a class="button button-outline"
+<a class="button button-outline button-lg"
 href="portal.html">
 Member Portal
 </a>
+</div>
+
+<ul class="hero-trust">
+<li>4 savings products</li>
+<li>Weekly financial education</li>
+<li>Fees &amp; risks published openly</li>
+<li>Local office in Modakeke</li>
+</ul>
 
 </section>
 

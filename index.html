@@ -50,11 +50,96 @@ header {
     display: block;
 }
 
-nav a {
+html {
+    scroll-behavior: smooth;
+}
+
+section {
+    scroll-margin-top: 80px;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nav-item {
+    position: relative;
+}
+
+.nav-label {
+    background: none;
+    border: none;
+    color: white;
+    font: inherit;
+    font-size: 15px;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.nav-label::after {
+    content: " \25BE";
+    font-size: 11px;
+}
+
+.nav-item:hover .nav-label,
+.nav-item:focus-within .nav-label {
+    background: rgba(255,255,255,0.12);
+}
+
+.dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 210px;
+    background: #075e3b;
+    border-radius: 8px;
+    padding: 8px 0;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+}
+
+.nav-item:hover .dropdown,
+.nav-item:focus-within .dropdown {
+    display: block;
+}
+
+.dropdown a {
+    display: block;
     color: white;
     text-decoration: none;
-    margin-left: 18px;
     font-size: 14px;
+    padding: 10px 18px;
+}
+
+.dropdown a:hover {
+    background: rgba(255,255,255,0.12);
+}
+
+nav a.portal-btn {
+    background: #ff8c00;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 10px 18px;
+    border-radius: 30px;
+    margin-left: 8px;
+    white-space: nowrap;
+}
+
+.menu-toggle {
+    display: none;
+    background: none;
+    border: 2px solid rgba(255,255,255,0.7);
+    color: white;
+    font-size: 24px;
+    line-height: 1;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
 }
 
 .hero {
@@ -86,9 +171,46 @@ nav a {
     font-weight: bold;
 }
 
+.button-outline {
+    background: transparent;
+    border: 2px solid white;
+    margin-left: 10px;
+}
+
+.button-outline:hover {
+    background: white;
+    color: #075e3b;
+}
+
+@media(max-width: 700px) {
+    .button-outline {
+        margin-left: 0;
+        margin-top: 12px;
+    }
+}
+
 section {
     padding: 65px 6%;
 }
+
+.fold {
+    margin: 18px 0;
+    text-align: left;
+}
+
+.fold summary {
+    cursor: pointer;
+    color: #ff8c00;
+    font-weight: bold;
+    font-size: 16px;
+    text-align: center;
+    padding: 6px 0;
+}
+
+.fold[open] summary {
+    margin-bottom: 14px;
+}
+
 
 .section-title {
     text-align: center;
@@ -401,15 +523,92 @@ footer {
     fill: white;
 }
 
-@media(max-width: 700px) {
+@media(max-width: 900px) {
     header {
-        flex-direction: column;
-        gap: 10px;
+        flex-wrap: wrap;
+        padding: 12px 6%;
     }
 
-    nav a {
-        margin: 5px;
-        font-size: 12px;
+    .logo {
+        font-size: 24px;
+    }
+
+    .menu-toggle {
+        display: block;
+    }
+
+    nav {
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 0;
+        margin-top: 12px;
+        max-height: calc(100vh - 90px);
+        overflow-y: auto;
+    }
+
+    nav.open {
+        display: flex;
+    }
+
+    .nav-label {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 12px 4px 4px;
+        font-size: 13px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: #ffb347;
+        cursor: default;
+    }
+
+    .nav-label::after {
+        content: "";
+    }
+
+    .nav-item:hover .nav-label,
+    .nav-item:focus-within .nav-label {
+        background: none;
+    }
+
+    .dropdown,
+    .nav-item:hover .dropdown {
+        display: block;
+        position: static;
+        box-shadow: none;
+        background: none;
+        padding: 0 0 0 8px;
+    }
+
+    .dropdown a {
+        font-size: 16px;
+        padding: 12px 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+
+    nav a.portal-btn {
+        text-align: center;
+        margin: 16px 0 8px;
+        padding: 14px;
+        font-size: 16px;
+    }
+}
+
+@media(max-width: 700px) {
+    section {
+        padding: 40px 6%;
+    }
+
+    .hero {
+        padding: 55px 6%;
+    }
+
+    .section-title {
+        font-size: 26px;
+        margin-bottom: 22px;
     }
 
     .hero h1 {
@@ -434,18 +633,53 @@ footer {
 SAVEMORE
 </div>
 
-<nav>
-<a href="#about">About</a>
-<a href="#products">Products</a>
-<a href="#calculator">Calculator</a>
-<a href="#education">Education</a>
-<a href="#more">MORE</a>
-<a href="#news">News</a>
-<a href="#kyc">Registration</a>
+<button class="menu-toggle" id="menuToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">&#9776;</button>
+
+<nav id="mainNav" aria-label="Main">
+
+<div class="nav-item">
+<button type="button" class="nav-label">Products</button>
+<div class="dropdown">
+<a href="#products">Savings Products</a>
+<a href="#calculator">Savings Calculator</a>
+</div>
+</div>
+
+<div class="nav-item">
+<button type="button" class="nav-label">About</button>
+<div class="dropdown">
+<a href="#about">About SAVEMORE</a>
 <a href="#roadmap">Roadmap</a>
-<a href="#transparency">Legal & Transparency</a>
-<a href="#contact">Contact</a>
-<a href="portal.html">Member Portal</a>
+<a href="#transparency">Legal &amp; Transparency</a>
+</div>
+</div>
+
+<div class="nav-item">
+<button type="button" class="nav-label">MORE</button>
+<div class="dropdown">
+<a href="#more">MORE 1.0</a>
+<a href="#whitepaper">White Paper 2.0</a>
+</div>
+</div>
+
+<div class="nav-item">
+<button type="button" class="nav-label">Learn</button>
+<div class="dropdown">
+<a href="#education">Financial Education</a>
+<a href="#news">News</a>
+</div>
+</div>
+
+<div class="nav-item">
+<button type="button" class="nav-label">Contact</button>
+<div class="dropdown">
+<a href="#kyc">Registration</a>
+<a href="#contact">Contact Us</a>
+</div>
+</div>
+
+<a class="portal-btn" href="portal.html">Member Portal</a>
+
 </nav>
 
 </header>
@@ -466,6 +700,11 @@ prepare for financial needs and build a stronger financial future.
 href="https://wa.me/2348031509452"
 target="_blank">
 Join SAVEMORE on WhatsApp
+</a>
+
+<a class="button button-outline"
+href="portal.html">
+Member Portal
 </a>
 
 </section>
@@ -716,698 +955,40 @@ saving, budgeting, spending and personal financial management.
 <div class="card">
 <h3>Budgeting</h3>
 <p>Learn how to plan your income and expenses.</p>
+<a class="card-link" href="education.html#budgeting">Read article</a>
 
-<details>
-<summary>Read More</summary>
-<div class="writeup">
-
-<p><em>Week 1: Why Every Family Needs a Budget</em></p>
-
-<p>Assalāmu 'Alaykum Warahmatullāhi Wabarakātuh.</p>
-
-<p>
-Welcome to the first edition of the SAVEMORE Financial Education
-Series. In Sha Allāh every week, we'll be sharing practical lessons
-to help you manage your money wisely, develop healthy financial
-habits, and build a brighter future for yourself and your family.
-</p>
-
-<h4>What is a Budget?</h4>
-
-<p>
-A <strong>budget</strong> is a simple plan for how you will spend
-and save your money over a specific period, usually a month.
-</p>
-
-<p>
-Think of a budget as a roadmap. Just as a traveler needs directions
-to reach a destination, every family needs a budget to reach its
-financial goals.
-</p>
-
-<p>Without a budget, money often disappears without us knowing where it went.</p>
-
-<h4>Why Every Family Needs a Budget</h4>
-
-<p><strong>1. A Budget Gives You Control Over Your Money</strong></p>
-<p>
-If you don't tell your money where to go, you'll always wonder
-where it went. A budget ensures that every naira has a purpose.
-</p>
-
-<p><strong>2. A Budget Helps You Save Consistently</strong></p>
-<p>
-Saving becomes easier when you make it part of your monthly plan
-instead of waiting to see what's left. At SAVEMORE, we encourage
-this principle:
-</p>
-<blockquote>Save first, then spend what remains—not spend first and save what remains.</blockquote>
-
-<p><strong>3. A Budget Reduces Financial Stress</strong></p>
-<p>
-Many family arguments happen because of money. When everyone knows
-the family's financial plan, there is less confusion and more peace.
-</p>
-
-<p><strong>4. A Budget Helps You Prepare for Emergencies</strong></p>
-<p>
-Unexpected expenses such as illness, assistance for the needy, or
-repairs can happen at any time. A budget helps you set aside money
-before emergencies arise.
-</p>
-
-<p><strong>5. A Budget Helps You Achieve Your Goals</strong></p>
-<p>Whether your goal is to:</p>
-<ul>
-<li>Build a house,</li>
-<li>Start a business,</li>
-<li>Perform Hajj or 'Umrah,</li>
-<li>Pay school fees,</li>
-<li>Buy land,</li>
-<li>Or become financially independent,</li>
-</ul>
-<p>a budget helps you move toward those goals one step at a time.</p>
-
-<h4>An Islamic Perspective</h4>
-
-<p>Allah says:</p>
-<blockquote>
-"...Eat and drink, but do not be excessive. Indeed, He does not
-love those who commit excess." — Surah Al-A'raf (7:31)
-</blockquote>
-
-<p>
-Islam teaches moderation, planning, and avoiding waste. A budget is
-one practical way to live by these values.
-</p>
-
-<h4>This Week's Action</h4>
-
-<p>Take 15 minutes with your family and write down:</p>
-<ol>
-<li>Your monthly income.</li>
-<li>Your monthly expenses.</li>
-<li>How much you would like to save this month.</li>
-</ol>
-<p>Don't worry if it's not perfect. The important thing is to start.</p>
-
-<h4>SAVEMORE Money Tip</h4>
-<blockquote>
-"A budget is telling your money where to go instead of wondering
-where it went."
-</blockquote>
-
-<h4>Reflection Question</h4>
-<p>
-What is one unnecessary expense you can reduce this month and
-redirect toward your savings? Share your answer with your family
-or keep it as a personal commitment.
-</p>
-
-<p><strong>SAVEMORE</strong><br>Saving Today, Building Tomorrow.</p>
-
-</div>
-</details>
 
 </div>
 
 <div class="card">
 <h3>50-30-20 Rule</h3>
 <p>Understand a simple framework for organizing your spending.</p>
+<a class="card-link" href="education.html#50-30-20-rule">Read article</a>
 
-<details>
-<summary>Read More</summary>
-<div class="writeup">
-
-<p><em>August 2026 — Budgeting · Week 2: The 50-30-20 Budget Rule (And How to Adapt It to Your Income)</em></p>
-
-<p>
-Managing money is not only about how much you earn; it is also
-about how intentionally you use what you earn. One simple
-budgeting framework that can help you take control of your money
-is the 50-30-20 rule.
-</p>
-
-<h4>What Is the 50-30-20 Rule?</h4>
-
-<p>The rule suggests dividing your take-home income into three broad categories:</p>
-<ul>
-<li>50% — Needs</li>
-<li>30% — Wants</li>
-<li>20% — Savings &amp; Financial Goals</li>
-</ul>
-
-<p>For example, if your monthly income is ₦200,000:</p>
-
-<table>
-<tr><th>Category</th><th>Percentage</th><th>Amount</th></tr>
-<tr><td>Needs</td><td>50%</td><td>₦100,000</td></tr>
-<tr><td>Wants</td><td>30%</td><td>₦60,000</td></tr>
-<tr><td>Savings &amp; Financial Goals</td><td>20%</td><td>₦40,000</td></tr>
-<tr><td><strong>Total</strong></td><td><strong>100%</strong></td><td><strong>₦200,000</strong></td></tr>
-</table>
-
-<h4>1. 50% — Needs</h4>
-<p>
-These are expenses you cannot reasonably avoid because they
-support your basic living and responsibilities. Examples include:
-</p>
-<ul>
-<li>Food and essential household items</li>
-<li>Rent or housing expenses</li>
-<li>Transportation</li>
-<li>Electricity and other essential utilities</li>
-<li>School fees and essential educational expenses</li>
-<li>Basic healthcare</li>
-<li>Necessary communication expenses</li>
-<li>Other essential family responsibilities</li>
-</ul>
-<p>
-<strong>Important:</strong> Needs should not automatically consume
-everything you earn. If your needs consistently take 70–80% of
-your income, the goal should not be to feel guilty. Instead, look
-for ways to reduce unnecessary costs, increase income, or
-gradually restructure your spending.
-</p>
-
-<h4>2. 30% — Wants</h4>
-<p>
-Wants are things that make life more enjoyable but are not
-essential for survival. Examples include:
-</p>
-<ul>
-<li>Eating out</li>
-<li>Entertainment</li>
-<li>Expensive subscriptions</li>
-<li>Unnecessary upgrades</li>
-<li>Recreational shopping</li>
-<li>Luxury items</li>
-<li>Non-essential outings</li>
-</ul>
-<p>
-There is nothing wrong with enjoying your money. The problem
-begins when wants are treated as needs. Before spending, ask:
-</p>
-<blockquote>Do I need this, or do I simply want this?</blockquote>
-<p>That simple question can prevent many unnecessary expenses.</p>
-
-<h4>3. 20% — Savings &amp; Financial Goals</h4>
-<p>This is the part that helps you build tomorrow. It can be directed towards:</p>
-<ul>
-<li>Emergency savings</li>
-<li>Short- and long-term savings</li>
-<li>Business capital</li>
-<li>Investment goals</li>
-<li>Debt repayment</li>
-<li>Sodaqorh</li>
-<li>Major future expenses</li>
-<li>Other legitimate financial goals</li>
-</ul>
-<p>The key principle is:</p>
-<blockquote>Pay yourself first.</blockquote>
-<p>
-Instead of spending everything and saving whatever remains, set
-aside your savings as soon as you receive your income. Even if
-you cannot save 20%, start with what you can.
-</p>
-
-<h4>But What If 50-30-20 Doesn't Fit My Income?</h4>
-<p>
-This is where many people misunderstand the rule. 50-30-20 is a
-guideline, not a law. Your income, family responsibilities,
-location, debts and financial goals may require a different
-arrangement.
-</p>
-
-<p><strong>If your income is low</strong></p>
-<p>Your needs may naturally consume more than 50%. For example: 70% Needs — 20% Wants — 10% Savings.</p>
-<p>If even 10% is difficult, start with 5% or even 2%. The important thing is to develop the habit of saving consistently.</p>
-
-<p><strong>If your income is moderate</strong></p>
-<p>You may be able to work towards: 50% Needs — 30% Wants — 20% Savings. This is the traditional model.</p>
-
-<p><strong>If your income increases significantly</strong></p>
-<p>
-You do not necessarily have to increase your lifestyle at the same
-rate. You could consider: 40% Needs — 20% Wants — 40%
-Savings/Investments. This allows your financial strength to grow
-faster.
-</p>
-
-<p><strong>If you have significant financial obligations</strong></p>
-<p>
-You may temporarily use: 60% Needs — 15% Wants — 25% Financial
-Goals. The additional 5% could go towards building an emergency
-fund, clearing obligations or achieving an important financial goal.
-</p>
-
-<h4>The Real Goal Is Not 50-30-20</h4>
-<p>
-The real goal is intentional money management. Don't become
-frustrated because your current financial situation does not
-allow you to follow the rule perfectly. Instead:
-</p>
-<ul>
-<li>Start where you are.</li>
-<li>Budget what you have.</li>
-<li>Save something consistently.</li>
-<li>Control unnecessary spending.</li>
-<li>Increase your income.</li>
-<li>Improve your financial position gradually.</li>
-</ul>
-<p>Your percentages can change as your circumstances change.</p>
-
-<h4>SAVEMORE Challenge of the Week</h4>
-<p>This week, take your last month's income and divide your spending into three categories: Needs | Wants | Savings/Financial Goals.</p>
-<p>Then ask yourself:</p>
-<ol>
-<li>What percentage went to my needs?</li>
-<li>What percentage went to my wants?</li>
-<li>How much did I save?</li>
-<li>What expense surprised me?</li>
-<li>Which expense can I reduce next month?</li>
-<li>What specific amount will I save when my next income arrives?</li>
-</ol>
-
-<blockquote>
-You don't need a huge income to start budgeting. You need a
-budgeting habit to make better use of the income you have.
-</blockquote>
-
-<h4>SAVEMORE Financial Tip</h4>
-<p>
-Don't wait until you earn more before you start managing your
-money well. If you cannot manage ₦50,000 intentionally, earning
-₦500,000 will not automatically make you financially disciplined.
-Learn to manage today's income while building tomorrow's income.
-</p>
-
-<p><strong>SAVEMORE</strong><br>Saving Today, Building Tomorrow.<br><em>Small savings. Better decisions. Stronger financial future.</em></p>
-
-</div>
-</details>
 
 </div>
 
 <div class="card">
 <h3>Track Your Expenses</h3>
 <p>Learn why monitoring daily spending matters.</p>
+<a class="card-link" href="education.html#track-expenses">Read article</a>
 
-<details>
-<summary>Read More</summary>
-<div class="writeup">
-
-<p><em>How to Track Your Daily Expenses</em></p>
-
-<blockquote>"You cannot control what you do not track."</blockquote>
-
-<p>
-Many people know how much they earn, but they cannot explain
-where their money goes.
-</p>
-
-<p>
-You receive your income, pay a few bills, buy food, transport
-yourself, send money to someone, make small purchases here and
-there—and before you know it, the money is gone.
-</p>
-
-<p>
-The problem is often not that you don't earn enough. You simply
-haven't been paying attention to your spending.
-</p>
-
-<h4>1. Record Every Expense</h4>
-<p>
-Start by writing down every naira you spend, no matter how small.
-Don't ignore ₦200, ₦500 or ₦1,000 expenses. Small expenses can
-become large expenses when they happen repeatedly.
-</p>
-<p>For example:</p>
-<ul>
-<li>Breakfast — ₦1,000</li>
-<li>Transportation — ₦800</li>
-<li>Airtime — ₦500</li>
-<li>Lunch — ₦1,500</li>
-<li>Snacks — ₦500</li>
-</ul>
-<p>
-At the end of the day, you may discover that you spent thousands
-of naira without planning for it.
-</p>
-
-<h4>2. Categorise Your Spending</h4>
-<p>After recording your expenses, group them into categories such as:</p>
-<p><strong>Food | Transport | Bills | Family | Business | Personal | Entertainment | Savings</strong></p>
-<p>This makes it easier to identify where most of your money is going.</p>
-
-<h4>3. Separate Needs from Wants</h4>
-<p>Ask yourself before spending:</p>
-<blockquote>"Do I need this, or do I simply want this?"</blockquote>
-<p>
-Needs are things that are necessary, such as food, transportation
-and essential bills. Wants are things you desire but can live
-without. This simple question can help you avoid unnecessary
-spending.
-</p>
-
-<h4>4. Review Your Expenses Weekly</h4>
-<p>Don't wait until the end of the year. Take 10–15 minutes every week to review your spending.</p>
-<p>Ask:</p>
-<ul>
-<li>Where did most of my money go?</li>
-<li>Which expenses were unnecessary?</li>
-<li>Did I spend more than I planned?</li>
-<li>How much did I save?</li>
-<li>What can I reduce next week?</li>
-</ul>
-
-<h4>5. Turn Tracking Into a Habit</h4>
-<p>
-You can use a notebook, spreadsheet or your phone to record your
-expenses. The method doesn't matter as much as consistency. Make
-it a habit to record an expense immediately after spending.
-</p>
-
-<h4>SAVEMORE Challenge</h4>
-<p>
-For the next 7 days, record every single expense you make. Don't
-judge yourself. Don't hide anything. Just record it.
-</p>
-<p>
-At the end of the seven days, calculate the total and identify
-your top three spending categories. You may be surprised by what
-you discover.
-</p>
-
-<blockquote>
-Tracking your expenses is not about restricting yourself from
-enjoying your money. It is about knowing where your money goes so
-that you can decide where it should go.
-</blockquote>
-
-<p><strong>SAVEMORE</strong><br>Saving Today, Building Tomorrow.</p>
-
-</div>
-</details>
 
 </div>
 
 <div class="card">
 <h3>Reduce Unnecessary Spending</h3>
 <p>Discover practical ways to keep more of your income.</p>
+<a class="card-link" href="education.html#reduce-spending">Read article</a>
 
-<details>
-<summary>Read More</summary>
-<div class="writeup">
-
-<p><em>Ways to Reduce Unnecessary Spending</em></p>
-
-<blockquote>"Spend Wisely, Save Intentionally."</blockquote>
-
-<h4>Key Message</h4>
-<p>
-Not every expense is a need. Some spending happens simply because
-of habits, convenience, pressure, or impulse. Reducing unnecessary
-spending doesn't mean denying yourself everything—it means making
-better decisions about where your money goes.
-</p>
-
-<h4>8 Key Points to Know</h4>
-
-<p><strong>1. Track before you cut</strong></p>
-<p>Review your daily expenses and identify where your money is leaking.</p>
-
-<p><strong>2. Separate needs from wants</strong></p>
-<p>Ask: "Do I really need this, or do I simply want it?"</p>
-
-<p><strong>3. Avoid impulse buying</strong></p>
-<p>Give yourself a waiting period before buying non-essential items.</p>
-
-<p><strong>4. Reduce small, repeated expenses</strong></p>
-<p>
-Snacks, unnecessary airtime/data plan, frequent takeaways and
-small daily purchases can become significant monthly costs.
-</p>
-
-<p><strong>5. Plan your shopping</strong></p>
-<p>
-Make a shopping list and stick to it. Avoid shopping simply
-because something looks attractive.
-</p>
-
-<p><strong>6. Compare prices</strong></p>
-<p>Don't assume the first price you see is the best price. Compare before buying.</p>
-
-<p><strong>7. Be careful with social pressure</strong></p>
-<p>
-Don't spend money simply because friends, family or social media
-make you feel you should.
-</p>
-
-<p><strong>8. Redirect what you save</strong></p>
-<p>
-Cutting expenses is more powerful when the money saved is
-immediately redirected into SAVEMORE, an emergency fund,
-investment, or another financial goal.
-</p>
-
-<h4>Practical Example</h4>
-<p>If you spend ₦1,000 unnecessarily every day, that's approximately:</p>
-<p style="text-align:center; font-weight:bold; color:#075e3b;">₦1,000 × 30 days = ₦30,000/month</p>
-<p>Instead of allowing that money to disappear, imagine consistently saving or investing it.</p>
-
-<h4>Suggested Weekly Challenge — "The 7-Day Spending Challenge"</h4>
-<p>For the next 7 days:</p>
-<ul>
-<li>Write down every expense.</li>
-<li>Mark each expense as NEED or WANT.</li>
-<li>Identify at least 3 expenses you can reduce or eliminate.</li>
-<li>Put the money saved towards a specific financial goal.</li>
-</ul>
-
-<h4>Week 4 Takeaway</h4>
-<blockquote>
-You don't always need to earn more money to save more money.
-Sometimes, you simply need to waste less of what you already earn.
-</blockquote>
-
-<p><strong>SAVEMORE</strong><br>Saving Today, Building Tomorrow.</p>
-
-</div>
-</details>
 
 </div>
 
 <div class="card">
 <h3>Financial Innovation</h3>
 <p>Implications of fintech, digital money, and automation on personal finance.</p>
+<a class="card-link" href="education.html#financial-innovation">Read article</a>
 
-<details>
-<summary>Read More</summary>
-<div class="writeup">
-
-<p><em>Financial Innovation: Implications on Personal Finance</em></p>
-
-<p>
-Financial innovation has a major impact on personal finance
-because it changes how individuals earn, save, spend, borrow,
-invest, transfer, and protect money.
-</p>
-
-<h4>1. What Is Financial Innovation?</h4>
-<p>
-Financial innovation means the development of new financial
-products, services, technologies, or methods that make financial
-activities different, faster, cheaper, or more accessible.
-</p>
-<p>Examples include:</p>
-<ul>
-<li>Mobile banking and USSD</li>
-<li>Digital wallets</li>
-<li>Fintech apps</li>
-<li>Online investment platforms</li>
-<li>Buy Now, Pay Later (BNPL)</li>
-<li>Automated savings</li>
-<li>Robo-advisors</li>
-<li>Cryptocurrency and blockchain</li>
-<li>Digital lending</li>
-<li>Instant payment systems</li>
-<li>AI-powered financial tools</li>
-</ul>
-<p>The important question is not simply "Is this innovation good?"</p>
-<blockquote>
-How does this innovation change the way I manage my money—and
-does it improve or weaken my financial position?
-</blockquote>
-
-<h4>2. Financial Innovation Makes Money More Accessible</h4>
-<p>
-Previously, accessing financial services often required visiting
-a bank. Today, someone with a mobile phone can earn, receive,
-save, transfer, invest, and pay bills without physically visiting
-a bank.
-</p>
-<p>
-For someone in Nigeria, innovations such as mobile banking,
-fintech platforms and instant transfers have significantly
-reduced the barriers to participating in the formal financial
-system.
-</p>
-<p><strong>Personal implication:</strong> You can manage your finances from almost anywhere.</p>
-<blockquote>
-The easier it becomes to access money, the easier it can also
-become to spend money.
-</blockquote>
-
-<h4>3. It Changes the Way We Save</h4>
-<p>
-Financial innovation has introduced automated and goal-based
-savings. For example, instead of simply keeping ₦100,000 in a
-normal account, a person can divide it into an emergency fund,
-house fund, education fund, business fund, investment fund, or
-Hajj/Umrah fund. Technology can also automatically move money
-into different savings goals.
-</p>
-<p><strong>Personal implication:</strong> Saving becomes more intentional and systematic.</p>
-<p>
-This is particularly important because many people don't fail to
-save because they don't earn enough; they fail because they spend
-first and save what remains. Financial innovation allows you to
-reverse this:
-</p>
-<blockquote>Income → Save/Invest → Spend what remains</blockquote>
-
-<h4>4. It Makes Investing Easier</h4>
-<p>
-Financial innovation has lowered the barriers to investment.
-Today, an individual can potentially access stocks, bonds, mutual
-funds, ETFs, Sukuk, money-market instruments, and digital assets
-from a smartphone. Previously, investing might have required
-significant capital and specialized knowledge.
-</p>
-<p><strong>But there is a danger:</strong> easy access can create the illusion that investing is easy.</p>
-<p>
-Opening a trading account may take five minutes. Understanding
-what you are buying may take five years. That's why financial
-innovation should be accompanied by financial education.
-</p>
-
-<h4>5. It Makes Spending Easier—and Potentially More Dangerous</h4>
-<p>
-This is one of the biggest implications. Cash creates a
-psychological barrier to spending. Digital payment removes much
-of that friction. You can see something online, click "Pay," and
-the transaction is completed almost immediately.
-</p>
-<blockquote>Financial innovation can reduce the friction of both saving and spending.</blockquote>
-<p>
-If technology makes saving automatic, that's beneficial. If it
-makes impulse spending automatic, that's harmful.
-</p>
-
-<h4>6. Digital Credit Can Increase Debt</h4>
-<p>
-Financial innovation has also made borrowing easier. Digital
-lenders can assess users and provide loans much faster than
-traditional banks. This can be useful for a genuine temporary
-cash-flow problem, but easy borrowing can create a dangerous
-cycle: want something → borrow → spend → repay → borrow again —
-instead of earn → save → buy.
-</p>
-<p>
-The problem isn't necessarily technology itself. The problem is
-using financial innovation to finance consumption rather than
-productive activity.
-</p>
-
-<h4>7. Financial Innovation Increases Financial Inclusion</h4>
-<p>
-One of its greatest benefits is that people who were previously
-underserved can gain access to financial services. A resident in
-Ila-Orangun, etc., who doesn't have a traditional bank branch
-nearby may still be able to receive money, make payments, save
-with SAVEMORE, access financial products, run a business, and
-receive digital payments. This can improve economic
-participation.
-</p>
-
-<h4>8. It Changes How We Think About Emergency Funds</h4>
-<p>
-Technology makes it possible to separate money according to its
-purpose. For example, on a monthly income of ₦300,000, you might
-structure it as: Needs ₦150,000, Savings ₦45,000, Investment
-₦30,000, Family/charity ₦30,000, Discretionary spending ₦45,000.
-The exact percentages aren't universal — the important principle
-is giving every naira a job. Financial technology can help
-automate this allocation.
-</p>
-
-<h4>9. It Creates New Risks</h4>
-<p>Financial innovation isn't automatically beneficial. It introduces risks such as:</p>
-<ul>
-<li><strong>Cybersecurity</strong> — your money can potentially be stolen through compromised accounts or devices.</li>
-<li><strong>Fraud</strong> — digital platforms can make scams scalable.</li>
-<li><strong>Privacy</strong> — financial platforms can collect enormous amounts of personal and financial data.</li>
-<li><strong>Overtrading</strong> — easy access to markets can encourage excessive trading.</li>
-<li><strong>Overconsumption</strong> — digital payments can encourage impulsive purchases.</li>
-<li><strong>Financial complexity</strong> — people may use products they don't actually understand.</li>
-</ul>
-<blockquote>Innovation without financial literacy can make a financially uninformed person lose money faster.</blockquote>
-
-<h4>10. The Biggest Implication: Financial Behaviour Changes</h4>
-<p>
-This is perhaps the most important point. Financial innovation
-isn't merely changing financial institutions — it is changing
-human behaviour.
-</p>
-<p>
-Before digital payments, if you have ₦10,000 cash, you physically
-feel yourself spending it. With digital money, you have ₦10,000
-in an app and make five ₦2,000 purchases without physically
-seeing your money leave your hand. The technology has changed
-your relationship with money.
-</p>
-<p>Therefore, personal finance today requires not only financial knowledge, but also financial discipline plus technological awareness.</p>
-
-<h4>11. Islamic Perspective</h4>
-<p>
-From an Islamic perspective, financial innovation itself is not
-inherently prohibited or permissible merely because it is new.
-What matters is the underlying transaction and whether it
-contains prohibited elements such as Ribā (interest), Gharar
-(excessive uncertainty), Maysir (gambling/speculation), fraud or
-deception, unlawful underlying activities, or unjust enrichment.
-</p>
-<p>So a new financial technology could be beneficial and permissible if its underlying activities are permissible.</p>
-<blockquote>Don't judge a financial product merely by its technology; examine the contract, transaction and economic substance.</blockquote>
-<p>For example, "digital" does not automatically mean halal, and "traditional" does not automatically mean haram.</p>
-
-<h4>12. The New Personal-Finance Rule</h4>
-<p>In the traditional financial world, people were taught: Earn → Save → Spend → Invest.</p>
-<p>But in today's highly digital financial environment, a better framing is:</p>
-<blockquote>Earn → Protect → Save → Invest → Spend → Give</blockquote>
-<p>And technology should be used to automate the good behaviours — automate saving, automate record keeping, automate budgeting, use technology to monitor investments — but don't automate unnecessary consumption.</p>
-
-<h4>The Key Lesson</h4>
-<p>
-Financial innovation gives an ordinary person more financial
-power than previous generations had. But greater financial power
-comes with greater responsibility.
-</p>
-<p>
-The person who understands technology and finance can use
-innovation to SAVEMORE → BUYMORE → MORESALES → build wealth →
-protect wealth. The person who doesn't may use the same
-technology to spend more → borrow more → speculate more →
-accumulate debt → lose wealth.
-</p>
-<p>So the real advantage isn't simply having access to financial innovation. It is knowing how to use it wisely.</p>
-
-<p><strong>SAVEMORE</strong><br>Saving Today, Building Tomorrow.</p>
-
-</div>
-</details>
 
 </div>
 
@@ -1420,7 +1001,7 @@ accumulate debt → lose wealth.
 
 <!-- WHITE PAPER -->
 
-<section>
+<section id="whitepaper">
 
 <h2 class="section-title">SAVEMORE White Paper 2.0</h2>
 
@@ -1476,6 +1057,8 @@ eNaira, USDT, or any other conventional currency.</strong>
 
 <br>
 
+<details class="fold">
+<summary>Read the full MORE explanation</summary>
 <p>
 The economic reference value of MORE is determined by the
 SAVEMORE participation formula:
@@ -1541,6 +1124,8 @@ regulatory, accounting and Shariah requirements.
 
 <br>
 
+</details>
+
 <p>
 The full <strong>MORE 1.0: Rights, Issuance &amp; Dividend
 Framework</strong> document explains how MORE is acquired, its
@@ -1585,6 +1170,8 @@ and text. Newest announcements should go at the top.
 <p>
 Our next 100 Days Savings Challenge kicks off soon! Here's what to know:
 </p>
+<details class="fold">
+<summary>See slot details &amp; fees</summary>
 <p style="margin-top:10px;"><strong>New applicants (41st–80th):</strong> ₦2,000 Application/Registration Fee.</p>
 <p style="margin-top:10px;"><strong>Existing members — choose your slot:</strong></p>
 <ul style="margin: 8px 0 8px 20px;">
@@ -1596,6 +1183,7 @@ Our next 100 Days Savings Challenge kicks off soon! Here's what to know:
 <p style="margin-top:10px; font-size:13px; color:#777;">
 MORE allocation is subject to the applicable SAVEMORE MORE Participation &amp; Share Policy. Contact us on WhatsApp to register your slot before the challenge begins.
 </p>
+</details>
 </div>
 
 <div class="news-item">
@@ -1628,6 +1216,8 @@ your records, savings and participation can be properly tracked.
 
 <br>
 
+<details class="fold">
+<summary>See what you need to register</summary>
 <ul class="kyc-list">
 <li>Full legal name</li>
 <li>Active phone number and WhatsApp contact</li>
@@ -1638,6 +1228,7 @@ your records, savings and participation can be properly tracked.
 <li>Choice of savings product(s)</li>
 <li>Payment of the applicable Application/Renewal (Commitment) Fee</li>
 </ul>
+</details>
 
 <br>
 
@@ -1724,6 +1315,8 @@ to keep things clear:
 
 <h2 class="section-title">Our Strategic Roadmap</h2>
 
+<details class="fold" style="max-width:850px; margin:auto;">
+<summary>View the full roadmap (2026–2030+)</summary>
 <div class="timeline">
 
 <div class="timeline-item">
@@ -1803,6 +1396,7 @@ capital formation and productive investment.
 </div>
 
 </div>
+</details>
 
 </section>
 
@@ -1845,25 +1439,6 @@ capital formation and productive investment.
 </section>
 
 
-<!-- CALL TO ACTION -->
-
-<section class="cta">
-
-<h2>Start Your SAVEMORE Journey</h2>
-
-<p>
-Your financial future can begin with one disciplined decision today.
-</p>
-
-<a class="button"
-href="https://wa.me/2348031509452"
-target="_blank">
-Contact SAVEMORE
-</a>
-
-</section>
-
-
 <!-- CONTACT -->
 
 <section id="contact" class="contact">
@@ -1882,6 +1457,10 @@ Modakeke, Osun State, Nigeria.
 <p>
 <strong>WhatsApp:</strong> 08031509452
 </p>
+
+<a class="button" href="https://wa.me/2348031509452" target="_blank">
+Chat with SAVEMORE on WhatsApp
+</a>
 
 </section>
 
@@ -1909,6 +1488,26 @@ Modakeke, Osun State, Nigeria.
 </p>
 
 </footer>
+
+<script>
+(function () {
+    var btn = document.getElementById('menuToggle');
+    var nav = document.getElementById('mainNav');
+    if (!btn || !nav) return;
+    function setOpen(open) {
+        nav.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        btn.innerHTML = open ? '&times;' : '&#9776;';
+    }
+    btn.addEventListener('click', function () {
+        setOpen(!nav.classList.contains('open'));
+    });
+    nav.addEventListener('click', function (e) {
+        if (e.target.tagName === 'A') setOpen(false);
+    });
+})();
+</script>
 
 <script>
 function updateDurationLabel() {

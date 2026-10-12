@@ -356,6 +356,11 @@ section {
     margin: 0 4px;
 }
 
+.more-ticker-sub {
+    margin-top: 4px;
+    font-size: 14px;
+}
+
 .more-ticker span {
     opacity: 0.85;
     font-size: 13px;
@@ -840,6 +845,7 @@ SAVEMORE
 <a href="#more">MORE reference value today:
 <strong id="moreTickerValue">₦215</strong>
 <span id="moreTickerDetail">(₦5 × 43 paid applicants)</span></a>
+<div class="more-ticker-sub" id="moreRemainingWrap" style="display:none;"></div>
 </div>
 
 
@@ -1756,6 +1762,19 @@ Chat with SAVEMORE on WhatsApp
             var f = doc.fields || {};
             var value = num(f.referenceValuePerUnit);
             var count = num(f.applicantCount);
+
+            var allotted = num(f.totalAllotted);
+            if (allotted !== null && allotted >= 0) {
+                var left = Math.max(0, 200 - allotted);
+                var wrap = document.getElementById('moreRemainingWrap');
+                if (wrap) {
+                    wrap.innerHTML = left > 0
+                        ? '<strong>' + left.toLocaleString('en-NG', {maximumFractionDigits: 2}) + '</strong> of 200 MORE still available'
+                        : 'All 200 MORE have been allocated. MORE sold back to SAVEMORE may be issued again.';
+                    wrap.style.display = 'block';
+                }
+            }
+
             if (!value || value <= 0) return;
             document.getElementById('moreTickerValue').textContent = fmt(value);
             var detail = document.getElementById('moreTickerDetail');

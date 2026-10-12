@@ -324,6 +324,30 @@ section {
     text-align: right;
 }
 
+.more-ticker {
+    background: #043d26;
+    color: white;
+    text-align: center;
+    padding: 10px 6%;
+    font-size: 15px;
+}
+
+.more-ticker a {
+    color: white;
+    text-decoration: none;
+}
+
+.more-ticker strong {
+    color: #ffb347;
+    font-size: 18px;
+    margin: 0 4px;
+}
+
+.more-ticker span {
+    opacity: 0.85;
+    font-size: 13px;
+}
+
 .fee-note {
     max-width: 640px;
     margin: 30px auto 0;
@@ -798,6 +822,12 @@ SAVEMORE
 </nav>
 
 </header>
+
+<div class="more-ticker" id="moreTicker">
+<a href="#more">MORE reference value today:
+<strong id="moreTickerValue">₦215</strong>
+<span id="moreTickerDetail">(₦5 × 43 paid applicants)</span></a>
+</div>
 
 
 <!-- HERO -->
@@ -1679,6 +1709,45 @@ Chat with SAVEMORE on WhatsApp
 </p>
 
 </footer>
+
+<script>
+// MORE reference value banner.
+// It loads the live value that you set in the admin panel (settings/more).
+// If the live value cannot be loaded, the figure written in the banner is shown,
+// which is based on MORE_FALLBACK_COUNT paid applicants. Update this number
+// if you do not use the live value.
+(function () {
+    var MORE_FALLBACK_COUNT = 43;
+    var URL = 'https://firestore.googleapis.com/v1/projects/savemore-portal/databases/(default)/documents/settings/more?key=AIzaSyBj8opxzN423qkwPGy5IhhxWHBPAZlwOJo';
+
+    function num(f) {
+        if (!f) return null;
+        if (f.integerValue !== undefined) return parseFloat(f.integerValue);
+        if (f.doubleValue !== undefined) return parseFloat(f.doubleValue);
+        return null;
+    }
+    function fmt(n) { return '\u20A6' + n.toLocaleString('en-NG', {maximumFractionDigits: 2}); }
+
+    try {
+        fetch(URL).then(function (r) {
+            if (!r.ok) throw new Error('not available');
+            return r.json();
+        }).then(function (doc) {
+            var f = doc.fields || {};
+            var value = num(f.referenceValuePerUnit);
+            var count = num(f.applicantCount);
+            if (!value || value <= 0) return;
+            document.getElementById('moreTickerValue').textContent = fmt(value);
+            var detail = document.getElementById('moreTickerDetail');
+            if (count && Math.abs(count * 5 - value) < 0.001) {
+                detail.textContent = '(\u20A65 \u00D7 ' + count + ' paid applicants)';
+            } else {
+                detail.textContent = '';
+            }
+        }).catch(function () { /* keep the fallback figure */ });
+    } catch (e) {}
+})();
+</script>
 
 <script>
 (function () {

@@ -1,0 +1,2128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>SAVEMORE | Admin</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    background: #f7f9f8;
+    color: #222;
+}
+
+header {
+    background: #075e3b;
+    color: white;
+    padding: 18px 6%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header a {
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ff8c00;
+}
+
+main {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.box {
+    background: white;
+    padding: 35px 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.login-box {
+    max-width: 420px;
+    margin: 50px auto;
+}
+
+h2 {
+    color: #075e3b;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    color: #075e3b;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper input {
+    padding-right: 55px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 10px;
+    background: none;
+    border: none;
+    color: #075e3b;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    width: auto;
+    padding: 0;
+}
+
+button {
+    padding: 10px 20px;
+    background: #ff8c00;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+button.full {
+    width: 100%;
+    padding: 13px;
+    border-radius: 30px;
+    font-size: 15px;
+}
+
+button.secondary {
+    background: #eef7f2;
+    color: #075e3b;
+}
+
+.error-msg {
+    background: #fdecea;
+    color: #b3261e;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    display: none;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.member-card {
+    background: white;
+    border: 1px solid #eee;
+    border-left: 4px solid #075e3b;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 18px;
+}
+
+.member-card h3 {
+    color: #075e3b;
+    margin-bottom: 4px;
+}
+
+.member-meta {
+    font-size: 13px;
+    color: #777;
+    margin-bottom: 14px;
+}
+
+.member-card > details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.member-card > details > summary::after {
+    content: "▾ tap to view details";
+    display: block;
+    font-size: 12px;
+    color: #ff8c00;
+    margin-top: 6px;
+}
+
+.field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.field-row label {
+    margin-bottom: 4px;
+}
+
+.save-status {
+    font-size: 13px;
+    margin-left: 12px;
+    color: #075e3b;
+    display: none;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.progress-track {
+    background: #eee;
+    border-radius: 10px;
+    height: 16px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.progress-fill {
+    background: #ff8c00;
+    height: 100%;
+    border-radius: 10px;
+}
+
+.progress-label {
+    font-size: 13px;
+    color: #555;
+}
+
+.loading {
+    text-align: center;
+    color: #555;
+    padding: 30px 0;
+}
+
+@media(max-width: 600px) {
+    .field-row {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo">SAVEMORE</div>
+<a href="index.html">← Back to website</a>
+</header>
+
+<main>
+
+<!-- LOADING -->
+<div class="box loading" id="loadingBox">Loading...</div>
+
+<!-- LOGIN -->
+<div class="box login-box hidden" id="loginBox">
+<h2>Admin Login</h2>
+<div class="error-msg" id="loginError"></div>
+<div class="info-msg" id="loginInfo" style="background:#eef7f2; color:#075e3b; padding:10px 14px; border-radius:8px; font-size:14px; margin-bottom:16px; display:none;"></div>
+<label for="loginEmail">Email</label>
+<input type="email" id="loginEmail" placeholder="admin@example.com">
+<label for="loginPassword">Password</label>
+<div class="password-wrapper">
+<input type="password" id="loginPassword" placeholder="Your password">
+<button type="button" class="password-toggle" onclick="togglePasswordVisibility('loginPassword', this)">Show</button>
+</div>
+<button class="full" onclick="doLogin()">Log In</button>
+<button class="full secondary" onclick="doForgotPassword()" style="margin-top:10px;">Forgot Password?</button>
+</div>
+
+<!-- NOT AUTHORIZED -->
+<div class="box hidden" id="notAuthBox">
+<h2>Access Denied</h2>
+<p style="text-align:center; margin-bottom:20px;">
+This account is not authorized to access the admin panel.
+</p>
+<button class="full" onclick="doLogout()">Log Out</button>
+</div>
+
+<!-- PIN SETUP (first time) -->
+<div class="box login-box hidden" id="pinSetupBox">
+<h2>Set Up Security PIN</h2>
+<p style="text-align:center; font-size:13px; color:#777; margin-bottom:20px;">
+As an extra layer of protection, create a 4–6 digit PIN. You'll need this
+PIN (in addition to your password) every time you log in.
+</p>
+<div class="error-msg" id="pinSetupError"></div>
+<label for="pinSetupNew">New PIN</label>
+<div class="password-wrapper">
+<input type="password" id="pinSetupNew" inputmode="numeric" maxlength="6" placeholder="4-6 digits">
+<button type="button" class="password-toggle" onclick="togglePasswordVisibility('pinSetupNew', this)">Show</button>
+</div>
+<label for="pinSetupConfirm">Confirm PIN</label>
+<div class="password-wrapper">
+<input type="password" id="pinSetupConfirm" inputmode="numeric" maxlength="6" placeholder="Re-enter PIN">
+<button type="button" class="password-toggle" onclick="togglePasswordVisibility('pinSetupConfirm', this)">Show</button>
+</div>
+<button class="full" onclick="doPinSetup()">Save PIN & Continue</button>
+</div>
+
+<!-- PIN VERIFY (returning admin) -->
+<div class="box login-box hidden" id="pinVerifyBox">
+<h2>Enter Security PIN</h2>
+<div class="error-msg" id="pinVerifyError"></div>
+<label for="pinVerifyInput">PIN</label>
+<div class="password-wrapper">
+<input type="password" id="pinVerifyInput" inputmode="numeric" maxlength="6" placeholder="Enter your PIN">
+<button type="button" class="password-toggle" onclick="togglePasswordVisibility('pinVerifyInput', this)">Show</button>
+</div>
+<button class="full" onclick="doPinVerify()">Verify & Continue</button>
+<button class="full secondary" onclick="doLogout()" style="margin-top:10px;">Log Out</button>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="hidden" id="adminPanel">
+
+<div class="top-bar">
+<h2 style="margin:0;">Members (<span id="memberCount">0</span>)</h2>
+<div>
+<button class="secondary" onclick="exportMembersCSV()" style="margin-right:8px;">Export Members (CSV)</button>
+<button class="secondary" onclick="exportTransactionsCSV()" style="margin-right:8px;">Export Transactions (CSV)</button>
+<button class="secondary" onclick="toggleActivityLog()" style="margin-right:8px;">Activity Log</button>
+<button class="secondary" onclick="backfillMemberIdLookups()" style="margin-right:8px;">Fix Member ID Logins</button>
+<button class="secondary" onclick="changePin()" style="margin-right:8px;">Change PIN</button>
+<button class="secondary" onclick="doLogout()">Log Out</button>
+</div>
+</div>
+
+<div id="activityLogPanel" class="member-card hidden" style="border-left-color:#3346a8;">
+<h3 style="color:#3346a8;">Activity Log</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">Most recent 50 admin actions across all administrators.</p>
+<div id="activityLogList">Loading...</div>
+</div>
+
+<p id="exportStatus" style="display:none; font-size:13px; color:#075e3b; margin-bottom:16px;"></p>
+
+<div id="newMembersBanner" style="display:none; background:#fff4e5; color:#ff8c00; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:bold;"></div>
+
+<div id="pendingRequestsBanner" style="display:none; background:#fdecea; color:#b3261e; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:bold;"></div>
+
+<div class="member-card" style="border-left-color:#ff8c00;">
+<h3 style="color:#ff8c00;">MORE Reference Value</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">
+Set using SAVEMORE's formula: ₦5n (where n = total paid applicants). This value is shown to members on their dashboard.
+</p>
+<div class="field-row">
+<div>
+<label>Reference Value per MORE (₦)</label>
+<input type="number" id="moreRefValue" placeholder="e.g. 195">
+</div>
+<div>
+<label>Total Paid Applicants (n) — optional, for your reference</label>
+<input type="number" id="moreApplicantCount" placeholder="e.g. 39">
+</div>
+</div>
+<button onclick="saveMoreSettings()">Save MORE Value</button>
+<span class="save-status" id="moreSaveStatus">✓ Saved</span>
+
+<div class="field-row" style="margin-top:18px; border-top:1px solid #eee; padding-top:14px;">
+<div>
+<label>Total MORE Supply</label>
+<div style="font-size:20px; font-weight:bold; color:#075e3b;">200</div>
+</div>
+<div>
+<label>Allotted to Members</label>
+<div style="font-size:20px; font-weight:bold; color:#075e3b;" id="moreAllotted">—</div>
+</div>
+<div>
+<label>Held by Moresales Venture</label>
+<div style="font-size:20px; font-weight:bold; color:#ff8c00;" id="moreRemaining">—</div>
+</div>
+</div>
+</div>
+
+<div class="member-card" style="border-left-color:#075e3b;">
+<h3 style="color:#075e3b;">Total Balances by Product</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">
+Naira savings and USDT savings are kept separate and are never combined.
+</p>
+<div class="field-row">
+<div>
+<label>Investment Savings Account</label>
+<div style="font-size:18px; font-weight:bold; color:#075e3b;" id="totalInvestment">₦0</div>
+</div>
+<div>
+<label>Emergency Savings Account</label>
+<div style="font-size:18px; font-weight:bold; color:#075e3b;" id="totalEmergency">₦0</div>
+</div>
+<div>
+<label>100 Days Savings Challenge</label>
+<div style="font-size:18px; font-weight:bold; color:#075e3b;" id="totalChallenge">₦0</div>
+</div>
+<div>
+<label>In-Dollar Savings Account</label>
+<div style="font-size:18px; font-weight:bold; color:#3346a8;" id="totalDollar">0 USDT</div>
+</div>
+</div>
+</div>
+
+<div class="member-card" style="border-left-color:#3346a8;">
+<h3 style="color:#3346a8;">USDT Selling Price</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">
+This is a price you set manually — not an automatically calculated market
+price. It is shown to members on their dashboard.
+</p>
+<div class="field-row">
+<div>
+<label>USDT Selling Price (₦ per USDT)</label>
+<input type="number" id="usdtPrice" placeholder="e.g. 1550">
+</div>
+<div>
+<label>Last Updated</label>
+<div style="font-size:14px; color:#555; padding-top:8px;" id="usdtPriceUpdated">Not set yet</div>
+</div>
+</div>
+<button onclick="saveUsdtPrice()">Save USDT Price</button>
+<span class="save-status" id="usdtSaveStatus">✓ Saved</span>
+</div>
+
+<div class="member-card" style="border-left-color:#6b2fb3;">
+<h3 style="color:#6b2fb3;">Growth Analytics</h3>
+<p style="font-size:13px; color:#777; margin-bottom:14px;">
+Member growth is calculated from actual join dates. Savings growth starts
+tracking from today — a daily snapshot is recorded automatically each time
+you log in, so this chart will fill in over the coming days/weeks.
+</p>
+<p style="font-size:13px; font-weight:bold; color:#6b2fb3; margin-bottom:6px;">Member Growth (cumulative, by month)</p>
+<div id="memberGrowthChart" style="margin-bottom:20px;">Loading...</div>
+<p style="font-size:13px; font-weight:bold; color:#6b2fb3; margin-bottom:6px;">Total Naira Savings Over Time</p>
+<div id="savingsGrowthChart">Not enough data yet — check back after a few days of use.</div>
+</div>
+
+<div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+<input type="text" id="memberSearch" placeholder="Search by name, Member ID, email, or phone…" oninput="filterMemberCards()" style="flex:1; min-width:200px; padding:10px; border:1px solid #ccc; border-radius:8px; font-size:14px;">
+<select id="memberStatusFilter" onchange="filterMemberCards()" style="padding:10px; border:1px solid #ccc; border-radius:8px; font-size:14px;">
+<option value="All">All Statuses</option>
+<option value="Pending Review">Pending Review</option>
+<option value="Active">Active</option>
+<option value="Suspended">Suspended</option>
+</select>
+</div>
+<p id="filterResultCount" style="font-size:13px; color:#777; margin-bottom:10px; display:none;"></p>
+
+<div id="membersList"></div>
+
+</div>
+
+</main>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBj8opxzN423qkwPGy5IhhxWHBPAZlwOJo",
+  authDomain: "savemore-portal.firebaseapp.com",
+  projectId: "savemore-portal",
+  storageBucket: "savemore-portal.firebasestorage.app",
+  messagingSenderId: "32261102803",
+  appId: "1:32261102803:web:82ad3eaf3eb3998621c826"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ---- EMAILJS CONFIG (fill these in — see setup instructions) ----
+var EMAILJS_PUBLIC_KEY = 'tQIFvSkFV_20xBJOd';
+var EMAILJS_SERVICE_ID = 'service_5vq4ugg';
+var EMAILJS_ACCOUNT_UPDATE_TEMPLATE_ID = 'template_jamuuwp';
+if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY.indexOf('YOUR_') !== 0) {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+}
+
+function notifyMemberAccountUpdate(memberEmail, memberName) {
+    if (typeof emailjs === 'undefined' || EMAILJS_PUBLIC_KEY.indexOf('YOUR_') === 0 || !memberEmail) {
+        return; // EmailJS not configured yet, or no email on file
+    }
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_ACCOUNT_UPDATE_TEMPLATE_ID, {
+        to_email: memberEmail,
+        member_name: memberName
+    }).catch(function(error) {
+        console.error('Member notification email failed:', error);
+    });
+}
+
+function togglePasswordVisibility(inputId, btn) {
+    var input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Hide';
+    } else {
+        input.type = 'password';
+        btn.textContent = 'Show';
+    }
+}
+
+function showBox(id) {
+    ['loadingBox','loginBox','notAuthBox','pinSetupBox','pinVerifyBox','adminPanel'].forEach(function(box) {
+        document.getElementById(box).classList.add('hidden');
+    });
+    document.getElementById(id).classList.remove('hidden');
+}
+
+function showError(boxId, message) {
+    var el = document.getElementById(boxId);
+    el.textContent = message;
+    el.style.display = 'block';
+}
+
+auth.onAuthStateChanged(function(user) {
+    if (user) {
+        checkAdminAndLoad(user);
+    } else {
+        showBox('loginBox');
+    }
+});
+
+// ---- FORGOT PASSWORD ----
+function doForgotPassword() {
+    var email = document.getElementById('loginEmail').value.trim();
+    var errorEl = document.getElementById('loginError');
+    var infoEl = document.getElementById('loginInfo');
+    errorEl.style.display = 'none';
+    infoEl.style.display = 'none';
+
+    if (!email) {
+        errorEl.textContent = 'Please enter your email address above first, then tap "Forgot Password?" again.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    auth.sendPasswordResetEmail(email)
+        .then(function() {
+            infoEl.textContent = 'A password reset link has been sent to ' + email + '. Please check your inbox (and spam folder).';
+            infoEl.style.display = 'block';
+        })
+        .catch(function(error) {
+            errorEl.textContent = 'Unable to send reset email: ' + error.message;
+            errorEl.style.display = 'block';
+        });
+}
+
+function doLogin() {
+    var email = document.getElementById('loginEmail').value.trim();
+    var password = document.getElementById('loginPassword').value;
+
+    if (!email || !password) {
+        showError('loginError', 'Please enter your email and password.');
+        return;
+    }
+
+    document.getElementById('loginError').style.display = 'none';
+
+    auth.signInWithEmailAndPassword(email, password)
+        .catch(function(error) {
+            var friendlyMsg = (error.code === 'auth/network-request-failed')
+        ? 'Unable to reach the server. Please check your internet connection and try again.'
+        : 'Incorrect email or password.';
+    showError('loginError', friendlyMsg);
+        });
+}
+
+function doLogout() {
+    auth.signOut();
+}
+
+var newMemberIdsSinceLastLogin = new Set();
+var currentAdminUser = null;
+var currentAdminPinHash = null;
+
+async function hashPin(pin) {
+    var enc = new TextEncoder().encode(pin);
+    var hashBuffer = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(hashBuffer)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
+
+function checkAdminAndLoad(user) {
+    currentAdminUser = user;
+    db.collection('admins').doc(user.uid).get().then(function(doc) {
+        if (doc.exists) {
+            var data = doc.data();
+            if (data.pinHash) {
+                currentAdminPinHash = data.pinHash;
+                showBox('pinVerifyBox');
+            } else {
+                showBox('pinSetupBox');
+            }
+        } else {
+            showBox('notAuthBox');
+        }
+    }).catch(function() {
+        showBox('notAuthBox');
+    });
+}
+
+function doPinSetup() {
+    var pin = document.getElementById('pinSetupNew').value.trim();
+    var confirmPin = document.getElementById('pinSetupConfirm').value.trim();
+    var errorEl = document.getElementById('pinSetupError');
+    errorEl.style.display = 'none';
+
+    if (!/^\d{4,6}$/.test(pin)) {
+        errorEl.textContent = 'PIN must be 4-6 digits.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    if (pin !== confirmPin) {
+        errorEl.textContent = 'PINs do not match.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    hashPin(pin).then(function(hash) {
+        return db.collection('admins').doc(currentAdminUser.uid).update({ pinHash: hash });
+    }).then(function() {
+        document.getElementById('pinSetupNew').value = '';
+        document.getElementById('pinSetupConfirm').value = '';
+        proceedToAdminPanel();
+    }).catch(function(error) {
+        errorEl.textContent = 'Failed to save PIN: ' + error.message;
+        errorEl.style.display = 'block';
+    });
+}
+
+function doPinVerify() {
+    var pin = document.getElementById('pinVerifyInput').value.trim();
+    var errorEl = document.getElementById('pinVerifyError');
+    errorEl.style.display = 'none';
+
+    hashPin(pin).then(function(hash) {
+        if (hash === currentAdminPinHash) {
+            document.getElementById('pinVerifyInput').value = '';
+            proceedToAdminPanel();
+        } else {
+            errorEl.textContent = 'Incorrect PIN.';
+            errorEl.style.display = 'block';
+        }
+    });
+}
+
+function changePin() {
+    var current = prompt('Enter your current PIN:');
+    if (current === null) return;
+
+    hashPin(current.trim()).then(function(hash) {
+        if (hash !== currentAdminPinHash) {
+            alert('Current PIN is incorrect.');
+            return;
+        }
+        var newPin = prompt('Enter your new PIN (4-6 digits):');
+        if (newPin === null) return;
+        if (!/^\d{4,6}$/.test(newPin.trim())) {
+            alert('PIN must be 4-6 digits.');
+            return;
+        }
+        hashPin(newPin.trim()).then(function(newHash) {
+            db.collection('admins').doc(currentAdminUser.uid).update({ pinHash: newHash }).then(function() {
+                currentAdminPinHash = newHash;
+                alert('PIN updated successfully.');
+            }).catch(function(error) {
+                alert('Failed to update PIN: ' + error.message);
+            });
+        });
+    });
+}
+
+function proceedToAdminPanel() {
+    var user = currentAdminUser;
+    db.collection('admins').doc(user.uid).get().then(function(doc) {
+        var lastSeenAt = doc.exists ? (doc.data().lastSeenAt || null) : null;
+
+        db.collection('members').get().then(function(snapshot) {
+            snapshot.forEach(function(d) {
+                var createdAt = d.data().createdAt;
+                if (lastSeenAt && createdAt && createdAt.toMillis() > lastSeenAt.toMillis()) {
+                    newMemberIdsSinceLastLogin.add(d.id);
+                }
+            });
+
+            db.collection('admins').doc(user.uid).update({
+                lastSeenAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(function() {});
+
+            loadMembers();
+            loadMoreSettings();
+            loadUsdtPrice();
+        }).catch(function() {
+            loadMembers();
+            loadMoreSettings();
+            loadUsdtPrice();
+        });
+    });
+}
+
+function updateNewMembersBanner() {
+    var banner = document.getElementById('newMembersBanner');
+    if (!banner) return;
+    if (newMemberIdsSinceLastLogin.size > 0) {
+        banner.innerHTML = '🆕 ' + newMemberIdsSinceLastLogin.size + ' new member(s) registered since your last login — look for the orange "NEW" tag below.';
+        banner.style.display = 'block';
+    } else {
+        banner.style.display = 'none';
+    }
+}
+
+var pendingSellCountGlobal = 0;
+var pendingWithdrawalCountGlobal = 0;
+var pendingPaymentCountGlobal = 0;
+
+function checkPendingSellDot(memberId) {
+    db.collection('members').doc(memberId).collection('sellRequests')
+        .where('status', '==', 'Pending')
+        .get()
+        .then(function(snapshot) {
+            var dotEl = document.getElementById('sellDot-' + memberId);
+            if (dotEl && !snapshot.empty) {
+                dotEl.innerHTML = ' <span title="Pending sell-back request" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#b3261e; margin-left:4px;"></span>';
+            }
+            pendingSellCountGlobal += snapshot.size;
+            updatePendingRequestsBanner();
+        })
+        .catch(function() {});
+
+    db.collection('members').doc(memberId).collection('withdrawalRequests')
+        .where('status', '==', 'Pending')
+        .get()
+        .then(function(snapshot) {
+            var dotEl = document.getElementById('wdDot-' + memberId);
+            if (dotEl && !snapshot.empty) {
+                dotEl.innerHTML = ' <span title="Pending withdrawal request" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#ff8c00; margin-left:4px;"></span>';
+            }
+            pendingWithdrawalCountGlobal += snapshot.size;
+            updatePendingRequestsBanner();
+        })
+        .catch(function() {});
+
+    db.collection('members').doc(memberId).collection('paymentClaims')
+        .where('status', '==', 'Pending')
+        .get()
+        .then(function(snapshot) {
+            var dotEl = document.getElementById('payDot-' + memberId);
+            if (dotEl && !snapshot.empty) {
+                dotEl.innerHTML = ' <span title="Pending payment claim" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#25D366; margin-left:4px;"></span>';
+            }
+            pendingPaymentCountGlobal += snapshot.size;
+            updatePendingRequestsBanner();
+        })
+        .catch(function() {});
+}
+
+function updatePendingRequestsBanner() {
+    var banner = document.getElementById('pendingRequestsBanner');
+    if (pendingSellCountGlobal > 0 || pendingWithdrawalCountGlobal > 0 || pendingPaymentCountGlobal > 0) {
+        var parts = [];
+        if (pendingPaymentCountGlobal > 0) parts.push(pendingPaymentCountGlobal + ' pending payment claim' + (pendingPaymentCountGlobal > 1 ? 's' : ''));
+        if (pendingSellCountGlobal > 0) parts.push(pendingSellCountGlobal + ' pending sell-back request' + (pendingSellCountGlobal > 1 ? 's' : ''));
+        if (pendingWithdrawalCountGlobal > 0) parts.push(pendingWithdrawalCountGlobal + ' pending withdrawal request' + (pendingWithdrawalCountGlobal > 1 ? 's' : ''));
+        banner.innerHTML = '🔔 ' + parts.join(' · ') + ' — expand a member below to review (look for the colored dot).';
+        banner.style.display = 'block';
+    } else {
+        banner.style.display = 'none';
+    }
+}
+
+function loadMoreSettings() {
+    db.collection('settings').doc('more').get().then(function(doc) {
+        if (doc.exists) {
+            var data = doc.data();
+            document.getElementById('moreRefValue').value = data.referenceValuePerUnit || '';
+            document.getElementById('moreApplicantCount').value = data.applicantCount || '';
+        }
+    }).catch(function(error) {
+        console.error('Unable to load MORE settings:', error);
+    });
+}
+
+function loadUsdtPrice() {
+    db.collection('settings').doc('usdt').get().then(function(doc) {
+        if (doc.exists) {
+            var data = doc.data();
+            document.getElementById('usdtPrice').value = data.pricePerUsdt || '';
+            if (data.updatedAt) {
+                var d = data.updatedAt.toDate();
+                document.getElementById('usdtPriceUpdated').textContent = d.toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
+            }
+        }
+    }).catch(function(error) {
+        console.error('Unable to load USDT price:', error);
+    });
+}
+
+function saveUsdtPrice() {
+    var price = parseFloat(document.getElementById('usdtPrice').value);
+    if (isNaN(price) || price <= 0) {
+        alert('Please enter a valid USDT price.');
+        return;
+    }
+
+    db.collection('settings').doc('usdt').set({
+        pricePerUsdt: price,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        var statusEl = document.getElementById('usdtSaveStatus');
+        statusEl.style.display = 'inline';
+        setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
+        loadUsdtPrice();
+        logActivity('USDT price updated', '₦' + price.toLocaleString('en-NG') + ' per USDT');
+    }).catch(function(error) {
+        alert('Failed to save USDT price: ' + error.message);
+    });
+}
+
+function generateMemberId() {
+    var year = new Date().getFullYear();
+    var random = Math.floor(100000 + Math.random() * 900000);
+    return 'SM-' + year + '-' + random;
+}
+
+function assignMemberId(id) {
+    var newId = generateMemberId();
+    db.collection('members').doc(id).update({ memberId: newId })
+        .then(function() {
+            loadMembers();
+        })
+        .catch(function(error) {
+            alert('Failed to assign Member ID: ' + error.message);
+        });
+}
+
+async function backfillMemberIdLookups() {
+    if (!confirm('This will create Member ID login entries for any existing member who doesn\'t have one yet (needed for older accounts to log in using their Member ID). Continue?')) {
+        return;
+    }
+
+    try {
+        var snapshot = await db.collection('members').get();
+        var fixed = 0;
+        var skipped = 0;
+
+        for (var i = 0; i < snapshot.docs.length; i++) {
+            var m = snapshot.docs[i].data();
+            if (!m.memberId || !m.email) {
+                skipped++;
+                continue;
+            }
+            await db.collection('memberIdLookup').doc(m.memberId).set({ email: m.email });
+            fixed++;
+        }
+
+        alert('Done — ' + fixed + ' member(s) can now log in with their Member ID.' + (skipped > 0 ? ' (' + skipped + ' skipped — missing Member ID or email.)' : ''));
+        logActivity('Backfilled Member ID logins', fixed + ' member(s) fixed');
+    } catch (error) {
+        alert('Failed to backfill: ' + error.message);
+    }
+}
+
+function filterMemberCards() {
+    var searchText = document.getElementById('memberSearch').value.trim().toLowerCase();
+    var statusFilter = document.getElementById('memberStatusFilter').value;
+    var cards = document.querySelectorAll('#membersList .member-card');
+    var visibleCount = 0;
+
+    cards.forEach(function(card) {
+        var matchesSearch = !searchText || (card.getAttribute('data-search') || '').indexOf(searchText) !== -1;
+        var matchesStatus = statusFilter === 'All' || card.getAttribute('data-status') === statusFilter;
+        var show = matchesSearch && matchesStatus;
+        card.style.display = show ? '' : 'none';
+        if (show) visibleCount++;
+    });
+
+    var countEl = document.getElementById('filterResultCount');
+    if (searchText || statusFilter !== 'All') {
+        countEl.textContent = 'Showing ' + visibleCount + ' of ' + cards.length + ' member(s)';
+        countEl.style.display = 'block';
+    } else {
+        countEl.style.display = 'none';
+    }
+}
+
+// ---- GROWTH ANALYTICS ----
+function recordAnalyticsSnapshot(memberCount, totalNaira, totalUsdt) {
+    var today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD, one snapshot per day
+    db.collection('analyticsSnapshots').doc(today).set({
+        date: today,
+        memberCount: memberCount,
+        totalNaira: totalNaira,
+        totalUsdt: totalUsdt,
+        recordedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function(error) {
+        console.error('Failed to record analytics snapshot:', error);
+    });
+}
+
+function renderMemberGrowthChart(snapshot) {
+    var container = document.getElementById('memberGrowthChart');
+
+    var monthCounts = {};
+    snapshot.forEach(function(doc) {
+        var createdAt = doc.data().createdAt;
+        var monthKey = createdAt ? createdAt.toDate().toISOString().slice(0, 7) : 'Unknown';
+        monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
+    });
+
+    var months = Object.keys(monthCounts).filter(function(m) { return m !== 'Unknown'; }).sort();
+
+    if (months.length === 0) {
+        container.innerHTML = '<p style="color:#777; font-size:13px;">No join-date data yet.</p>';
+        return;
+    }
+
+    var cumulative = 0;
+    var points = months.map(function(m) {
+        cumulative += monthCounts[m];
+        return { label: m, value: cumulative };
+    });
+
+    container.innerHTML = renderBarChartSVG(points, '#6b2fb3');
+}
+
+function renderSavingsGrowthChart() {
+    var container = document.getElementById('savingsGrowthChart');
+
+    db.collection('analyticsSnapshots').orderBy('date', 'asc').limit(60).get().then(function(snapshot) {
+        if (snapshot.size < 2) {
+            container.innerHTML = '<p style="color:#777; font-size:13px;">Not enough data yet — check back after a few days of use. (' + snapshot.size + ' day(s) recorded so far.)</p>';
+            return;
+        }
+
+        var points = [];
+        snapshot.forEach(function(doc) {
+            var d = doc.data();
+            points.push({ label: d.date.slice(5), value: d.totalNaira || 0 }); // MM-DD
+        });
+
+        container.innerHTML = renderBarChartSVG(points, '#075e3b', '₦');
+    }).catch(function(error) {
+        container.innerHTML = '<p style="color:#b3261e; font-size:13px;">Unable to load savings history.</p>';
+    });
+}
+
+// Minimal dependency-free bar chart renderer
+function renderBarChartSVG(points, color, prefix) {
+    if (!points || points.length === 0) return '<p style="color:#777; font-size:13px;">No data yet.</p>';
+
+    var width = 320;
+    var height = 140;
+    var barGap = 6;
+    var barWidth = Math.max(8, (width / points.length) - barGap);
+    var maxValue = Math.max.apply(null, points.map(function(p) { return p.value; })) || 1;
+
+    var bars = '';
+    var labels = '';
+    points.forEach(function(p, i) {
+        var barHeight = Math.max(2, (p.value / maxValue) * (height - 25));
+        var x = i * (barWidth + barGap);
+        var y = height - barHeight - 20;
+        bars += '<rect x="' + x + '" y="' + y + '" width="' + barWidth + '" height="' + barHeight + '" fill="' + color + '" rx="2"></rect>';
+        if (points.length <= 12 || i % Math.ceil(points.length / 12) === 0) {
+            labels += '<text x="' + (x + barWidth / 2) + '" y="' + (height - 5) + '" font-size="8" fill="#777" text-anchor="middle">' + p.label + '</text>';
+        }
+    });
+
+    var lastPoint = points[points.length - 1];
+    var lastLabel = (prefix || '') + lastPoint.value.toLocaleString('en-NG');
+
+    return '<svg viewBox="0 0 ' + (points.length * (barWidth + barGap)) + ' ' + height + '" style="width:100%; max-width:400px; height:150px;">' +
+        bars + labels +
+        '</svg>' +
+        '<p style="font-size:12px; color:#555; margin-top:4px;">Latest: <strong>' + lastLabel + '</strong></p>';
+}
+
+function updateMoreCirculationDisplay(totalAllotted) {
+    document.getElementById('moreAllotted').textContent = totalAllotted;
+    document.getElementById('moreRemaining').textContent = Math.max(0, 200 - totalAllotted);
+}
+
+function saveMoreSettings() {
+    var refValue = parseFloat(document.getElementById('moreRefValue').value) || 0;
+    var applicantCount = parseFloat(document.getElementById('moreApplicantCount').value) || 0;
+
+    db.collection('settings').doc('more').set({
+        referenceValuePerUnit: refValue,
+        applicantCount: applicantCount,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        var statusEl = document.getElementById('moreSaveStatus');
+        statusEl.style.display = 'inline';
+        setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
+        logActivity('MORE reference value updated', '₦' + refValue.toLocaleString('en-NG') + ' per unit (n=' + applicantCount + ')');
+    }).catch(function(error) {
+        alert('Failed to save MORE settings: ' + error.message);
+    });
+}
+
+function loadMembers() {
+    showBox('adminPanel');
+    var list = document.getElementById('membersList');
+    list.innerHTML = '<p>Loading members...</p>';
+    pendingSellCountGlobal = 0;
+    pendingWithdrawalCountGlobal = 0;
+    pendingPaymentCountGlobal = 0;
+    document.getElementById('pendingRequestsBanner').style.display = 'none';
+
+    db.collection('members').orderBy('name').get().then(function(snapshot) {
+        list.innerHTML = '';
+        document.getElementById('memberCount').textContent = snapshot.size;
+
+        var totalAllotted = 0;
+        var sumInvestment = 0;
+        var sumEmergency = 0;
+        var sumChallenge = 0;
+        var sumDollar = 0;
+        var referralCounts = {};
+        snapshot.forEach(function(doc) {
+            var d = doc.data();
+            totalAllotted += (d.shares || 0);
+            var p = d.savingsByProduct || {};
+            sumInvestment += (p.investment || 0);
+            sumEmergency += (p.emergency || 0);
+            sumChallenge += (p.challenge || 0);
+            sumDollar += (p.dollar || 0);
+            if (d.referredBy) {
+                var refId = d.referredBy.trim();
+                referralCounts[refId] = (referralCounts[refId] || 0) + 1;
+            }
+        });
+        updateMoreCirculationDisplay(totalAllotted);
+        db.collection('settings').doc('more').set({ totalAllotted: totalAllotted }, { merge: true }).catch(function() {});
+
+        document.getElementById('totalInvestment').textContent = '₦' + sumInvestment.toLocaleString('en-NG');
+        document.getElementById('totalEmergency').textContent = '₦' + sumEmergency.toLocaleString('en-NG');
+        document.getElementById('totalChallenge').textContent = '₦' + sumChallenge.toLocaleString('en-NG');
+        document.getElementById('totalDollar').textContent = sumDollar.toLocaleString('en-NG') + ' USDT';
+
+        recordAnalyticsSnapshot(snapshot.size, sumInvestment + sumEmergency + sumChallenge, sumDollar);
+        renderMemberGrowthChart(snapshot);
+        renderSavingsGrowthChart();
+
+        updateNewMembersBanner();
+
+        if (snapshot.empty) {
+            list.innerHTML = '<p>No members yet.</p>';
+            return;
+        }
+
+        snapshot.forEach(function(doc) {
+            var m = doc.data();
+            var id = doc.id;
+            memberCache[id] = { email: m.email || '', name: m.name || 'Member' };
+
+            var isNew = newMemberIdsSinceLastLogin.has(id);
+            var newBadge = isNew ? ' <span style="font-size:11px; padding:2px 7px; border-radius:10px; background:#ff8c00; color:white;">NEW</span>' : '';
+
+            var prodSummary = m.savingsByProduct || {};
+            var nairaBalanceSummary = (prodSummary.investment || 0) + (prodSummary.emergency || 0) + (prodSummary.challenge || 0);
+            var usdtBalanceSummary = prodSummary.dollar || 0;
+            var usdtBadge = usdtBalanceSummary > 0
+                ? ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef2ff; color:#3346a8;">USDT: ' + usdtBalanceSummary.toLocaleString('en-NG') + '</span>'
+                : '';
+            var referralCount = (m.memberId && referralCounts[m.memberId]) ? referralCounts[m.memberId] : 0;
+            var referralBadge = referralCount > 0
+                ? ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#f0e6ff; color:#6b2fb3;">Referrals: ' + referralCount + '</span>'
+                : '';
+
+            var card = document.createElement('div');
+            card.className = 'member-card';
+            card.setAttribute('data-search', (
+                (m.name || '') + ' ' + (m.memberId || '') + ' ' + (m.email || '') + ' ' + (m.phone || '')
+            ).toLowerCase());
+            card.setAttribute('data-status', m.status || 'Pending Review');
+            card.innerHTML =
+                '<details>' +
+                '<summary style="cursor:pointer; list-style:none;">' +
+                    '<h3 style="display:inline;">' + escapeHtml(m.name || 'Unnamed') + '</h3>' +
+                    ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">' + escapeHtml(m.status || 'Pending Review') + '</span>' +
+                    ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#fff4e5; color:#ff8c00;">MORE: ' + (m.shares || 0) + '</span>' +
+                    ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">Balance: ₦' + nairaBalanceSummary.toLocaleString('en-NG') + '</span>' +
+                    usdtBadge +
+                    referralBadge +
+                    '<span id="sellDot-' + id + '"></span>' +
+                    '<span id="wdDot-' + id + '"></span>' +
+                    '<span id="payDot-' + id + '"></span>' +
+                    newBadge +
+                    '<div class="member-meta">ID: ' + escapeHtml(m.memberId || 'Not assigned') +
+                        (m.memberId ? '' : ' <button style="padding:2px 10px; font-size:11px; margin-left:6px;" onclick="event.preventDefault(); event.stopPropagation(); assignMemberId(\'' + id + '\');">Generate ID</button>') +
+                        ' · ' + escapeHtml(m.email || '') + ' · ' + escapeHtml(m.phone || '') + '</div>' +
+                '</summary>' +
+                '<div style="margin-top:16px;">' +
+                '<div class="field-row">' +
+                    '<div>' +
+                        '<label>Occupation</label>' +
+                        '<input type="text" id="occupation-' + id + '" value="' + escapeHtml(m.occupation || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>NIN</label>' +
+                        '<input type="text" id="nin-' + id + '" value="' + escapeHtml(m.nin || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Bank Name</label>' +
+                        '<input type="text" id="bankName-' + id + '" value="' + escapeHtml(m.bankName || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Account Number</label>' +
+                        '<input type="text" id="accountNumber-' + id + '" value="' + escapeHtml(m.accountNumber || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Account Name</label>' +
+                        '<input type="text" id="accountName-' + id + '" value="' + escapeHtml(m.accountName || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Residential Address</label>' +
+                        '<input type="text" id="residentialAddress-' + id + '" value="' + escapeHtml(m.residentialAddress || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Shop/Office Address</label>' +
+                        '<input type="text" id="shopAddress-' + id + '" value="' + escapeHtml(m.shopAddress || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Next of Kin Name</label>' +
+                        '<input type="text" id="nokName-' + id + '" value="' + escapeHtml(m.nokName || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Next of Kin Phone</label>' +
+                        '<input type="text" id="nokPhone-' + id + '" value="' + escapeHtml(m.nokPhone || '') + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Referred By (Member ID)</label>' +
+                        '<input type="text" id="referredBy-' + id + '" value="' + escapeHtml(m.referredBy || '') + '" placeholder="e.g. SM-2026-123456">' +
+                    '</div>' +
+                '</div>' +
+                '<div class="field-row" style="margin-top:12px;">' +
+                    '<div>' +
+                        '<label>Savings Product</label>' +
+                        '<select id="product-' + id + '">' +
+                            productOption(m.product, 'Not yet assigned') +
+                            productOption(m.product, 'Investment Savings Account') +
+                            productOption(m.product, 'Emergency Savings Account') +
+                            productOption(m.product, 'In-Dollar Savings Account') +
+                            productOption(m.product, '100 Days Savings Challenge') +
+                        '</select>' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Status</label>' +
+                        '<select id="status-' + id + '">' +
+                            statusOption(m.status, 'Pending Review') +
+                            statusOption(m.status, 'Active') +
+                            statusOption(m.status, 'Suspended') +
+                        '</select>' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>(MORE) Participation Shares</label>' +
+                        '<input type="number" id="shares-' + id + '" value="' + (m.shares || 0) + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Savings Goal (₦)</label>' +
+                        '<input type="number" id="goal-' + id + '" value="' + (m.savingsGoal || 0) + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>100 Days Challenge Target (₦)</label>' +
+                        '<input type="number" id="challengeTarget-' + id + '" value="' + (m.challengeTarget || 0) + '" placeholder="e.g. 50000">' +
+                    '</div>' +
+                '</div>' +
+                '<div class="field-row" style="margin-top:12px;">' +
+                    '<div>' +
+                        '<label>Investment Savings (₦)</label>' +
+                        '<input type="number" id="prod-investment-' + id + '" value="' + ((m.savingsByProduct && m.savingsByProduct.investment) || 0) + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Emergency Savings (₦)</label>' +
+                        '<input type="number" id="prod-emergency-' + id + '" value="' + ((m.savingsByProduct && m.savingsByProduct.emergency) || 0) + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>In-Dollar Savings (USDT)</label>' +
+                        '<input type="number" id="prod-dollar-' + id + '" value="' + ((m.savingsByProduct && m.savingsByProduct.dollar) || 0) + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>100 Days Challenge (₦)</label>' +
+                        '<input type="number" id="prod-challenge-' + id + '" value="' + ((m.savingsByProduct && m.savingsByProduct.challenge) || 0) + '">' +
+                    '</div>' +
+                '</div>' +
+                progressBarHtml(m) +
+                '<button onclick="saveMember(\'' + id + '\')">Save Changes</button>' +
+                '<span class="save-status" id="saveStatus-' + id + '">✓ Saved</span>' +
+
+                '<details ontoggle="if(this.open) loadTransactions(\'' + id + '\')" style="margin-top:18px;">' +
+                '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Transaction History</summary>' +
+                '<div style="margin-top:14px;">' +
+
+                '<div class="field-row" style="margin-bottom:10px;">' +
+                    '<div>' +
+                        '<label>Date</label>' +
+                        '<input type="date" id="txDate-' + id + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Type</label>' +
+                        '<select id="txType-' + id + '">' +
+                            '<option value="Deposit">Deposit</option>' +
+                            '<option value="Withdrawal">Withdrawal</option>' +
+                            '<option value="Adjustment">Adjustment</option>' +
+                        '</select>' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Product</label>' +
+                        '<select id="txProduct-' + id + '" onchange="updateTxAmountLabel(\'' + id + '\')">' +
+                            '<option value="Investment Savings Account">Investment Savings Account</option>' +
+                            '<option value="Emergency Savings Account">Emergency Savings Account</option>' +
+                            '<option value="In-Dollar Savings Account">In-Dollar Savings Account</option>' +
+                            '<option value="100 Days Savings Challenge">100 Days Savings Challenge</option>' +
+                        '</select>' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Description</label>' +
+                        '<input type="text" id="txDesc-' + id + '" placeholder="e.g. Weekly savings">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Amount (<span id="txAmountUnit-' + id + '">₦</span>)</label>' +
+                        '<input type="number" id="txAmount-' + id + '" placeholder="e.g. 1000">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Status</label>' +
+                        '<select id="txStatus-' + id + '">' +
+                            '<option value="Confirmed">Confirmed</option>' +
+                            '<option value="Pending">Pending</option>' +
+                        '</select>' +
+                    '</div>' +
+                '</div>' +
+                '<button onclick="addTransaction(\'' + id + '\')">Add Transaction</button>' +
+
+                '<div id="txList-' + id + '" style="margin-top:16px;">Loading transactions...</div>' +
+
+                '</div>' +
+                '</details>' +
+
+                '<details ontoggle="if(this.open) loadCertificates(\'' + id + '\')" style="margin-top:14px;">' +
+                '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Certificates</summary>' +
+                '<div style="margin-top:14px;">' +
+
+                '<div class="field-row" style="margin-bottom:10px;">' +
+                    '<div>' +
+                        '<label>Month/Year</label>' +
+                        '<input type="month" id="certPeriod-' + id + '">' +
+                    '</div>' +
+                    '<div style="grid-column: span 2;">' +
+                        '<label>Recognition Note</label>' +
+                        '<input type="text" id="certNote-' + id + '" placeholder="e.g. Consistent Weekly Saver">' +
+                    '</div>' +
+                '</div>' +
+                '<button onclick="issueCertificate(\'' + id + '\')">Issue Certificate</button>' +
+
+                '<div id="certList-' + id + '" style="margin-top:16px;">Loading certificates...</div>' +
+
+                '</div>' +
+                '</details>' +
+
+                '<details ontoggle="if(this.open) loadSellRequestsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
+                '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Sell-Back Requests</summary>' +
+                '<div id="sellReqList-' + id + '" style="margin-top:14px;">Loading requests...</div>' +
+                '</details>' +
+
+                '<details ontoggle="if(this.open) loadWithdrawalRequestsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
+                '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Withdrawal Requests</summary>' +
+                '<div id="wdReqList-' + id + '" style="margin-top:14px;">Loading requests...</div>' +
+                '</details>' +
+
+                '<details ontoggle="if(this.open) loadPaymentClaimsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
+                '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Payment Claims</summary>' +
+                '<div id="paymentClaimsList-' + id + '" style="margin-top:14px;">Loading claims...</div>' +
+                '</details>' +
+
+                '<div style="margin-top:20px; border-top:1px solid #eee; padding-top:14px;">' +
+                '<button style="background:#b3261e;" onclick="deleteMember(\'' + id + '\', \'' + escapeHtml(m.name || 'this member').replace(/'/g, "\\'") + '\')">Delete Member</button>' +
+                '</div>' +
+
+                '</div>' +
+                '</details>';
+
+            list.appendChild(card);
+            checkPendingSellDot(id);
+        });
+    }).catch(function(error) {
+        list.innerHTML = '<p>Unable to load members: ' + escapeHtml(error.message) + '</p>';
+    });
+}
+
+function productOption(current, value) {
+    var selected = (current === value) ? ' selected' : '';
+    return '<option value="' + value + '"' + selected + '>' + value + '</option>';
+}
+
+function statusOption(current, value) {
+    var selected = (current === value || (!current && value === 'Pending Review')) ? ' selected' : '';
+    return '<option value="' + value + '"' + selected + '>' + value + '</option>';
+}
+
+var memberCache = {};
+
+var PRODUCT_KEYS = {
+    'Investment Savings Account': 'investment',
+    'Emergency Savings Account': 'emergency',
+    'In-Dollar Savings Account': 'dollar',
+    '100 Days Savings Challenge': 'challenge'
+};
+
+function computeTotal(m) {
+    var p = m.savingsByProduct || {};
+    return (p.investment || 0) + (p.emergency || 0) + (p.challenge || 0); // naira accounts only — USDT (p.dollar) kept separate
+}
+
+function progressBarHtml(m) {
+    var total = computeTotal(m);
+    var goal = m.savingsGoal || 0;
+    var pct = goal > 0 ? Math.min(100, Math.round((total / goal) * 100)) : 0;
+    var label = goal > 0
+        ? ('₦' + total.toLocaleString('en-NG') + ' / ₦' + goal.toLocaleString('en-NG') + ' (' + pct + '%)')
+        : ('₦' + total.toLocaleString('en-NG') + ' saved — no goal set');
+
+    return '<div style="margin-top:14px;">' +
+        '<div class="progress-track"><div class="progress-fill" style="width:' + pct + '%;"></div></div>' +
+        '<div class="progress-label">' + label + '</div>' +
+        '</div>';
+}
+
+function saveMember(id) {
+    var product = document.getElementById('product-' + id).value;
+    var status = document.getElementById('status-' + id).value;
+    var shares = parseFloat(document.getElementById('shares-' + id).value) || 0;
+    var goal = parseFloat(document.getElementById('goal-' + id).value) || 0;
+    var challengeTarget = parseFloat(document.getElementById('challengeTarget-' + id).value) || 0;
+    var pInvestment = parseFloat(document.getElementById('prod-investment-' + id).value) || 0;
+    var pEmergency = parseFloat(document.getElementById('prod-emergency-' + id).value) || 0;
+    var pDollar = parseFloat(document.getElementById('prod-dollar-' + id).value) || 0;
+    var pChallenge = parseFloat(document.getElementById('prod-challenge-' + id).value) || 0;
+    var occupation = document.getElementById('occupation-' + id).value.trim();
+    var nin = document.getElementById('nin-' + id).value.trim();
+    var bankName = document.getElementById('bankName-' + id).value.trim();
+    var accountNumber = document.getElementById('accountNumber-' + id).value.trim();
+    var accountName = document.getElementById('accountName-' + id).value.trim();
+    var residentialAddress = document.getElementById('residentialAddress-' + id).value.trim();
+    var shopAddress = document.getElementById('shopAddress-' + id).value.trim();
+    var nokName = document.getElementById('nokName-' + id).value.trim();
+    var nokPhone = document.getElementById('nokPhone-' + id).value.trim();
+    var referredBy = document.getElementById('referredBy-' + id).value.trim();
+    var total = pInvestment + pEmergency + pChallenge; // naira accounts only — USDT (pDollar) kept separate
+
+    db.collection('members').doc(id).update({
+        product: product,
+        status: status,
+        shares: shares,
+        savingsGoal: goal,
+        challengeTarget: challengeTarget,
+        savingsByProduct: {
+            investment: pInvestment,
+            emergency: pEmergency,
+            dollar: pDollar,
+            challenge: pChallenge
+        },
+        totalSavings: total,
+        occupation: occupation,
+        nin: nin,
+        bankName: bankName,
+        accountNumber: accountNumber,
+        accountName: accountName,
+        residentialAddress: residentialAddress,
+        shopAddress: shopAddress,
+        nokName: nokName,
+        nokPhone: nokPhone,
+        referredBy: referredBy
+    }).then(function() {
+        var statusEl = document.getElementById('saveStatus-' + id);
+        statusEl.style.display = 'inline';
+        setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
+
+        var cached = memberCache[id];
+        if (cached) {
+            notifyMemberAccountUpdate(cached.email, cached.name);
+            logActivity('Updated member', cached.name + ' (status: ' + status + ', product: ' + product + ')');
+        }
+    }).catch(function(error) {
+        alert('Failed to save: ' + error.message);
+    });
+}
+
+// ---- CSV EXPORT ----
+function csvEscape(value) {
+    var str = (value === null || value === undefined) ? '' : String(value);
+    if (str.indexOf(',') !== -1 || str.indexOf('"') !== -1 || str.indexOf('\n') !== -1) {
+        str = '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+}
+
+function downloadCSV(filename, rows) {
+    var csvContent = rows.map(function(row) {
+        return row.map(csvEscape).join(',');
+    }).join('\n');
+
+    var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function showExportStatus(msg) {
+    var el = document.getElementById('exportStatus');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(function() { el.style.display = 'none'; }, 4000);
+}
+
+function exportMembersCSV() {
+    showExportStatus('Preparing members export...');
+
+    db.collection('members').orderBy('name').get().then(function(snapshot) {
+        var rows = [[
+            'Member ID', 'Name', 'Email', 'Phone', 'Status', 'Product',
+            'Occupation', 'Date of Birth', 'Bank Name', 'Account Number', 'Account Name',
+            'NIN', 'Residential Address', 'Shop Address', 'Next of Kin Name', 'Next of Kin Phone',
+            'MORE Units', 'Investment Savings (₦)', 'Emergency Savings (₦)', 'In-Dollar Savings (USDT)',
+            '100 Days Challenge (₦)', 'Total Savings (₦)', 'Savings Goal (₦)', '100 Days Challenge Target (₦)'
+        ]];
+
+        snapshot.forEach(function(doc) {
+            var m = doc.data();
+            var p = m.savingsByProduct || {};
+            rows.push([
+                m.memberId || '', m.name || '', m.email || '', m.phone || '', m.status || '', m.product || '',
+                m.occupation || '', m.dob || '', m.bankName || '', m.accountNumber || '', m.accountName || '',
+                m.nin || '', m.residentialAddress || '', m.shopAddress || '', m.nokName || '', m.nokPhone || '',
+                m.shares || 0, p.investment || 0, p.emergency || 0, p.dollar || 0,
+                p.challenge || 0, m.totalSavings || 0, m.savingsGoal || 0, m.challengeTarget || 0
+            ]);
+        });
+
+        var dateStr = new Date().toISOString().slice(0, 10);
+        downloadCSV('SAVEMORE_Members_' + dateStr + '.csv', rows);
+        showExportStatus('✓ Members export downloaded (' + snapshot.size + ' members).');
+    }).catch(function(error) {
+        alert('Failed to export members: ' + error.message);
+    });
+}
+
+async function exportTransactionsCSV() {
+    showExportStatus('Preparing transactions export — this may take a moment...');
+
+    try {
+        var membersSnapshot = await db.collection('members').orderBy('name').get();
+        var rows = [[
+            'Member Name', 'Member ID', 'Date', 'Type', 'Reference', 'Product',
+            'Description', 'Amount', 'Status'
+        ]];
+        var totalTx = 0;
+
+        for (var i = 0; i < membersSnapshot.docs.length; i++) {
+            var memberDoc = membersSnapshot.docs[i];
+            var m = memberDoc.data();
+            var txSnapshot = await memberDoc.ref.collection('transactions').orderBy('date', 'desc').get();
+
+            txSnapshot.forEach(function(txDoc) {
+                var t = txDoc.data();
+                var unit = (t.product === 'In-Dollar Savings Account') ? ' USDT' : '';
+                rows.push([
+                    m.name || '', m.memberId || '', t.date || '', t.type || 'Deposit', t.reference || '',
+                    t.product || '', t.description || '', (t.amount || 0) + unit, t.status || ''
+                ]);
+                totalTx++;
+            });
+        }
+
+        var dateStr = new Date().toISOString().slice(0, 10);
+        downloadCSV('SAVEMORE_Transactions_' + dateStr + '.csv', rows);
+        showExportStatus('✓ Transactions export downloaded (' + totalTx + ' transactions across ' + membersSnapshot.size + ' members).');
+    } catch (error) {
+        alert('Failed to export transactions: ' + error.message);
+    }
+}
+
+// ---- ACTIVITY LOG ----
+function toggleActivityLog() {
+    var panel = document.getElementById('activityLogPanel');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden')) {
+        loadActivityLog();
+    }
+}
+
+function logActivity(action, details) {
+    if (!currentAdminUser) return;
+    db.collection('activityLog').add({
+        adminUid: currentAdminUser.uid,
+        adminEmail: currentAdminUser.email || 'unknown',
+        action: action,
+        details: details || '',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function(error) {
+        console.error('Failed to log activity:', error);
+    });
+}
+
+function loadActivityLog() {
+    var container = document.getElementById('activityLogList');
+    container.innerHTML = 'Loading...';
+
+    db.collection('activityLog').orderBy('timestamp', 'desc').limit(50).get().then(function(snapshot) {
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color:#777; font-size:14px;">No activity recorded yet.</p>';
+            return;
+        }
+
+        var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+        html += '<tr style="text-align:left; border-bottom:1px solid #ddd;">' +
+                '<th style="padding:6px;">When</th>' +
+                '<th style="padding:6px;">Admin</th>' +
+                '<th style="padding:6px;">Action</th>' +
+                '<th style="padding:6px;">Details</th>' +
+                '</tr>';
+
+        snapshot.forEach(function(doc) {
+            var a = doc.data();
+            var when = a.timestamp ? a.timestamp.toDate().toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+            html += '<tr style="border-bottom:1px solid #eee;">' +
+                '<td style="padding:6px;">' + escapeHtml(when) + '</td>' +
+                '<td style="padding:6px;">' + escapeHtml(a.adminEmail || '') + '</td>' +
+                '<td style="padding:6px;">' + escapeHtml(a.action || '') + '</td>' +
+                '<td style="padding:6px;">' + escapeHtml(a.details || '') + '</td>' +
+                '</tr>';
+        });
+
+        html += '</table>';
+        container.innerHTML = html;
+    }).catch(function(error) {
+        container.innerHTML = '<p style="color:#b3261e;">Unable to load activity log: ' + escapeHtml(error.message) + '</p>';
+    });
+}
+
+function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+}
+
+// ---- TRANSACTIONS ----
+function updateTxAmountLabel(id) {
+    var product = document.getElementById('txProduct-' + id).value;
+    var unitEl = document.getElementById('txAmountUnit-' + id);
+    unitEl.textContent = (product === 'In-Dollar Savings Account') ? 'USDT' : '₦';
+}
+
+function formatAmountByProduct(product, amount) {
+    if (product === 'In-Dollar Savings Account') {
+        return amount.toLocaleString('en-NG') + ' USDT';
+    }
+    return '₦' + amount.toLocaleString('en-NG');
+}
+
+function loadTransactions(memberId) {
+    var container = document.getElementById('txList-' + memberId);
+    container.innerHTML = 'Loading transactions...';
+
+    db.collection('members').doc(memberId).collection('transactions')
+        .orderBy('date', 'asc')
+        .get()
+        .then(function(snapshot) {
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="color:#777; font-size:14px;">No transactions recorded yet.</p>';
+                return;
+            }
+
+            // Compute running balance chronologically (oldest first), only Confirmed entries affect balance
+            // Naira and USDT balances are tracked SEPARATELY — never mixed
+            var runningBalanceNaira = 0;
+            var runningBalanceUsdt = 0;
+            var rows = [];
+            snapshot.forEach(function(doc) {
+                var t = doc.data();
+                var signed = (typeof t.signedAmount === 'number') ? t.signedAmount : (t.amount || 0);
+                var isUsdt = (t.product === 'In-Dollar Savings Account');
+                if (t.status === 'Confirmed') {
+                    if (isUsdt) {
+                        runningBalanceUsdt += signed;
+                    } else {
+                        runningBalanceNaira += signed;
+                    }
+                }
+                rows.push({ id: doc.id, data: t, balanceAfter: isUsdt ? runningBalanceUsdt : runningBalanceNaira, isUsdt: isUsdt });
+            });
+
+            rows.reverse(); // show newest first
+
+            var html = '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+            html += '<tr style="text-align:left; border-bottom:1px solid #ddd;">' +
+                    '<th style="padding:6px;">Date</th>' +
+                    '<th style="padding:6px;">Type</th>' +
+                    '<th style="padding:6px;">Reference</th>' +
+                    '<th style="padding:6px;">Product</th>' +
+                    '<th style="padding:6px;">Description</th>' +
+                    '<th style="padding:6px;">Amount</th>' +
+                    '<th style="padding:6px;">Balance</th>' +
+                    '<th style="padding:6px;">Status</th>' +
+                    '<th style="padding:6px;"></th>' +
+                    '</tr>';
+
+            rows.forEach(function(row) {
+                var t = row.data;
+                var signed = (typeof t.signedAmount === 'number') ? t.signedAmount : (t.amount || 0);
+                var balanceDisplay = row.isUsdt
+                    ? row.balanceAfter.toLocaleString('en-NG') + ' USDT'
+                    : '₦' + row.balanceAfter.toLocaleString('en-NG');
+                html += '<tr style="border-bottom:1px solid #eee;">' +
+                    '<td style="padding:6px;">' + escapeHtml(t.date || '') + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(t.type || 'Deposit') + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(t.reference || '—') + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(t.product || '—') + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(t.description || '') + '</td>' +
+                    '<td style="padding:6px;">' + (signed < 0 ? '-' : '') + formatAmountByProduct(t.product, Math.abs(t.amount || 0)) + '</td>' +
+                    '<td style="padding:6px;">' + balanceDisplay + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(t.status || '') + '</td>' +
+                    '<td style="padding:6px;"><button style="padding:4px 10px; font-size:12px;" onclick="deleteTransaction(\'' + memberId + '\',\'' + row.id + '\',' + signed + ',\'' + t.status + '\',\'' + (t.productKey || '') + '\')">Delete</button></td>' +
+                    '</tr>';
+            });
+
+            html += '</table>';
+            container.innerHTML = html;
+        })
+        .catch(function(error) {
+            container.innerHTML = '<p style="color:#b3261e;">Unable to load transactions: ' + escapeHtml(error.message) + '</p>';
+        });
+}
+
+function generateReference() {
+    return 'TXN-' + Date.now().toString().slice(-8) + '-' + Math.floor(Math.random() * 900 + 100);
+}
+
+function addTransaction(memberId) {
+    var date = document.getElementById('txDate-' + memberId).value;
+    var type = document.getElementById('txType-' + memberId).value;
+    var product = document.getElementById('txProduct-' + memberId).value;
+    var description = document.getElementById('txDesc-' + memberId).value.trim();
+    var amount = parseFloat(document.getElementById('txAmount-' + memberId).value);
+    var status = document.getElementById('txStatus-' + memberId).value;
+    var productKey = PRODUCT_KEYS[product];
+    var reference = generateReference();
+
+    if (!date || !description || isNaN(amount) || amount <= 0) {
+        alert('Please fill in date, description, and a valid amount.');
+        return;
+    }
+
+    // Withdrawals reduce the balance; Deposits and positive Adjustments increase it
+    var signedAmount = (type === 'Withdrawal') ? -amount : amount;
+
+    var memberRef = db.collection('members').doc(memberId);
+
+    memberRef.collection('transactions').add({
+        date: date,
+        type: type,
+        reference: reference,
+        product: product,
+        productKey: productKey,
+        description: description,
+        amount: amount,
+        signedAmount: signedAmount,
+        status: status,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        if (status === 'Confirmed') {
+            var update = {};
+            if (productKey !== 'dollar') {
+                update.totalSavings = firebase.firestore.FieldValue.increment(signedAmount);
+            }
+            update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(signedAmount);
+            return memberRef.update(update);
+        }
+    }).then(function() {
+        document.getElementById('txDate-' + memberId).value = '';
+        document.getElementById('txDesc-' + memberId).value = '';
+        document.getElementById('txAmount-' + memberId).value = '';
+        loadTransactions(memberId);
+        loadMembers(); // refresh totals shown on the card
+
+        var cached = memberCache[memberId];
+        var unit = (productKey === 'dollar') ? ' USDT' : '₦';
+        logActivity(type + ' recorded', (cached ? cached.name : memberId) + ' — ' + unit + amount.toLocaleString('en-NG') + ' (' + product + ', ' + status + ')');
+    }).catch(function(error) {
+        alert('Failed to add transaction: ' + error.message);
+    });
+}
+
+function deleteTransaction(memberId, txId, signedAmount, status, productKey) {
+    if (!confirm('Delete this transaction? This cannot be undone.')) {
+        return;
+    }
+
+    var memberRef = db.collection('members').doc(memberId);
+
+    memberRef.collection('transactions').doc(txId).delete()
+        .then(function() {
+            if (status === 'Confirmed') {
+                var update = {};
+                if (productKey !== 'dollar') {
+                    update.totalSavings = firebase.firestore.FieldValue.increment(-signedAmount);
+                }
+                if (productKey) {
+                    update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(-signedAmount);
+                }
+                return memberRef.update(update);
+            }
+        })
+        .then(function() {
+            loadTransactions(memberId);
+            loadMembers();
+        })
+        .catch(function(error) {
+            alert('Failed to delete transaction: ' + error.message);
+        });
+}
+
+// ---- CERTIFICATES ----
+function monthYearLabel(periodValue) {
+    // periodValue is "YYYY-MM" from <input type="month">
+    var parts = periodValue.split('-');
+    var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return months[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+}
+
+function loadCertificates(memberId) {
+    var container = document.getElementById('certList-' + memberId);
+    container.innerHTML = 'Loading certificates...';
+
+    db.collection('members').doc(memberId).collection('certificates')
+        .orderBy('issuedAt', 'desc')
+        .get()
+        .then(function(snapshot) {
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="color:#777; font-size:14px;">No certificates issued yet.</p>';
+                return;
+            }
+
+            var html = '<table style="width:100%; border-collapse:collapse; font-size:14px;">';
+            html += '<tr style="text-align:left; border-bottom:1px solid #ddd;">' +
+                    '<th style="padding:6px;">Period</th>' +
+                    '<th style="padding:6px;">Note</th>' +
+                    '<th style="padding:6px;"></th>' +
+                    '</tr>';
+
+            snapshot.forEach(function(doc) {
+                var c = doc.data();
+                html += '<tr style="border-bottom:1px solid #eee;">' +
+                    '<td style="padding:6px;">' + escapeHtml(c.period || '') + '</td>' +
+                    '<td style="padding:6px;">' + escapeHtml(c.note || '') + '</td>' +
+                    '<td style="padding:6px;"><button style="padding:4px 10px; font-size:12px;" onclick="deleteCertificate(\'' + memberId + '\',\'' + doc.id + '\')">Delete</button></td>' +
+                    '</tr>';
+            });
+
+            html += '</table>';
+            container.innerHTML = html;
+        })
+        .catch(function(error) {
+            container.innerHTML = '<p style="color:#b3261e;">Unable to load certificates: ' + escapeHtml(error.message) + '</p>';
+        });
+}
+
+function issueCertificate(memberId) {
+    var periodValue = document.getElementById('certPeriod-' + memberId).value;
+    var note = document.getElementById('certNote-' + memberId).value.trim();
+
+    if (!periodValue) {
+        alert('Please select a month/year for this certificate.');
+        return;
+    }
+
+    var periodLabel = monthYearLabel(periodValue);
+
+    db.collection('members').doc(memberId).collection('certificates').add({
+        period: periodLabel,
+        note: note,
+        issuedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        document.getElementById('certPeriod-' + memberId).value = '';
+        document.getElementById('certNote-' + memberId).value = '';
+        loadCertificates(memberId);
+
+        var cached = memberCache[memberId];
+        logActivity('Certificate issued', (cached ? cached.name : memberId) + ' — ' + periodLabel);
+    }).catch(function(error) {
+        alert('Failed to issue certificate: ' + error.message);
+    });
+}
+
+function deleteCertificate(memberId, certId) {
+    if (!confirm('Delete this certificate? This cannot be undone.')) {
+        return;
+    }
+
+    db.collection('members').doc(memberId).collection('certificates').doc(certId).delete()
+        .then(function() {
+            loadCertificates(memberId);
+        })
+        .catch(function(error) {
+            alert('Failed to delete certificate: ' + error.message);
+        });
+}
+
+// ---- SELL-BACK REQUESTS (ADMIN) ----
+function loadSellRequestsAdmin(memberId) {
+    var container = document.getElementById('sellReqList-' + memberId);
+    container.innerHTML = 'Loading requests...';
+
+    db.collection('members').doc(memberId).collection('sellRequests')
+        .orderBy('requestedAt', 'desc')
+        .get()
+        .then(function(snapshot) {
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="color:#777; font-size:14px;">No sell-back requests.</p>';
+                return;
+            }
+
+            var html = '';
+            snapshot.forEach(function(doc) {
+                var r = doc.data();
+                var actions = '';
+                if (r.status === 'Pending') {
+                    actions =
+                        '<button style="padding:4px 10px; font-size:12px;" onclick="approveSellRequest(\'' + memberId + '\',\'' + doc.id + '\',' + r.unitsRequested + ')">Approve</button> ' +
+                        '<button style="padding:4px 10px; font-size:12px; background:#999;" onclick="rejectSellRequest(\'' + memberId + '\',\'' + doc.id + '\')">Reject</button>';
+                }
+                html += '<div style="padding:10px; border-bottom:1px solid #eee; font-size:14px;">' +
+                    escapeHtml(r.unitsRequested + ' units') + ' — reference value at request: ₦' + (r.referenceValueAtRequest || 0).toLocaleString('en-NG') +
+                    ' — est. payout: ₦' + (r.estimatedPayout || 0).toLocaleString('en-NG') +
+                    ' — status: <strong>' + escapeHtml(r.status || 'Pending') + '</strong><br>' + actions +
+                    '</div>';
+            });
+
+            container.innerHTML = html;
+        })
+        .catch(function(error) {
+            container.innerHTML = '<p style="color:#b3261e;">Unable to load requests: ' + escapeHtml(error.message) + '</p>';
+        });
+}
+
+function approveSellRequest(memberId, requestId, units) {
+    if (!confirm('Approve this sell-back? This will reduce the member\'s MORE units by ' + units + ' and return them to Moresales Venture. Make sure payout has been arranged before approving.')) {
+        return;
+    }
+
+    var memberRef = db.collection('members').doc(memberId);
+
+    memberRef.collection('sellRequests').doc(requestId).update({
+        status: 'Approved',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        return memberRef.update({
+            shares: firebase.firestore.FieldValue.increment(-units)
+        });
+    }).then(function() {
+        loadSellRequestsAdmin(memberId);
+        loadMembers();
+        var cached = memberCache[memberId];
+        if (cached) {
+            notifyMemberAccountUpdate(cached.email, cached.name);
+        }
+        logActivity('Sell-back approved', (cached ? cached.name : memberId) + ' — ' + units + ' MORE units');
+    }).catch(function(error) {
+        alert('Failed to approve request: ' + error.message);
+    });
+}
+
+function rejectSellRequest(memberId, requestId) {
+    db.collection('members').doc(memberId).collection('sellRequests').doc(requestId).update({
+        status: 'Rejected',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        loadSellRequestsAdmin(memberId);
+    }).catch(function(error) {
+        alert('Failed to reject request: ' + error.message);
+    });
+}
+
+// ---- WITHDRAWAL REQUESTS (ADMIN) ----
+function loadWithdrawalRequestsAdmin(memberId) {
+    var container = document.getElementById('wdReqList-' + memberId);
+    container.innerHTML = 'Loading requests...';
+
+    db.collection('members').doc(memberId).collection('withdrawalRequests')
+        .orderBy('requestedAt', 'desc')
+        .get()
+        .then(function(snapshot) {
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="color:#777; font-size:14px;">No withdrawal requests.</p>';
+                return;
+            }
+
+            var html = '';
+            snapshot.forEach(function(doc) {
+                var r = doc.data();
+                var amountDisplay = (r.unit === 'USDT')
+                    ? (r.amountRequested || 0).toLocaleString('en-NG') + ' USDT'
+                    : '₦' + (r.amountRequested || 0).toLocaleString('en-NG');
+                var actions = '';
+                if (r.status === 'Pending') {
+                    actions =
+                        '<button style="padding:4px 10px; font-size:12px;" onclick="approveWithdrawalRequest(\'' + memberId + '\',\'' + doc.id + '\')">Approve</button> ' +
+                        '<button style="padding:4px 10px; font-size:12px; background:#999;" onclick="rejectWithdrawalRequest(\'' + memberId + '\',\'' + doc.id + '\')">Reject</button>';
+                }
+                html += '<div style="padding:10px; border-bottom:1px solid #eee; font-size:14px;">' +
+                    escapeHtml(r.product || '') + ' — ' + amountDisplay +
+                    (r.reason ? (' — reason: ' + escapeHtml(r.reason)) : '') +
+                    ' — status: <strong>' + escapeHtml(r.status || 'Pending') + '</strong><br>' + actions +
+                    '</div>';
+            });
+
+            container.innerHTML = html;
+        })
+        .catch(function(error) {
+            container.innerHTML = '<p style="color:#b3261e;">Unable to load requests: ' + escapeHtml(error.message) + '</p>';
+        });
+}
+
+function approveWithdrawalRequest(memberId, requestId) {
+    var memberRef = db.collection('members').doc(memberId);
+
+    memberRef.collection('withdrawalRequests').doc(requestId).get().then(function(reqDoc) {
+        if (!reqDoc.exists) return;
+        var r = reqDoc.data();
+
+        if (!confirm('Approve this withdrawal of ' + (r.unit === 'USDT' ? r.amountRequested + ' USDT' : '₦' + r.amountRequested.toLocaleString('en-NG')) + ' for ' + r.product + '? This will record a Withdrawal transaction and reduce the member\'s balance. Make sure payout has been arranged before approving.')) {
+            return;
+        }
+
+        var productKey = PRODUCT_KEYS[r.product];
+        var signedAmount = -r.amountRequested;
+        var reference = generateReference();
+
+        memberRef.collection('transactions').add({
+            date: new Date().toISOString().slice(0, 10),
+            type: 'Withdrawal',
+            reference: reference,
+            product: r.product,
+            productKey: productKey,
+            description: 'Member-requested withdrawal' + (r.reason ? (' — ' + r.reason) : ''),
+            amount: r.amountRequested,
+            signedAmount: signedAmount,
+            status: 'Confirmed',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function() {
+            var update = {};
+            if (productKey !== 'dollar') {
+                update.totalSavings = firebase.firestore.FieldValue.increment(signedAmount);
+            }
+            update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(signedAmount);
+            return memberRef.update(update);
+        }).then(function() {
+            return memberRef.collection('withdrawalRequests').doc(requestId).update({
+                status: 'Approved',
+                resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }).then(function() {
+            loadWithdrawalRequestsAdmin(memberId);
+            loadMembers();
+            var cached = memberCache[memberId];
+            if (cached) {
+                notifyMemberAccountUpdate(cached.email, cached.name);
+            }
+            var unitLabel = (r.unit === 'USDT') ? (r.amountRequested + ' USDT') : ('₦' + r.amountRequested.toLocaleString('en-NG'));
+            logActivity('Withdrawal approved', (cached ? cached.name : memberId) + ' — ' + unitLabel + ' (' + r.product + ')');
+        }).catch(function(error) {
+            alert('Failed to approve withdrawal: ' + error.message);
+        });
+    });
+}
+
+function rejectWithdrawalRequest(memberId, requestId) {
+    db.collection('members').doc(memberId).collection('withdrawalRequests').doc(requestId).update({
+        status: 'Rejected',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        loadWithdrawalRequestsAdmin(memberId);
+    }).catch(function(error) {
+        alert('Failed to reject request: ' + error.message);
+    });
+}
+
+// ---- PAYMENT CLAIMS (ADMIN) ----
+function loadPaymentClaimsAdmin(memberId) {
+    var container = document.getElementById('paymentClaimsList-' + memberId);
+    container.innerHTML = 'Loading claims...';
+
+    db.collection('members').doc(memberId).collection('paymentClaims')
+        .orderBy('claimedAt', 'desc')
+        .get()
+        .then(function(snapshot) {
+            if (snapshot.empty) {
+                container.innerHTML = '<p style="color:#777; font-size:14px;">No payment claims.</p>';
+                return;
+            }
+
+            var html = '';
+            snapshot.forEach(function(doc) {
+                var c = doc.data();
+                var amountDisplay = (c.unit === 'USDT')
+                    ? (c.amount || 0).toLocaleString('en-NG') + ' USDT'
+                    : '₦' + (c.amount || 0).toLocaleString('en-NG');
+                var actions = '';
+                if (c.status === 'Pending') {
+                    actions =
+                        '<button style="padding:4px 10px; font-size:12px;" onclick="confirmPaymentClaim(\'' + memberId + '\',\'' + doc.id + '\')">Confirm &amp; Record</button> ' +
+                        '<button style="padding:4px 10px; font-size:12px; background:#999;" onclick="rejectPaymentClaim(\'' + memberId + '\',\'' + doc.id + '\')">Reject</button>';
+                }
+                html += '<div style="padding:10px; border-bottom:1px solid #eee; font-size:14px;">' +
+                    escapeHtml(c.product || '') + ' — ' + amountDisplay +
+                    ' — status: <strong>' + escapeHtml(c.status || 'Pending') + '</strong><br>' + actions +
+                    '</div>';
+            });
+
+            container.innerHTML = html;
+        })
+        .catch(function(error) {
+            container.innerHTML = '<p style="color:#b3261e;">Unable to load claims: ' + escapeHtml(error.message) + '</p>';
+        });
+}
+
+function confirmPaymentClaim(memberId, claimId) {
+    var memberRef = db.collection('members').doc(memberId);
+
+    memberRef.collection('paymentClaims').doc(claimId).get().then(function(claimDoc) {
+        if (!claimDoc.exists) return;
+        var c = claimDoc.data();
+
+        if (!confirm('Confirm this payment and record it as a Deposit of ' + (c.unit === 'USDT' ? c.amount + ' USDT' : '₦' + c.amount.toLocaleString('en-NG')) + ' for ' + c.product + '?')) {
+            return;
+        }
+
+        var productKey = PRODUCT_KEYS[c.product];
+        var reference = generateReference();
+
+        memberRef.collection('transactions').add({
+            date: new Date().toISOString().slice(0, 10),
+            type: 'Deposit',
+            reference: reference,
+            product: c.product,
+            productKey: productKey,
+            description: 'Member-claimed payment, confirmed by admin',
+            amount: c.amount,
+            signedAmount: c.amount,
+            status: 'Confirmed',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function() {
+            var update = {};
+            if (productKey !== 'dollar') {
+                update.totalSavings = firebase.firestore.FieldValue.increment(c.amount);
+            }
+            update['savingsByProduct.' + productKey] = firebase.firestore.FieldValue.increment(c.amount);
+            return memberRef.update(update);
+        }).then(function() {
+            return memberRef.collection('paymentClaims').doc(claimId).update({
+                status: 'Confirmed',
+                resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }).then(function() {
+            loadPaymentClaimsAdmin(memberId);
+            loadMembers();
+            var cached = memberCache[memberId];
+            if (cached) {
+                notifyMemberAccountUpdate(cached.email, cached.name);
+            }
+            var unitLabel = (c.unit === 'USDT') ? (c.amount + ' USDT') : ('₦' + c.amount.toLocaleString('en-NG'));
+            logActivity('Payment claim confirmed', (cached ? cached.name : memberId) + ' — ' + unitLabel + ' (' + c.product + ')');
+        }).catch(function(error) {
+            alert('Failed to confirm payment: ' + error.message);
+        });
+    });
+}
+
+function rejectPaymentClaim(memberId, claimId) {
+    db.collection('members').doc(memberId).collection('paymentClaims').doc(claimId).update({
+        status: 'Rejected',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        loadPaymentClaimsAdmin(memberId);
+    }).catch(function(error) {
+        alert('Failed to reject claim: ' + error.message);
+    });
+}
+
+// ---- DELETE MEMBER ----
+async function deleteMember(memberId, memberName) {
+    var confirmed = confirm('Permanently delete ' + memberName + '\'s record, including all their transactions, certificates and sell requests? This cannot be undone.\n\nNote: this only removes their data record — their login account must be separately disabled in Firebase Console → Authentication → Users.');
+    if (!confirmed) return;
+
+    try {
+        var memberRef = db.collection('members').doc(memberId);
+
+        var txSnap = await memberRef.collection('transactions').get();
+        for (var i = 0; i < txSnap.docs.length; i++) {
+            await txSnap.docs[i].ref.delete();
+        }
+
+        var certSnap = await memberRef.collection('certificates').get();
+        for (var j = 0; j < certSnap.docs.length; j++) {
+            await certSnap.docs[j].ref.delete();
+        }
+
+        var sellSnap = await memberRef.collection('sellRequests').get();
+        for (var k = 0; k < sellSnap.docs.length; k++) {
+            await sellSnap.docs[k].ref.delete();
+        }
+
+        var wdSnap = await memberRef.collection('withdrawalRequests').get();
+        for (var w = 0; w < wdSnap.docs.length; w++) {
+            await wdSnap.docs[w].ref.delete();
+        }
+
+        var payClaimSnap = await memberRef.collection('paymentClaims').get();
+        for (var p = 0; p < payClaimSnap.docs.length; p++) {
+            await payClaimSnap.docs[p].ref.delete();
+        }
+
+        await memberRef.delete();
+
+        logActivity('Member deleted', memberName);
+        alert('Member record deleted. Remember to also remove their login from Firebase Console → Authentication → Users if needed.');
+        loadMembers();
+    } catch (error) {
+        alert('Failed to delete member: ' + error.message + '\n\nMake sure your Firestore rules include "allow delete: if isAdmin();" under the members match block.');
+    }
+}
+</script>
+
+</body>
+</html>

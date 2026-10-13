@@ -190,6 +190,66 @@ button.secondary {
     display: none;
 }
 
+.admin-menu {
+    position: relative;
+    display: inline-block;
+}
+
+.admin-menu-list {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 6px;
+    min-width: 250px;
+    max-height: 75vh;
+    overflow-y: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    padding: 6px 0;
+    z-index: 200;
+}
+
+.admin-menu-list.open {
+    display: block;
+}
+
+.menu-group {
+    padding: 10px 18px 4px;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #777;
+}
+
+.admin-menu-list button.menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    color: #222;
+    border: none;
+    border-radius: 0;
+    padding: 11px 18px;
+    font-size: 15px;
+    font-weight: normal;
+}
+
+.admin-menu-list button.menu-item:hover {
+    background: #eef7f2;
+}
+
+.admin-menu-list button.menu-danger {
+    color: #b3261e;
+    font-weight: bold;
+}
+
+#adminPanel [id^="section"] {
+    scroll-margin-top: 20px;
+}
+
 .top-bar {
     display: flex;
     justify-content: space-between;
@@ -307,13 +367,32 @@ PIN (in addition to your password) every time you log in.
 <div class="top-bar">
 <h2 style="margin:0;">Members (<span id="memberCount">0</span>)</h2>
 <div>
-<button class="secondary" onclick="exportMembersCSV()" style="margin-right:8px;">Export Members (CSV)</button>
-<button class="secondary" onclick="exportTransactionsCSV()" style="margin-right:8px;">Export Transactions (CSV)</button>
-<button class="secondary" onclick="exportFullBackup()" style="margin-right:8px;">Full Backup (JSON)</button>
-<button class="secondary" onclick="toggleActivityLog()" style="margin-right:8px;">Activity Log</button>
-<button class="secondary" onclick="backfillMemberIdLookups()" style="margin-right:8px;">Fix Member ID Logins</button>
-<button class="secondary" onclick="changePin()" style="margin-right:8px;">Change PIN</button>
-<button class="secondary" onclick="doLogout()">Log Out</button>
+<div class="admin-menu">
+<button class="secondary" id="adminMenuBtn" onclick="toggleAdminMenu(event)" aria-haspopup="true" aria-expanded="false">&#9776; Menu</button>
+<div class="admin-menu-list" id="adminMenuList" role="menu">
+
+<div class="menu-group">Go to</div>
+<button type="button" class="menu-item" role="menuitem" onclick="adminMenuGo('sectionMembers')">Members</button>
+<button type="button" class="menu-item" role="menuitem" onclick="adminMenuGo('sectionMore')">MORE Reference Value</button>
+<button type="button" class="menu-item" role="menuitem" onclick="adminMenuGo('sectionBalances')">Total Balances</button>
+<button type="button" class="menu-item" role="menuitem" onclick="adminMenuGo('sectionUsdt')">USDT Selling Price</button>
+<button type="button" class="menu-item" role="menuitem" onclick="adminMenuGo('sectionAnalytics')">Growth Analytics</button>
+
+<div class="menu-group">Data</div>
+<button type="button" class="menu-item" role="menuitem" onclick="closeAdminMenu(); exportMembersCSV()">Export Members (CSV)</button>
+<button type="button" class="menu-item" role="menuitem" onclick="closeAdminMenu(); exportTransactionsCSV()">Export Transactions (CSV)</button>
+<button type="button" class="menu-item" role="menuitem" onclick="closeAdminMenu(); exportFullBackup()">Full Backup (JSON)</button>
+
+<div class="menu-group">Tools</div>
+<button type="button" class="menu-item" role="menuitem" onclick="adminMenuActivityLog()">Activity Log</button>
+<button type="button" class="menu-item" role="menuitem" onclick="closeAdminMenu(); backfillMemberIdLookups()">Fix Member ID Logins</button>
+
+<div class="menu-group">Account</div>
+<button type="button" class="menu-item" role="menuitem" onclick="closeAdminMenu(); changePin()">Change PIN</button>
+<button type="button" class="menu-item menu-danger" role="menuitem" onclick="closeAdminMenu(); doLogout()">Log Out</button>
+
+</div>
+</div>
 </div>
 </div>
 
@@ -329,7 +408,7 @@ PIN (in addition to your password) every time you log in.
 
 <div id="pendingRequestsBanner" style="display:none; background:#fdecea; color:#b3261e; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:bold;"></div>
 
-<div class="member-card" style="border-left-color:#ff8c00;">
+<div class="member-card" id="sectionMore" style="border-left-color:#ff8c00;">
 <h3 style="color:#ff8c00;">MORE Reference Value</h3>
 <p style="font-size:13px; color:#777; margin-bottom:12px;">
 Set using SAVEMORE's formula: ₦5n (where n = total paid applicants). This value is shown to members on their dashboard.
@@ -363,7 +442,7 @@ Set using SAVEMORE's formula: ₦5n (where n = total paid applicants). This valu
 </div>
 </div>
 
-<div class="member-card" style="border-left-color:#075e3b;">
+<div class="member-card" id="sectionBalances" style="border-left-color:#075e3b;">
 <h3 style="color:#075e3b;">Total Balances by Product</h3>
 <p style="font-size:13px; color:#777; margin-bottom:12px;">
 Naira savings and USDT savings are kept separate and are never combined.
@@ -388,7 +467,7 @@ Naira savings and USDT savings are kept separate and are never combined.
 </div>
 </div>
 
-<div class="member-card" style="border-left-color:#3346a8;">
+<div class="member-card" id="sectionUsdt" style="border-left-color:#3346a8;">
 <h3 style="color:#3346a8;">USDT Selling Price</h3>
 <p style="font-size:13px; color:#777; margin-bottom:12px;">
 This is a price you set manually — not an automatically calculated market
@@ -408,7 +487,7 @@ price. It is shown to members on their dashboard.
 <span class="save-status" id="usdtSaveStatus">✓ Saved</span>
 </div>
 
-<div class="member-card" style="border-left-color:#6b2fb3;">
+<div class="member-card" id="sectionAnalytics" style="border-left-color:#6b2fb3;">
 <h3 style="color:#6b2fb3;">Growth Analytics</h3>
 <p style="font-size:13px; color:#777; margin-bottom:14px;">
 Member growth is calculated from actual join dates. Savings growth starts
@@ -432,6 +511,7 @@ you log in, so this chart will fill in over the coming days/weeks.
 </div>
 <p id="filterResultCount" style="font-size:13px; color:#777; margin-bottom:10px; display:none;"></p>
 
+<div id="sectionMembers"></div>
 <div id="membersList"></div>
 
 </div>
@@ -1473,6 +1553,45 @@ async function exportTransactionsCSV() {
         alert('Failed to export transactions: ' + error.message);
     }
 }
+
+// ---- ADMIN MENU ----
+function toggleAdminMenu(e) {
+    if (e) e.stopPropagation();
+    var list = document.getElementById('adminMenuList');
+    var open = list.classList.toggle('open');
+    document.getElementById('adminMenuBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function closeAdminMenu() {
+    var list = document.getElementById('adminMenuList');
+    if (list) list.classList.remove('open');
+    var btn = document.getElementById('adminMenuBtn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+function adminMenuGo(id) {
+    closeAdminMenu();
+    var el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function adminMenuActivityLog() {
+    closeAdminMenu();
+    toggleActivityLog();
+    var panel = document.getElementById('activityLogPanel');
+    if (panel && !panel.classList.contains('hidden')) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+document.addEventListener('click', function(e) {
+    var wrap = document.querySelector('.admin-menu');
+    if (wrap && !wrap.contains(e.target)) closeAdminMenu();
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeAdminMenu();
+});
 
 // ---- FULL BACKUP (JSON) ----
 // Downloads one file with all members, their transactions, certificates and

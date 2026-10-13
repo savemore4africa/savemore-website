@@ -309,6 +309,7 @@ PIN (in addition to your password) every time you log in.
 <div>
 <button class="secondary" onclick="exportMembersCSV()" style="margin-right:8px;">Export Members (CSV)</button>
 <button class="secondary" onclick="exportTransactionsCSV()" style="margin-right:8px;">Export Transactions (CSV)</button>
+<button class="secondary" onclick="exportFullBackup()" style="margin-right:8px;">Full Backup (JSON)</button>
 <button class="secondary" onclick="toggleActivityLog()" style="margin-right:8px;">Activity Log</button>
 <button class="secondary" onclick="backfillMemberIdLookups()" style="margin-right:8px;">Fix Member ID Logins</button>
 <button class="secondary" onclick="changePin()" style="margin-right:8px;">Change PIN</button>
@@ -1470,6 +1471,91 @@ async function exportTransactionsCSV() {
         showExportStatus('✓ Transactions export downloaded (' + totalTx + ' transactions across ' + membersSnapshot.size + ' members).');
     } catch (error) {
         alert('Failed to export transactions: ' + error.message);
+    }
+}
+
+// ---- FULL BACKUP (JSON) ----
+// Downloads one file with all members, their transactions, certificates and
+// requests, plus settings, the activity log and analytics snapshots.
+// Security PIN records are not included.
+function backupSerialize(value) {
+    if (value === null || value === undefined) return value;
+    if (typeof value.toDate === 'function') {
+        return { __timestamp: value.toDate().toISOString() };
+    }
+    if (Array.isArray(value)) return value.map(backupSerialize);
+    if (typeof value === 'object') {
+        var out = {};
+        Object.keys(value).forEach(function(k) { out[k] = backupSerialize(value[k]); });
+        return out;
+    }
+    return value;
+}
+
+async function backupCollection(query) {
+    var snap = await query.get();
+    return snap.docs.map(function(d) {
+        return { id: d.id, data: backupSerialize(d.data()) };
+    });
+}
+
+async function exportFullBackup() {
+    if (!confirm('This backup file contains sensitive member information (including NIN and bank details). Keep it somewhere safe and private, and do not send it over WhatsApp or email. Continue?')) {
+        return;
+    }
+    showExportStatus('Preparing full backup — this may take a minute...');
+
+    try {
+        var subcollections = ['transactions', 'certificates', 'sellRequests', 'withdrawalRequests', 'paymentClaims'];
+        var membersSnap = await db.collection('members').get();
+        var members = [];
+        var counts = { members: 0, transactions: 0, certificates: 0, sellRequests: 0, withdrawalRequests: 0, paymentClaims: 0 };
+
+        for (var i = 0; i < membersSnap.docs.length; i++) {
+            var memberDoc = membersSnap.docs[i];
+            showExportStatus('Backing up member ' + (i + 1) + ' of ' + membersSnap.docs.length + '...');
+            var results = await Promise.all(subcollections.map(function(name) {
+                return backupCollection(memberDoc.ref.collection(name));
+            }));
+            var entry = { id: memberDoc.id, data: backupSerialize(memberDoc.data()) };
+            subcollections.forEach(function(name, idx) {
+                entry[name] = results[idx];
+                counts[name] += results[idx].length;
+            });
+            members.push(entry);
+            counts.members++;
+        }
+
+        showExportStatus('Backing up settings and logs...');
+        var settings = await backupCollection(db.collection('settings'));
+        var activityLog = await backupCollection(db.collection('activityLog'));
+        var analytics = await backupCollection(db.collection('analyticsSnapshots'));
+
+        var backup = {
+            app: 'SAVEMORE',
+            exportedAt: new Date().toISOString(),
+            exportedBy: (currentAdminUser && currentAdminUser.email) || 'unknown',
+            counts: counts,
+            members: members,
+            settings: settings,
+            activityLog: activityLog,
+            analyticsSnapshots: analytics
+        };
+
+        var blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = 'SAVEMORE_FullBackup_' + new Date().toISOString().slice(0, 10) + '.json';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        logActivity('Full backup downloaded', counts.members + ' members, ' + counts.transactions + ' transactions');
+        showExportStatus('✓ Full backup downloaded (' + counts.members + ' members, ' + counts.transactions + ' transactions). Store the file somewhere safe.');
+    } catch (error) {
+        alert('Failed to create backup: ' + error.message);
     }
 }
 

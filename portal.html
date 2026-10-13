@@ -640,7 +640,7 @@ function doSignup() {
             });
         })
         .then(function() {
-            return db.collection('memberIdLookup').doc(memberId).set({ email: email });
+            return db.collection('memberIdLookup').doc(memberId).set({ email: email, maskedName: maskName(name) });
         })
         .then(function() {
             notifyAdminNewMember(memberId, name, phone, email, product);
@@ -1146,6 +1146,12 @@ function loadSellRequests(uid) {
 }
 
 // ---- MEMBER-TO-MEMBER MORE TRANSFERS ----
+function maskName(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
+    if (!parts.length) return '';
+    return parts.map(function(w) { return Array.from(w)[0].toUpperCase() + '***'; }).join(' ');
+}
+
 async function requestTransfer() {
     var buyerId = (document.getElementById('transferBuyerId').value || '').trim().toUpperCase();
     var units = parseInt(document.getElementById('transferUnits').value, 10);
@@ -1176,8 +1182,9 @@ async function requestTransfer() {
             return;
         }
 
+        var buyerHint = (lookup.data() && lookup.data().maskedName) ? ' (' + lookup.data().maskedName + ')' : ' (name not available)';
         var total = units * currentMoreRefValue;
-        var ok = confirm('Offer ' + units + ' MORE to ' + buyerId + ' at the reference value of ₦' + currentMoreRefValue.toLocaleString('en-NG') + ' each (total ₦' + total.toLocaleString('en-NG') + ')?\n\nYou and the buyer arrange payment directly. SAVEMORE does not hold or move money. The transfer is complete only after SAVEMORE approves it.');
+        var ok = confirm('Offer ' + units + ' MORE to ' + buyerId + buyerHint + ' at the reference value of ₦' + currentMoreRefValue.toLocaleString('en-NG') + ' each (total ₦' + total.toLocaleString('en-NG') + ')?\n\nPlease check that the ID and name hint match the person you mean to sell to.\n\nYou and the buyer arrange payment directly. SAVEMORE does not hold or move money. The transfer is complete only after SAVEMORE approves it.');
         if (!ok) return;
 
         var pinOk = await verifyTxPin();

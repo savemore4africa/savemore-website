@@ -914,6 +914,12 @@ function assignMemberId(id) {
         });
 }
 
+function maskName(name) {
+    var parts = String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
+    if (!parts.length) return '';
+    return parts.map(function(w) { return Array.from(w)[0].toUpperCase() + '***'; }).join(' ');
+}
+
 async function backfillMemberIdLookups() {
     if (!confirm('This will create Member ID login entries for any existing member who doesn\'t have one yet (needed for older accounts to log in using their Member ID). Continue?')) {
         return;
@@ -930,11 +936,11 @@ async function backfillMemberIdLookups() {
                 skipped++;
                 continue;
             }
-            await db.collection('memberIdLookup').doc(m.memberId).set({ email: m.email });
+            await db.collection('memberIdLookup').doc(m.memberId).set({ email: m.email, maskedName: maskName(m.name) });
             fixed++;
         }
 
-        alert('Done — ' + fixed + ' member(s) can now log in with their Member ID.' + (skipped > 0 ? ' (' + skipped + ' skipped — missing Member ID or email.)' : ''));
+        alert('Done — ' + fixed + ' member(s) updated (Member ID login and masked name for transfers).' + (skipped > 0 ? ' (' + skipped + ' skipped — missing Member ID or email.)' : ''));
         logActivity('Backfilled Member ID logins', fixed + ' member(s) fixed');
     } catch (error) {
         alert('Failed to backfill: ' + error.message);

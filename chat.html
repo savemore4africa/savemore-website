@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community Chat | SAVEMORE</title>
+<meta name="description" content="Chat with other SAVEMORE savers. Share tips, ask questions and stay motivated.">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;line-height:1.5;background:#f7f9f8;color:#222}
+header{background:#075e3b;color:#fff;padding:18px 6%;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;font-size:28px;font-weight:bold;color:#ff8c00}
+.logo img{height:42px;width:42px;border-radius:50%}
+header nav a{color:#fff;text-decoration:none;padding:10px 14px;font-size:15px}
+header nav a.portal-btn{background:#ff8c00;font-weight:bold;border-radius:30px;padding:10px 18px;margin-left:8px;white-space:nowrap}
+main{max-width:760px;margin:0 auto;padding:24px 5% 40px}
+h1{color:#075e3b;font-size:28px;margin-bottom:6px}
+.sub{color:#555;margin-bottom:14px}
+.safety{background:#fff6e5;border-left:4px solid #ff8c00;padding:10px 14px;font-size:14px;border-radius:6px;margin-bottom:16px}
+.chat{background:#fff;border:1px solid #dde5e1;border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+#feed{height:55vh;min-height:320px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#f1f6f3}
+.msg{max-width:82%;padding:8px 12px;border-radius:12px;background:#fff;border:1px solid #dde5e1;word-wrap:break-word;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:#075e3b;color:#fff;border-color:#075e3b}
+.meta{font-size:12px;color:#6b7b73;margin-bottom:2px;display:flex;gap:8px;align-items:center}
+.msg.me .meta{color:#cfe8dc}
+.meta button{background:none;border:0;color:inherit;font-size:12px;text-decoration:underline;cursor:pointer;opacity:.7}
+.empty{margin:auto;color:#6b7b73;text-align:center;font-size:14px}
+form{display:flex;gap:8px;padding:12px;border-top:1px solid #dde5e1;background:#fff}
+input{font:inherit;padding:11px 12px;border:1px solid #c5d2cb;border-radius:10px;min-width:0}
+input:focus,button:focus-visible{outline:3px solid #ff8c0066;border-color:#ff8c00}
+#text{flex:1}
+.send{background:#ff8c00;color:#fff;border:0;border-radius:10px;padding:0 20px;font-weight:bold;font-size:15px;cursor:pointer}
+.send:disabled{opacity:.5;cursor:not-allowed}
+#join{padding:20px;text-align:center}
+#join p{margin-bottom:10px;color:#444}
+#status{font-size:13px;color:#b00020;padding:0 14px 10px;min-height:20px;background:#fff}
+.rules{margin-top:16px;font-size:14px;color:#555}
+.rules li{margin-left:18px}
+footer{background:#075e3b;color:#fff;text-align:center;padding:24px 6%;font-size:14px}
+@media(max-width:600px){.msg{max-width:92%}header nav a{padding:8px 10px}}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">
+<img src="data:image/jpeg;base64,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" width="42" height="42" alt="SAVEMORE logo" alt="SAVEMORE logo">
+SAVEMORE
+</div>
+<nav aria-label="Main"><a href="index.html">Home</a><a href="education.html">Education</a><a class="portal-btn" href="portal.html">Member Portal</a></nav>
+</header>
+
+<main>
+<h1>SAVEMORE Community Chat</h1>
+<p class="sub">Share savings tips, ask questions and encourage one another.</p>
+<div class="safety"><strong>Stay safe:</strong> never share your PIN, password, BVN, card or account numbers here. SAVEMORE staff will never ask for them in this chat.</div>
+
+<div class="chat">
+<div id="feed" aria-live="polite"><p class="empty" id="empty">Connecting…</p></div>
+<div id="status" role="alert"></div>
+
+<div id="join" hidden>
+<p>Chat is open to SAVEMORE members. Sign in to the Member Portal, then come back to join the conversation.</p>
+<a class="send" style="display:inline-block;padding:11px 20px;text-decoration:none" href="portal.html">Go to Member Portal</a>
+</div>
+
+<form id="msgForm" hidden>
+<input id="text" maxlength="300" placeholder="Write a message…" aria-label="Message" autocomplete="off" required>
+<button class="send" id="sendBtn">Send</button>
+</form>
+</div>
+
+<ul class="rules">
+<li>Be respectful and kind. No insults, hate or harassment.</li>
+<li>No links, phone numbers, ads or requests for money.</li>
+<li>Everyone can read the chat; SAVEMORE members can post.</li>
+<li>Use "report" on any message that breaks these rules.</li>
+<li>This chat is for community support, not financial advice.</li>
+</ul>
+</main>
+
+<footer>
+<p>© 2026 SAVEMORE. All Rights Reserved.</p>
+<p>Saving Today, Building Tomorrow.</p>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+// Same Firebase project as portal.html, so members stay signed in here.
+const firebaseConfig = {
+  apiKey: "AIzaSyBj8opxzN423qkwPGy5IhhxWHBPAZlwOJo",
+  authDomain: "savemore-portal.firebaseapp.com",
+  projectId: "savemore-portal",
+  storageBucket: "savemore-portal.firebasestorage.app",
+  messagingSenderId: "32261102803",
+  appId: "1:32261102803:web:82ad3eaf3eb3998621c826"
+};
+
+const $ = id => document.getElementById(id);
+const feed=$('feed'), status=$('status'), empty=$('empty');
+const LIMIT=100, COOLDOWN=4000;
+let me=null, nick='', lastSent=0, db=null;
+const nodes={};
+
+function say(t){status.textContent=t||''}
+
+// Blocks links, emails and long digit strings (phone/account numbers)
+function problem(t){
+  if(/https?:|www\.|\w+\.(com|ng|net|org|io|co)\b|@\w+\.\w+/i.test(t)) return 'Links and emails are not allowed.';
+  if(/(\d[\s\-.]*){8,}/.test(t)) return 'Please do not share phone or account numbers.';
+  return '';
+}
+
+function render(id,m){
+  empty.hidden=true;
+  const mine=me&&m.uid===me;
+  const near=feed.scrollHeight-feed.scrollTop-feed.clientHeight<80;
+  const d=document.createElement('div');
+  d.className='msg'+(mine?' me':'');
+  const meta=document.createElement('div');meta.className='meta';
+  const who=document.createElement('strong');who.textContent=m.name;
+  const tm=document.createElement('span');
+  const t=m.createdAt&&m.createdAt.toDate?m.createdAt.toDate():new Date();
+  tm.textContent=t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  meta.append(who,tm);
+  if(me&&!mine){
+    const r=document.createElement('button');r.type='button';r.textContent='report';
+    r.onclick=()=>{r.disabled=true;db.collection('chatReports').add({msgId:id,by:me,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>{r.textContent='reported'}).catch(()=>{r.disabled=false})};
+    meta.append(r);
+  }
+  const body=document.createElement('div');body.textContent=m.text;
+  d.append(meta,body);feed.append(d);nodes[id]=d;
+  if(near||mine) feed.scrollTop=feed.scrollHeight;
+}
+
+function listen(){
+  db.collection('chatMessages').orderBy('createdAt','desc').limit(LIMIT).onSnapshot(snap=>{
+    const changes=snap.docChanges();
+    // first load arrives newest-first; show oldest at top
+    const added=changes.filter(c=>c.type==='added').reverse();
+    added.forEach(c=>{ if(!nodes[c.doc.id]) render(c.doc.id,c.doc.data()) });
+    changes.filter(c=>c.type==='removed').forEach(c=>{const n=nodes[c.doc.id];if(n){n.remove();delete nodes[c.doc.id]}});
+    if(!Object.keys(nodes).length){empty.hidden=false;empty.textContent='No messages yet. Be the first to say hello!'}
+  },()=>{empty.hidden=false;empty.textContent='Could not load the chat. Please try again later.'});
+}
+
+function start(){
+  if(firebaseConfig.apiKey.startsWith('PASTE')){
+    empty.textContent='Chat is being set up. Please check back soon.';return;
+  }
+  firebase.initializeApp(firebaseConfig);
+  db=firebase.firestore();
+  listen();
+  firebase.auth().onAuthStateChanged(async u=>{
+    if(!u){me=null;$('join').hidden=false;$('msgForm').hidden=true;return}
+    try{
+      const m=await db.collection('members').doc(u.uid).get();
+      if(!m.exists){$('join').hidden=false;$('msgForm').hidden=true;return}
+      me=u.uid;
+      nick=String(m.data().name||'').split(' ')[0];
+      if(!nick){say('Your profile has no name yet. Please contact SAVEMORE.');return}
+      $('join').hidden=true;$('msgForm').hidden=false;
+    }catch(e){say('Could not check your membership. Please refresh.')}
+  });
+}
+
+$('msgForm').onsubmit=e=>{
+  e.preventDefault();
+  if(!db||!me) return say('Please sign in to chat.');
+  const t=$('text').value.trim();
+  if(!t) return;
+  const p=problem(t); if(p) return say(p);
+  if(COOLDOWN-(Date.now()-lastSent)>0) return say('Please wait a few seconds before sending again.');
+  $('sendBtn').disabled=true;
+  db.collection('chatMessages').add({uid:me,name:nick,text:t,createdAt:firebase.firestore.FieldValue.serverTimestamp()})
+    .then(()=>{lastSent=Date.now();$('text').value='';say('')})
+    .catch(()=>say('Message could not be sent.'))
+    .finally(()=>{$('sendBtn').disabled=false;$('text').focus()});
+};
+
+start();
+</script>
+</body>
+</html>

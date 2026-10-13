@@ -412,16 +412,17 @@ PIN (in addition to your password) every time you log in.
 <div class="member-card" id="sectionMore" style="border-left-color:#ff8c00;">
 <h3 style="color:#ff8c00;">MORE Reference Value</h3>
 <p style="font-size:13px; color:#777; margin-bottom:12px;">
-Set using SAVEMORE's formula: ₦5n (where n = total paid applicants). This value is shown to members on their dashboard.
+Enter the number of paid applicants (n). The reference value (₦5 × n) and the current registration fee are worked out automatically and shown on the homepage and member dashboards.
 </p>
 <div class="field-row">
 <div>
-<label>Reference Value per MORE (₦)</label>
-<input type="number" id="moreRefValue" placeholder="e.g. 195">
+<label>Reference Value per MORE (₦) — automatic</label>
+<input type="number" id="moreRefValue" placeholder="₦5 × n" readonly>
 </div>
 <div>
-<label>Total Paid Applicants (n) — optional, for your reference</label>
-<input type="number" id="moreApplicantCount" placeholder="e.g. 39">
+<label>Total Paid Applicants (n)</label>
+<input type="number" id="moreApplicantCount" placeholder="e.g. 43" min="0" step="1" oninput="previewMoreValue()">
+<div id="moreFeePreview" style="font-size:13px; color:#555; margin-top:6px;"></div>
 </div>
 </div>
 <button onclick="saveMoreSettings()">Save MORE Value</button>
@@ -855,6 +856,7 @@ function loadMoreSettings() {
             var data = doc.data();
             document.getElementById('moreRefValue').value = data.referenceValuePerUnit || '';
             document.getElementById('moreApplicantCount').value = data.applicantCount || '';
+            previewMoreValue();
         }
     }).catch(function(error) {
         console.error('Unable to load MORE settings:', error);
@@ -1067,19 +1069,33 @@ function updateMoreCirculationDisplay(totalAllotted) {
     document.getElementById('moreRemaining').textContent = Math.max(0, 200 - totalAllotted);
 }
 
-function saveMoreSettings() {
-    var refValue = parseFloat(document.getElementById('moreRefValue').value) || 0;
-    var applicantCount = parseFloat(document.getElementById('moreApplicantCount').value) || 0;
+function previewMoreValue() {
+    var n = parseInt(document.getElementById('moreApplicantCount').value, 10);
+    var valueEl = document.getElementById('moreRefValue');
+    var prev = document.getElementById('moreFeePreview');
+    if (isNaN(n) || n < 0) { valueEl.value = ''; if (prev) prev.textContent = ''; return; }
+    valueEl.value = 5 * n;
+    var tier = Math.floor(n / 40) + 1;
+    if (prev) prev.textContent = 'Current fee: ₦' + (1000 * tier).toLocaleString('en-NG') +
+        ' (members ' + ((tier - 1) * 40 + 1) + '–' + (tier * 40) + '), ' + (tier * 40 - n) + ' left at this fee';
+}
 
+function saveMoreSettings() {
+    var n = parseInt(document.getElementById('moreApplicantCount').value, 10);
+    if (isNaN(n) || n < 0) { alert('Please enter the number of paid applicants (n).'); return; }
+    var refValue = 5 * n;
+
+    // merge:true keeps other fields in this record (e.g. totalAllotted) intact
     db.collection('settings').doc('more').set({
         referenceValuePerUnit: refValue,
-        applicantCount: applicantCount,
+        applicantCount: n,
+        currentFee: 1000 * (Math.floor(n / 40) + 1),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function() {
+    }, { merge: true }).then(function() {
         var statusEl = document.getElementById('moreSaveStatus');
         statusEl.style.display = 'inline';
         setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
-        logActivity('MORE reference value updated', '₦' + refValue.toLocaleString('en-NG') + ' per unit (n=' + applicantCount + ')');
+        logActivity('MORE reference value updated', '₦' + refValue.toLocaleString('en-NG') + ' per unit (n=' + n + ')');
     }).catch(function(error) {
         alert('Failed to save MORE settings: ' + error.message);
     });

@@ -23,6 +23,7 @@ h1{color:#075e3b;font-size:28px;margin-bottom:6px}
 .msg.me{align-self:flex-end;background:#075e3b;color:#fff;border-color:#075e3b}
 .meta{font-size:12px;color:#6b7b73;margin-bottom:2px;display:flex;gap:8px;align-items:center}
 .msg.me .meta{color:#cfe8dc}
+.meta button.del{color:#b00020;opacity:1}
 .meta button{background:none;border:0;color:inherit;font-size:12px;text-decoration:underline;cursor:pointer;opacity:.7}
 .empty{margin:auto;color:#6b7b73;text-align:center;font-size:14px}
 form{display:flex;gap:8px;padding:12px;border-top:1px solid #dde5e1;background:#fff}
@@ -100,7 +101,7 @@ const firebaseConfig = {
 const $ = id => document.getElementById(id);
 const feed=$('feed'), status=$('status'), empty=$('empty');
 const LIMIT=100, COOLDOWN=4000;
-let me=null, nick='', lastSent=0, db=null;
+let me=null, nick='', lastSent=0, db=null, isAdmin=false;
 const nodes={};
 
 function say(t){status.textContent=t||''}
@@ -110,6 +111,14 @@ function problem(t){
   if(/https?:|www\.|\w+\.(com|ng|net|org|io|co)\b|@\w+\.\w+/i.test(t)) return 'Links and emails are not allowed.';
   if(/(\d[\s\-.]*){8,}/.test(t)) return 'Please do not share phone or account numbers.';
   return '';
+}
+
+function addDelete(id){
+  const n=nodes[id];
+  if(!isAdmin||!n||n.querySelector('.del'))return;
+  const b=document.createElement('button');b.type='button';b.className='del';b.textContent='delete';
+  b.onclick=()=>{if(confirm('Delete this message for everyone?'))db.collection('chatMessages').doc(id).delete().catch(()=>say('Could not delete.'))};
+  n.querySelector('.meta').append(b);
 }
 
 function render(id,m){
@@ -130,7 +139,7 @@ function render(id,m){
     meta.append(r);
   }
   const body=document.createElement('div');body.textContent=m.text;
-  d.append(meta,body);feed.append(d);nodes[id]=d;
+  d.append(meta,body);feed.append(d);nodes[id]=d;addDelete(id);
   if(near||mine) feed.scrollTop=feed.scrollHeight;
 }
 
@@ -155,6 +164,15 @@ function start(){
   firebase.auth().onAuthStateChanged(async u=>{
     if(!u){me=null;$('join').hidden=false;$('msgForm').hidden=true;return}
     try{
+      const a=await db.collection('admins').doc(u.uid).get();
+      isAdmin=a.exists;
+      if(isAdmin){
+        me=u.uid;nick='SAVEMORE Team';
+        $('join').hidden=true;$('msgForm').hidden=false;
+        say('You are chatting as SAVEMORE Team (admin). You can delete any message.');
+        Object.keys(nodes).forEach(id=>addDelete(id));
+        return;
+      }
       const m=await db.collection('members').doc(u.uid).get();
       if(!m.exists){$('join').hidden=false;$('msgForm').hidden=true;return}
       me=u.uid;

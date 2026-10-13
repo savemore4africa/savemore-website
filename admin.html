@@ -374,6 +374,7 @@ PIN (in addition to your password) every time you log in.
 <div class="menu-group">Go to</div>
 <button type="button" class="menu-item" role="menuitem" onclick="adminMenuGo('sectionMembers')">Members</button>
 <button type="button" class="menu-item" role="menuitem" onclick="adminMenuGo('sectionMore')">MORE Reference Value</button>
+<button type="button" class="menu-item" role="menuitem" onclick="adminMenuGo('sectionTransfers')">MORE Transfers</button>
 <button type="button" class="menu-item" role="menuitem" onclick="adminMenuGo('sectionBalances')">Total Balances</button>
 <button type="button" class="menu-item" role="menuitem" onclick="adminMenuGo('sectionUsdt')">USDT Selling Price</button>
 <button type="button" class="menu-item" role="menuitem" onclick="adminMenuGo('sectionAnalytics')">Growth Analytics</button>
@@ -440,6 +441,15 @@ Set using SAVEMORE's formula: ₦5n (where n = total paid applicants). This valu
 <div style="font-size:20px; font-weight:bold; color:#ff8c00;" id="moreRemaining">—</div>
 </div>
 </div>
+</div>
+
+<div class="member-card" id="sectionTransfers" style="border-left-color:#0b8f5b;">
+<h3 style="color:#0b8f5b;">MORE Transfers (<span id="transfersPendingCount">0</span> awaiting approval)</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">
+Member-to-member MORE sales. Approving moves the units from the seller to the buyer. Confirm that the buyer has paid the seller before approving.
+</p>
+<div id="moreTransfersList">Loading...</div>
+<button class="secondary" onclick="loadMoreTransfers()" style="margin-top:10px;">Refresh</button>
 </div>
 
 <div class="member-card" id="sectionBalances" style="border-left-color:#075e3b;">
@@ -759,10 +769,12 @@ function proceedToAdminPanel() {
             loadMembers();
             loadMoreSettings();
             loadUsdtPrice();
+            loadMoreTransfers();
         }).catch(function() {
             loadMembers();
             loadMoreSettings();
             loadUsdtPrice();
+            loadMoreTransfers();
         });
     });
 }
@@ -1649,6 +1661,7 @@ async function exportFullBackup() {
         var settings = await backupCollection(db.collection('settings'));
         var activityLog = await backupCollection(db.collection('activityLog'));
         var analytics = await backupCollection(db.collection('analyticsSnapshots'));
+        var transfers = await backupCollection(db.collection('moreTransfers'));
 
         var backup = {
             app: 'SAVEMORE',
@@ -1658,7 +1671,8 @@ async function exportFullBackup() {
             members: members,
             settings: settings,
             activityLog: activityLog,
-            analyticsSnapshots: analytics
+            analyticsSnapshots: analytics,
+            moreTransfers: transfers
         };
 
         var blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -2076,6 +2090,114 @@ function rejectSellRequest(memberId, requestId) {
         loadSellRequestsAdmin(memberId);
     }).catch(function(error) {
         alert('Failed to reject request: ' + error.message);
+    });
+}
+
+// ---- MORE TRANSFERS (ADMIN) ----
+function loadMoreTransfers() {
+    var container = document.getElementById('moreTransfersList');
+    if (!container) return;
+    container.innerHTML = 'Loading...';
+
+    db.collection('moreTransfers').orderBy('createdAt', 'desc').limit(50).get().then(function(snap) {
+        var pending = 0;
+        if (snap.empty) {
+            container.innerHTML = '<p style="color:#777; font-size:13px;">No transfers yet.</p>';
+            document.getElementById('transfersPendingCount').textContent = '0';
+            return;
+        }
+        var html = '<div style="overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:13px;">' +
+            '<tr style="text-align:left; border-bottom:1px solid #ddd;"><th style="padding:6px;">Seller</th><th style="padding:6px;">Buyer</th><th style="padding:6px;">Units</th><th style="padding:6px;">Value</th><th style="padding:6px;">Status</th><th></th></tr>';
+        snap.forEach(function(d) {
+            var t = d.data();
+            var action = '';
+            if (t.status === 'Awaiting SAVEMORE') {
+                pending++;
+                action = '<button style="padding:4px 10px; font-size:12px;" onclick="approveTransfer(\'' + d.id + '\')">Approve</button> ' +
+                         '<button style="padding:4px 10px; font-size:12px; background:#999;" onclick="rejectTransfer(\'' + d.id + '\')">Reject</button>';
+            }
+            html += '<tr style="border-bottom:1px solid #eee;">' +
+                '<td style="padding:6px;">' + escapeHtml(t.sellerName || '') + '<br><span style="color:#777;">' + escapeHtml(t.sellerMemberId || '') + '</span></td>' +
+                '<td style="padding:6px;">' + escapeHtml(t.buyerName || '—') + '<br><span style="color:#777;">' + escapeHtml(t.buyerMemberId || '') + '</span></td>' +
+                '<td style="padding:6px;">' + (t.units || 0) + '</td>' +
+                '<td style="padding:6px;">₦' + (t.totalAtReference || 0).toLocaleString('en-NG') + '</td>' +
+                '<td style="padding:6px;">' + escapeHtml(t.status || '') + '</td>' +
+                '<td style="padding:6px; white-space:nowrap;">' + action + '</td></tr>';
+        });
+        html += '</table></div>';
+        container.innerHTML = html;
+        document.getElementById('transfersPendingCount').textContent = String(pending);
+    }).catch(function(error) {
+        container.innerHTML = '<p style="color:#b3261e;">Unable to load transfers: ' + escapeHtml(error.message) + '</p>';
+    });
+}
+
+async function approveTransfer(id) {
+    var tRef = db.collection('moreTransfers').doc(id);
+    var preview;
+    try {
+        preview = (await tRef.get()).data();
+    } catch (e) {
+        alert('Could not read this transfer: ' + e.message);
+        return;
+    }
+    if (!preview) { alert('Transfer not found.'); return; }
+
+    if (!confirm('Approve this transfer?\n\n' + preview.units + ' MORE from ' + preview.sellerName + ' (' + preview.sellerMemberId + ') to ' + preview.buyerName + ' (' + preview.buyerMemberId + ').\nValue at reference: ₦' + (preview.totalAtReference || 0).toLocaleString('en-NG') + '\n\nOnly approve after confirming the buyer has paid the seller.')) {
+        return;
+    }
+
+    try {
+        await db.runTransaction(async function(tx) {
+            var tSnap = await tx.get(tRef);
+            if (!tSnap.exists || tSnap.data().status !== 'Awaiting SAVEMORE') {
+                throw new Error('This transfer is no longer awaiting approval.');
+            }
+            var t = tSnap.data();
+            if (!t.buyerUid || !t.sellerUid || t.buyerUid === t.sellerUid) {
+                throw new Error('Seller and buyer details are not valid.');
+            }
+            var sRef = db.collection('members').doc(t.sellerUid);
+            var bRef = db.collection('members').doc(t.buyerUid);
+            var sSnap = await tx.get(sRef);
+            var bSnap = await tx.get(bRef);
+            if (!sSnap.exists || !bSnap.exists) { throw new Error('A member record was not found.'); }
+            if (bSnap.data().memberId !== t.buyerMemberId) { throw new Error('Buyer Member ID does not match.'); }
+            if (sSnap.data().memberId !== t.sellerMemberId) { throw new Error('Seller Member ID does not match.'); }
+            if ((sSnap.data().shares || 0) < t.units) { throw new Error('The seller no longer holds enough MORE.'); }
+
+            tx.update(sRef, { shares: firebase.firestore.FieldValue.increment(-t.units) });
+            tx.update(bRef, { shares: firebase.firestore.FieldValue.increment(t.units) });
+            tx.update(tRef, {
+                status: 'Completed',
+                resolvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                resolvedBy: (currentAdminUser && currentAdminUser.email) || 'admin'
+            });
+        });
+
+        logActivity('MORE transfer approved', preview.sellerName + ' to ' + preview.buyerName + ' — ' + preview.units + ' MORE');
+        var cs = memberCache[preview.sellerUid], cb = memberCache[preview.buyerUid];
+        if (cs) notifyMemberAccountUpdate(cs.email, cs.name);
+        if (cb) notifyMemberAccountUpdate(cb.email, cb.name);
+        loadMoreTransfers();
+        loadMembers();
+    } catch (error) {
+        alert('Could not approve transfer: ' + error.message);
+        loadMoreTransfers();
+    }
+}
+
+function rejectTransfer(id) {
+    if (!confirm('Reject this transfer? No MORE will be moved.')) return;
+    db.collection('moreTransfers').doc(id).update({
+        status: 'Rejected',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        resolvedBy: (currentAdminUser && currentAdminUser.email) || 'admin'
+    }).then(function() {
+        logActivity('MORE transfer rejected', id);
+        loadMoreTransfers();
+    }).catch(function(error) {
+        alert('Could not reject transfer: ' + error.message);
     });
 }
 

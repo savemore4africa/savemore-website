@@ -455,6 +455,18 @@ The reference price is determined by SAVEMORE's prevailing MORE value formula at
 </div>
 
 <div id="sellRequestsList" style="margin-top:14px;"></div>
+
+<div style="margin-top:16px; padding:16px; background:#eef7f2; border-radius:10px;">
+<label for="transferBuyerId" style="display:block; font-weight:bold; color:#075e3b; margin-bottom:6px; font-size:14px;">Sell MORE to Another Member</label>
+<input type="text" id="transferBuyerId" placeholder="Buyer's Member ID (e.g. SM-2026-123456)" autocapitalize="characters" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
+<input type="number" id="transferUnits" placeholder="Number of units" min="1" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
+<button onclick="requestTransfer()">Send Offer</button>
+<p style="font-size:12px; color:#777; margin-top:8px;">
+Transfers are recorded at SAVEMORE's current reference value, in whole units only. The buyer and seller arrange payment directly. SAVEMORE does not hold or move money, and a transfer is complete only after SAVEMORE approves it. A buyer is not guaranteed.
+</p>
+</div>
+
+<div id="transfersList" style="margin-top:14px;"></div>
 <p style="font-size:12px; color:#888; margin-top:8px;">
 MORE reference value is calculated by SAVEMORE using its participation formula and updated
 periodically. No dividend has been declared at this time.
@@ -509,6 +521,7 @@ if (typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY.indexOf('YOUR_') !== 0)
 }
 
 var currentMemberName = '';
+var currentMemberId = '';
 var currentMemberData = {};
 var currentTransactions = {};
 var sensitiveInfoVisible = false;
@@ -1132,6 +1145,165 @@ function loadSellRequests(uid) {
         });
 }
 
+// ---- MEMBER-TO-MEMBER MORE TRANSFERS ----
+async function requestTransfer() {
+    var buyerId = (document.getElementById('transferBuyerId').value || '').trim().toUpperCase();
+    var units = parseInt(document.getElementById('transferUnits').value, 10);
+
+    if (!buyerId) { alert("Please enter the buyer's Member ID."); return; }
+    if (!units || units <= 0) { alert('Please enter a valid number of whole units.'); return; }
+    if (buyerId === currentMemberId) { alert('You cannot sell MORE to yourself.'); return; }
+    if (units > currentSharesHeld) {
+        alert('You cannot offer more MORE than you currently hold (' + currentSharesHeld + ').');
+        return;
+    }
+
+    var uid = auth.currentUser.uid;
+
+    try {
+        var lookup = await db.collection('memberIdLookup').doc(buyerId).get();
+        if (!lookup.exists) { alert('That Member ID was not found. Please check it and try again.'); return; }
+
+        // Do not let a member offer the same units twice
+        var openSnap = await db.collection('moreTransfers').where('sellerUid', '==', uid).get();
+        var alreadyOffered = 0;
+        openSnap.forEach(function(d) {
+            var t = d.data();
+            if (t.status === 'Awaiting Buyer' || t.status === 'Awaiting SAVEMORE') { alreadyOffered += (t.units || 0); }
+        });
+        if (units + alreadyOffered > currentSharesHeld) {
+            alert('You already have ' + alreadyOffered + ' MORE in open offers. You cannot offer more than you hold.');
+            return;
+        }
+
+        var total = units * currentMoreRefValue;
+        var ok = confirm('Offer ' + units + ' MORE to ' + buyerId + ' at the reference value of ₦' + currentMoreRefValue.toLocaleString('en-NG') + ' each (total ₦' + total.toLocaleString('en-NG') + ')?\n\nYou and the buyer arrange payment directly. SAVEMORE does not hold or move money. The transfer is complete only after SAVEMORE approves it.');
+        if (!ok) return;
+
+        var pinOk = await verifyTxPin();
+        if (!pinOk) return;
+
+        await db.collection('moreTransfers').add({
+            sellerUid: uid,
+            sellerMemberId: currentMemberId,
+            sellerName: currentMemberName,
+            buyerMemberId: buyerId,
+            units: units,
+            referenceValueAtRequest: currentMoreRefValue,
+            totalAtReference: total,
+            status: 'Awaiting Buyer',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        document.getElementById('transferBuyerId').value = '';
+        document.getElementById('transferUnits').value = '';
+        loadTransfers(uid);
+        alert('Your offer has been sent. Please tell the buyer to open their Member Portal and accept it.');
+    } catch (error) {
+        alert('Failed to send offer: ' + error.message);
+    }
+}
+
+function loadTransfers(uid) {
+    var container = document.getElementById('transfersList');
+    if (!container) return;
+    container.innerHTML = 'Loading transfers...';
+
+    var sellerQ = db.collection('moreTransfers').where('sellerUid', '==', uid).get();
+    var buyerQ = currentMemberId
+        ? db.collection('moreTransfers').where('buyerMemberId', '==', currentMemberId).get()
+        : Promise.resolve({ docs: [] });
+
+    Promise.all([sellerQ, buyerQ]).then(function(results) {
+        var rows = [];
+        results[0].docs.forEach(function(d) { rows.push({ id: d.id, role: 'seller', t: d.data() }); });
+        results[1].docs.forEach(function(d) { rows.push({ id: d.id, role: 'buyer', t: d.data() }); });
+        rows.sort(function(a, b) {
+            var x = a.t.createdAt && a.t.createdAt.toMillis ? a.t.createdAt.toMillis() : 0;
+            var y = b.t.createdAt && b.t.createdAt.toMillis ? b.t.createdAt.toMillis() : 0;
+            return y - x;
+        });
+        if (!rows.length) { container.innerHTML = ''; return; }
+
+        var html = '<p style="font-weight:bold; color:#075e3b; font-size:14px; margin-bottom:6px;">MORE Transfers</p>';
+        html += '<table style="width:100%; border-collapse:collapse; font-size:13px;">';
+        html += '<tr style="text-align:left; border-bottom:1px solid #ddd;"><th style="padding:6px;">With</th><th style="padding:6px;">Units</th><th style="padding:6px;">Value</th><th style="padding:6px;">Status</th><th></th></tr>';
+        rows.forEach(function(r) {
+            var t = r.t;
+            var other = (r.role === 'seller')
+                ? 'Selling to ' + escapeHtml(t.buyerMemberId || '')
+                : 'Buying from ' + escapeHtml(t.sellerName || '') + ' (' + escapeHtml(t.sellerMemberId || '') + ')';
+            var action = '';
+            if (r.role === 'buyer' && t.status === 'Awaiting Buyer') {
+                action = '<button style="padding:4px 10px; font-size:12px;" onclick="respondTransfer(\'' + r.id + '\', true)">Accept</button> ' +
+                         '<button style="padding:4px 10px; font-size:12px; background:#999;" onclick="respondTransfer(\'' + r.id + '\', false)">Decline</button>';
+            } else if (r.role === 'seller' && (t.status === 'Awaiting Buyer' || t.status === 'Awaiting SAVEMORE')) {
+                action = '<button style="padding:4px 10px; font-size:12px; background:#999;" onclick="cancelTransfer(\'' + r.id + '\')">Cancel</button>';
+            }
+            html += '<tr style="border-bottom:1px solid #eee;">' +
+                '<td style="padding:6px;">' + other + '</td>' +
+                '<td style="padding:6px;">' + (t.units || 0) + '</td>' +
+                '<td style="padding:6px;">₦' + (t.totalAtReference || 0).toLocaleString('en-NG') + '</td>' +
+                '<td style="padding:6px;">' + escapeHtml(t.status || '') + '</td>' +
+                '<td style="padding:6px;">' + action + '</td></tr>';
+        });
+        html += '</table>';
+        container.innerHTML = html;
+    }).catch(function() { container.innerHTML = ''; });
+}
+
+async function respondTransfer(id, accept) {
+    var uid = auth.currentUser.uid;
+    try {
+        var ref = db.collection('moreTransfers').doc(id);
+        var snap = await ref.get();
+        if (!snap.exists) { alert('This offer was not found.'); return; }
+        var t = snap.data();
+        if (t.status !== 'Awaiting Buyer') { alert('This offer is no longer open.'); loadTransfers(uid); return; }
+
+        if (!accept) {
+            await ref.update({ status: 'Declined', respondedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            loadTransfers(uid);
+            return;
+        }
+
+        var ok = confirm('You are agreeing to buy ' + t.units + ' MORE from ' + t.sellerName + ' (' + t.sellerMemberId + ') at the reference value, total ₦' + (t.totalAtReference || 0).toLocaleString('en-NG') + '.\n\nPay the seller directly. SAVEMORE does not hold or move money. The transfer is complete only after SAVEMORE approves it. Continue?');
+        if (!ok) return;
+
+        var pinOk = await verifyTxPin();
+        if (!pinOk) return;
+
+        await ref.update({
+            status: 'Awaiting SAVEMORE',
+            buyerUid: uid,
+            buyerName: currentMemberName,
+            respondedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        loadTransfers(uid);
+
+        notifyAdminEvent(
+            '🔁 MORE Transfer Ready for Approval',
+            'Seller: ' + t.sellerName + ' (' + t.sellerMemberId + ')',
+            'Buyer: ' + currentMemberName + ' (' + currentMemberId + ')',
+            'Units: ' + t.units + ' MORE',
+            'Value at reference: ₦' + (t.totalAtReference || 0).toLocaleString('en-NG')
+        );
+        alert('Thank you. Please pay the seller directly. SAVEMORE will review and complete the transfer.');
+    } catch (error) {
+        alert('Could not update this offer: ' + error.message);
+    }
+}
+
+function cancelTransfer(id) {
+    if (!confirm('Cancel this offer?')) return;
+    var uid = auth.currentUser.uid;
+    db.collection('moreTransfers').doc(id).update({
+        status: 'Cancelled',
+        resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() { loadTransfers(uid); })
+      .catch(function(error) { alert('Could not cancel: ' + error.message); });
+}
+
 // ---- DASHBOARD ----
 function loadDashboard(user) {
     setTimeout(function() { loadPdfLib(null, function() {}); }, 4000);
@@ -1142,6 +1314,7 @@ function loadDashboard(user) {
         if (doc.exists) {
             var data = doc.data();
             currentMemberName = data.name || 'Member';
+            currentMemberId = data.memberId || '';
             currentMemberData = data;
             document.getElementById('dashMemberId').textContent = data.memberId || '—';
             document.getElementById('dashName').textContent = data.name || '—';
@@ -1204,6 +1377,7 @@ function loadDashboard(user) {
             loadUsdtPriceDisplay();
             loadMoreValue(shares);
             loadSellRequests(user.uid);
+            loadTransfers(user.uid);
             loadWithdrawalRequests(user.uid);
             loadPaymentClaims(user.uid);
 

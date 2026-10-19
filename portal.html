@@ -240,6 +240,132 @@ button.secondary {
 #dashboardBox .acc-body{padding:12px 4px 6px}
 #dashboardBox .acc-body[hidden]{display:none}
 
+/* ---- Balance card ---- */
+.bal-head{
+    background:linear-gradient(135deg, #0a7a4f 0%, #075e3b 100%);
+    border-radius:14px;
+    padding:16px 18px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:10px;
+}
+.bal-avatar{
+    width:40px; height:40px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.15);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+}
+.bal-avatar svg{
+    width:20px; height:20px;
+    fill:none;
+    stroke:#fff;
+    stroke-width:1.7;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+.bal-eyebrow{
+    font-size:11px;
+    letter-spacing:1px;
+    color:#ffcf99;
+    font-weight:bold;
+    margin-bottom:3px;
+}
+.bal-name{
+    font-size:16px;
+    font-weight:bold;
+    color:#fff;
+}
+.bal-body{
+    background:#fff;
+    border:1px solid #eee;
+    border-radius:14px;
+    padding:20px 18px 16px;
+    position:relative;
+    margin-bottom:16px;
+}
+.bal-eye{
+    position:absolute;
+    top:14px;
+    right:14px;
+    background:none;
+    border:none;
+    padding:4px;
+    cursor:pointer;
+}
+.bal-eye svg{
+    width:18px; height:18px;
+    fill:none;
+    stroke:#999;
+    stroke-width:1.7;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+.bal-stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px 10px;
+    transition:filter 0.15s ease;
+}
+.bal-stats.blurred{ filter:blur(7px); }
+.bal-stat span{
+    display:block;
+    font-size:12px;
+    color:#777;
+    margin-bottom:3px;
+}
+.bal-stat strong{
+    font-size:17px;
+    color:#075e3b;
+}
+.bal-stat-wide{ grid-column:span 2; }
+
+/* ---- Circular quick actions ---- */
+.qa-row{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:6px;
+    background:#fff;
+    border:1px solid #eee;
+    border-radius:14px;
+    padding:16px 4px;
+    margin-bottom:20px;
+}
+a.qa-item, a.qa-item:visited{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    text-decoration:none;
+    color:#222;
+    font-size:11px;
+    font-weight:600;
+    text-align:center;
+}
+.qa-circle{
+    width:46px; height:46px;
+    border-radius:50%;
+    background:#075e3b;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:background 0.15s ease;
+}
+.qa-circle svg{
+    width:20px; height:20px;
+    fill:none;
+    stroke:#fff;
+    stroke-width:1.8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+a.qa-item:hover .qa-circle, a.qa-item:focus-visible .qa-circle{
+    background:#ff8c00;
+}
+
 /* ---- Services grid panel ---- */
 .svc-panel{
     background:#075e3b;
@@ -425,16 +551,44 @@ Loading...
 <!-- DASHBOARD -->
 <div class="box hidden" id="dashboardBox">
 
-<div style="background:#075e3b; color:white; border-radius:12px; padding:22px; margin-bottom:20px;">
-<p style="font-size:12px; letter-spacing:1px; color:#ff8c00; font-weight:bold; margin-bottom:4px;">SAVEMORE MEMBER</p>
-<p style="font-size:18px; font-weight:bold; margin-bottom:16px;" id="summaryName">—</p>
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:14px;">
-<div><span style="color:rgba(255,255,255,0.7);">Total Savings</span><br><strong id="summaryTotal">₦0</strong></div>
-<div><span style="color:rgba(255,255,255,0.7);">MORE</span><br><strong id="summaryMore">0</strong></div>
-<div><span style="color:rgba(255,255,255,0.7);">100 Days Challenge</span><br><strong id="summaryChallenge">₦0</strong></div>
-<div><span style="color:rgba(255,255,255,0.7);">In-Dollar Savings</span><br><strong id="summaryDollar">0 USDT</strong></div>
-<div style="grid-column: span 2;"><span style="color:rgba(255,255,255,0.7);">Available for Withdrawal (Emergency Savings)</span><br><strong id="summaryAvailable">₦0</strong></div>
+<div class="bal-head">
+<div class="bal-avatar"><svg viewBox="0 0 24 24"><path d="M4 9.5 12 4l8 5.5V19a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1Z"></path><path d="M9.5 20v-6h5v6"></path></svg></div>
+<div>
+<p class="bal-eyebrow">SAVEMORE MEMBER</p>
+<p class="bal-name" id="summaryName">—</p>
 </div>
+</div>
+
+<div class="bal-body">
+<button type="button" class="bal-eye" id="balEyeBtn" onclick="toggleBalanceVisibility()" aria-label="Hide amounts">
+<svg viewBox="0 0 24 24"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+</button>
+<div class="bal-stats" id="balStats">
+<div class="bal-stat"><span>Total Savings</span><strong id="summaryTotal">₦0</strong></div>
+<div class="bal-stat"><span>Available for Withdrawal</span><strong id="summaryAvailable">₦0</strong></div>
+<div class="bal-stat"><span>MORE</span><strong id="summaryMore">0</strong></div>
+<div class="bal-stat"><span>100 Days Challenge</span><strong id="summaryChallenge">₦0</strong></div>
+<div class="bal-stat bal-stat-wide"><span>In-Dollar Savings</span><strong id="summaryDollar">0 USDT</strong></div>
+</div>
+</div>
+
+<div class="qa-row">
+<a href="#depositSection" class="qa-item quick-action-btn">
+<span class="qa-circle"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="13" rx="2.5"></rect><path d="M2.5 10h19"></path><circle cx="17" cy="14.2" r="1.3" fill="currentColor" stroke="none"></circle></svg></span>
+<span>Save Money</span>
+</a>
+<a href="#moreSection" class="qa-item quick-action-btn">
+<span class="qa-circle"><svg viewBox="0 0 24 24"><path d="M12 2.5 20.5 9l-8.5 12.5L3.5 9z"></path><path d="M3.5 9h17M12 2.5 8.3 9l3.7 12.5L15.7 9z"></path></svg></span>
+<span>MORE</span>
+</a>
+<a href="#withdrawSection" class="qa-item quick-action-btn">
+<span class="qa-circle"><svg viewBox="0 0 24 24"><path d="M12 3.5v13M6.5 11l5.5 5.5L17.5 11"></path><path d="M4 20.5h16"></path></svg></span>
+<span>Withdraw</span>
+</a>
+<a href="#sellBackSection" class="qa-item quick-action-btn">
+<span class="qa-circle"><svg viewBox="0 0 24 24"><path d="M4 8h13M13.5 4.5 17 8l-3.5 3.5"></path><path d="M20 16H7M10.5 12.5 7 16l3.5 3.5"></path></svg></span>
+<span>Sell Back</span>
+</a>
 </div>
 
 <div class="svc-panel" id="servicesPanel">
@@ -509,6 +663,13 @@ Loading...
 </div>
 
 <script>
+function toggleBalanceVisibility() {
+    var stats = document.getElementById('balStats');
+    var btn = document.getElementById('balEyeBtn');
+    var nowHidden = stats.classList.toggle('blurred');
+    btn.setAttribute('aria-label', nowHidden ? 'Show amounts' : 'Hide amounts');
+}
+
 function svcFilter(query) {
     var q = query.trim().toLowerCase();
     var panel = document.getElementById('servicesPanel');

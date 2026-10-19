@@ -239,6 +239,99 @@ button.secondary {
 #dashboardBox .acc-head:focus-visible{outline:3px solid #ff8c0066}
 #dashboardBox .acc-body{padding:12px 4px 6px}
 #dashboardBox .acc-body[hidden]{display:none}
+
+/* ---- Services grid panel ---- */
+.svc-panel{
+    background:#0C1A2B;
+    border-radius:16px;
+    padding:18px 16px 14px;
+    margin-bottom:25px;
+}
+.svc-head{
+    color:#fff;
+    font-size:16px;
+    font-weight:bold;
+    margin-bottom:14px;
+}
+.svc-search{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:rgba(255,255,255,0.07);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:10px;
+    padding:11px 13px;
+    margin-bottom:20px;
+}
+.svc-search svg{
+    width:17px; height:17px;
+    flex-shrink:0;
+    fill:none;
+    stroke:rgba(255,255,255,0.55);
+    stroke-width:1.8;
+    stroke-linecap:round;
+}
+.svc-search input{
+    all:unset;
+    flex:1;
+    color:#fff;
+    font-size:14px;
+    width:100%;
+}
+.svc-search input::placeholder{ color:rgba(255,255,255,0.45); }
+
+.svc-group-label{
+    color:rgba(255,255,255,0.5);
+    font-size:12.5px;
+    margin:0 0 10px 2px;
+}
+.svc-grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:10px;
+    margin-bottom:20px;
+}
+a.svc-tile, a.svc-tile:visited{
+    background:rgba(255,255,255,0.055);
+    border:1px solid rgba(255,255,255,0.07);
+    border-radius:12px;
+    padding:14px 6px 12px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    text-decoration:none;
+    text-align:center;
+    color:#EAF0FF;
+    font-size:11.5px;
+    font-weight:600;
+    line-height:1.25;
+    min-height:0;
+    transition:background 0.15s ease, border-color 0.15s ease;
+}
+a.svc-tile:hover, a.svc-tile:focus-visible{
+    background:rgba(255,255,255,0.1);
+    border-color:rgba(255,140,0,0.4);
+    outline:none;
+}
+.svc-tile svg{
+    width:21px; height:21px;
+    fill:none;
+    stroke:#ff8c00;
+    stroke-width:1.7;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+a.svc-tile-danger{ color:#ff8080; }
+a.svc-tile-danger svg{ stroke:#ff6b6b; }
+a.svc-tile-danger:hover, a.svc-tile-danger:focus-visible{ border-color:rgba(255,107,107,0.4); }
+
+.svc-empty{
+    color:rgba(255,255,255,0.5);
+    font-size:13px;
+    text-align:center;
+    padding:10px 0 4px;
+}
 </style>
 </head>
 
@@ -344,15 +437,104 @@ Loading...
 </div>
 </div>
 
-<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:25px;">
-<a href="#depositSection" class="quick-action-btn">Save Money</a>
-<a href="#txHistorySection" class="quick-action-btn">View Transactions</a>
-<a href="#moreSection" class="quick-action-btn">MORE</a>
-<a href="#withdrawSection" class="quick-action-btn">Withdraw</a>
-<a href="#sellBackSection" class="quick-action-btn">Sell Back</a>
-<a href="index.html#education" target="_blank" class="quick-action-btn">Learn</a>
-<a href="chat.html" class="quick-action-btn">Community Chat</a>
+<div class="svc-panel" id="servicesPanel">
+  <div class="svc-head">All services</div>
+
+  <div class="svc-search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.4" y2="16.4"></line></svg>
+    <input type="text" id="svcSearchInput" placeholder="Search services" oninput="svcFilter(this.value)" autocomplete="off">
+  </div>
+
+  <p class="svc-group-label">Save &amp; grow</p>
+  <div class="svc-grid">
+    <a href="#depositSection" class="svc-tile quick-action-btn" data-svc="save money deposit add funds">
+      <svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="13" rx="2.5"></rect><path d="M2.5 10h19"></path><circle cx="17" cy="14.2" r="1.3" fill="currentColor" stroke="none"></circle></svg>
+      <span>Save Money</span>
+    </a>
+    <a href="#moreSection" class="svc-tile quick-action-btn" data-svc="more participation units shares">
+      <svg viewBox="0 0 24 24"><path d="M12 2.5 20.5 9l-8.5 12.5L3.5 9z"></path><path d="M3.5 9h17M12 2.5 8.3 9l3.7 12.5L15.7 9z"></path></svg>
+      <span>MORE</span>
+    </a>
+    <a href="#dollarSection" class="svc-tile quick-action-btn" data-svc="dollar usdt savings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"></circle><path d="M12 6.5v11M15 9c0-1.4-1.3-2.3-3-2.3S9 7.6 9 9c0 3 6 1.5 6 4.5 0 1.4-1.5 2.3-3 2.3s-3-.8-3-2.3"></path></svg>
+      <span>In-Dollar</span>
+    </a>
+    <a href="#progressSection" class="svc-tile quick-action-btn" data-svc="100 days challenge progress">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><path d="M3 9.5h18M8 2.5v4M16 2.5v4"></path><path d="M7.5 14l2.8 2.8L16.5 11"></path></svg>
+      <span>100 Days</span>
+    </a>
+    <a href="index.html#education" target="_blank" class="svc-tile quick-action-btn" data-svc="learn education articles">
+      <svg viewBox="0 0 24 24"><path d="M12 6.5c-1.8-1.3-4.2-1.8-6.5-1.3v12.6c2.3-.5 4.7 0 6.5 1.3 1.8-1.3 4.2-1.8 6.5-1.3V5.2c-2.3-.5-4.7 0-6.5 1.3Z"></path><path d="M12 6.5v12.6"></path></svg>
+      <span>Learn</span>
+    </a>
+  </div>
+
+  <p class="svc-group-label">Manage</p>
+  <div class="svc-grid">
+    <a href="#txHistorySection" class="svc-tile quick-action-btn" data-svc="transactions history view">
+      <svg viewBox="0 0 24 24"><path d="M5 3.5h10.5L19 7v13.5H5z"></path><path d="M15.5 3.5V7H19M8 12h8M8 15.5h8M8 8.5h4"></path></svg>
+      <span>Transactions</span>
+    </a>
+    <a href="#withdrawSection" class="svc-tile quick-action-btn" data-svc="withdraw request cash out">
+      <svg viewBox="0 0 24 24"><path d="M12 3.5v13M6.5 11l5.5 5.5L17.5 11"></path><path d="M4 20.5h16"></path></svg>
+      <span>Withdraw</span>
+    </a>
+    <a href="#sellBackSection" class="svc-tile quick-action-btn" data-svc="sell back transfer more">
+      <svg viewBox="0 0 24 24"><path d="M4 8h13M13.5 4.5 17 8l-3.5 3.5"></path><path d="M20 16H7M10.5 12.5 7 16l3.5 3.5"></path></svg>
+      <span>Sell Back</span>
+    </a>
+  </div>
+
+  <p class="svc-group-label">Account</p>
+  <div class="svc-grid">
+    <a href="#certSection" class="svc-tile quick-action-btn" data-svc="certificates recognition">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"></circle><path d="M9 14.2 7.5 21l4.5-2.5L16.5 21l-1.5-6.8"></path></svg>
+      <span>Certificates</span>
+    </a>
+    <a href="#profileSection" class="svc-tile quick-action-btn" data-svc="profile kyc account details">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"></circle><path d="M4.8 20c1-3.6 4-5.6 7.2-5.6s6.2 2 7.2 5.6"></path></svg>
+      <span>Profile</span>
+    </a>
+    <a href="chat.html" class="svc-tile quick-action-btn" data-svc="community chat whatsapp">
+      <svg viewBox="0 0 24 24"><path d="M4 12.5c0-4.4 3.8-8 8.5-8s8.5 3.6 8.5 8-3.8 8-8.5 8c-1.1 0-2.2-.2-3.1-.6L4 21l1.3-3.9C4.5 15.9 4 14.3 4 12.5Z"></path></svg>
+      <span>Community Chat</span>
+    </a>
+    <a href="javascript:void(0)" onclick="doLogout()" class="svc-tile svc-tile-danger" data-svc="logout sign out">
+      <svg viewBox="0 0 24 24"><path d="M9 4.5H5.5v15H9"></path><path d="M13 12h7.5M17.5 8.5l3.5 3.5-3.5 3.5"></path></svg>
+      <span>Log Out</span>
+    </a>
+  </div>
+
+  <p class="svc-empty" id="svcEmpty" hidden>No services match your search.</p>
 </div>
+
+<script>
+function svcFilter(query) {
+    var q = query.trim().toLowerCase();
+    var panel = document.getElementById('servicesPanel');
+    var groups = panel.querySelectorAll('.svc-grid');
+    var anyVisible = false;
+
+    groups.forEach(function (grid) {
+        var tiles = grid.querySelectorAll('.svc-tile');
+        var groupHasMatch = false;
+        tiles.forEach(function (tile) {
+            var match = !q || (tile.getAttribute('data-svc') || '').indexOf(q) !== -1;
+            tile.style.display = match ? '' : 'none';
+            if (match) groupHasMatch = true;
+        });
+        var label = grid.previousElementSibling;
+        var showGroup = groupHasMatch;
+        grid.style.display = showGroup ? '' : 'none';
+        if (label && label.classList.contains('svc-group-label')) {
+            label.style.display = showGroup ? '' : 'none';
+        }
+        if (showGroup) anyVisible = true;
+    });
+
+    document.getElementById('svcEmpty').hidden = anyVisible;
+}
+</script>
 
 <h2>My SAVEMORE Dashboard</h2>
 <div class="info-msg" id="dashboardInfo"></div>
@@ -363,7 +545,7 @@ Loading...
 <div class="dashboard-row"><span>Savings Product</span><span id="dashProduct">—</span></div>
 <div class="dashboard-row"><span>Membership Status</span><span id="dashStatus">—</span></div>
 
-<details style="margin-top:20px;">
+<details id="profileSection" style="margin-top:20px;">
 <summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Profile / KYC Information</summary>
 <div style="margin-top:12px;">
 <div class="dashboard-row"><span>Occupation</span><span id="dashOccupation">—</span></div>
@@ -412,7 +594,7 @@ After transferring, select the product and amount below, then tap "I've Made Pay
 <div class="dashboard-row"><span>100 Days Challenge</span><span id="dashChallenge">₦0</span></div>
 <div class="dashboard-row"><span><strong>Total Savings (Naira Accounts)</strong></span><span id="dashSavings"><strong>₦0</strong></span></div>
 
-<h2 style="margin-top:30px; font-size:18px;">In-Dollar Savings Account</h2>
+<h2 id="dollarSection" style="margin-top:30px; font-size:18px;">In-Dollar Savings Account</h2>
 <div class="dashboard-row"><span>My USDT Balance</span><span id="dashDollar">0 USDT</span></div>
 <div class="dashboard-row"><span>Current USDT Price</span><span id="dashUsdtPrice">Not set yet</span></div>
 <div class="dashboard-row"><span>Price Last Updated</span><span id="dashUsdtUpdated">—</span></div>
@@ -445,7 +627,7 @@ update below once reviewed.
 
 <div id="withdrawalRequestsList" style="margin-top:14px;"></div>
 
-<h2 style="margin-top:30px; font-size:18px;">Savings Progress</h2>
+<h2 id="progressSection" style="margin-top:30px; font-size:18px;">Savings Progress</h2>
 <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
 <p class="progress-label" id="progressLabel">No goal set yet</p>
 
@@ -494,7 +676,7 @@ periodically. No dividend has been declared at this time.
 <button onclick="downloadMonthlyStatement()">Download Statement</button>
 </div>
 
-<h2 style="margin-top:30px; font-size:18px;">My Certificates</h2>
+<h2 id="certSection" style="margin-top:30px; font-size:18px;">My Certificates</h2>
 <div id="certHistory" style="margin-top:12px;">Loading...</div>
 
 <button onclick="doLogout()" style="margin-top:25px;">Log Out</button>

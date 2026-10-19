@@ -442,8 +442,11 @@ update below once reviewed.
 
 <h2 id="moreSection" style="margin-top:30px; font-size:18px;">MORE Participation</h2>
 <div class="dashboard-row"><span>Total MORE Supply</span><span>200</span></div>
-<div class="dashboard-row"><span>(MORE) Units Held</span><span id="dashShares">—</span></div>
-<div class="dashboard-row"><span>Reference Value per MORE</span><span id="dashMoreValue">—</span></div>
+<div class="dashboard-row"><span>Allotted MORE</span><span id="dashAllotted">—</span></div>
+<div class="dashboard-row"><span>Purchased MORE</span><span id="dashPurchased">—</span></div>
+<div class="dashboard-row"><span><strong>Total MORE Held</strong></span><span id="dashShares"><strong>—</strong></span></div>
+<div class="dashboard-row"><span>Reference Value per Allotted MORE</span><span id="dashMoreValue">—</span></div>
+<div class="dashboard-row"><span>Registration Fee per Purchased MORE</span><span id="dashMoreFee">—</span></div>
 <div class="dashboard-row"><span><strong>Total MORE Value</strong></span><span id="dashMoreTotal"><strong>—</strong></span></div>
 
 <div style="margin-top:16px; padding:16px; background:#eef7f2; border-radius:10px;">
@@ -880,22 +883,33 @@ function loadUsdtPriceDisplay() {
     });
 }
 
-function loadMoreValue(shares) {
+function loadMoreValue(shares, allotted, purchased) {
     currentSharesHeld = shares;
+    allotted = allotted || 0;
+    purchased = purchased || 0;
+    var naira = function(n) { return '₦' + n.toLocaleString('en-NG'); };
     db.collection('settings').doc('more').get().then(function(doc) {
-        var refValue = doc.exists ? (doc.data().referenceValuePerUnit || 0) : 0;
+        var d = doc.exists ? doc.data() : {};
+        var refValue = d.referenceValuePerUnit || 0;   // value of each Allotted MORE
+        var feeValue = d.currentFee || 0;               // value of each Purchased MORE (registration fee)
         currentMoreRefValue = refValue;
-        var totalValue = shares * refValue;
 
-        if (refValue > 0) {
-            document.getElementById('dashMoreValue').textContent = '₦' + refValue.toLocaleString('en-NG');
-            document.getElementById('dashMoreTotal').innerHTML = '<strong>₦' + totalValue.toLocaleString('en-NG') + '</strong>';
+        var allottedValue = allotted * refValue;
+        var purchasedValue = purchased * feeValue;
+
+        document.getElementById('dashMoreValue').textContent = refValue > 0 ? naira(refValue) : 'Not yet set';
+        document.getElementById('dashMoreFee').textContent = feeValue > 0 ? naira(feeValue) : 'Not yet set';
+        document.getElementById('dashAllotted').textContent = allotted + (refValue > 0 ? ' (' + naira(allottedValue) + ')' : '');
+        document.getElementById('dashPurchased').textContent = purchased + (feeValue > 0 ? ' (' + naira(purchasedValue) + ')' : '');
+
+        if (refValue > 0 || feeValue > 0) {
+            document.getElementById('dashMoreTotal').innerHTML = '<strong>' + naira(allottedValue + purchasedValue) + '</strong>';
         } else {
-            document.getElementById('dashMoreValue').textContent = 'Not yet set';
             document.getElementById('dashMoreTotal').innerHTML = '<strong>—</strong>';
         }
     }).catch(function() {
         document.getElementById('dashMoreValue').textContent = '—';
+        document.getElementById('dashMoreFee').textContent = '—';
         document.getElementById('dashMoreTotal').innerHTML = '<strong>—</strong>';
     });
 }
@@ -1341,7 +1355,13 @@ function loadDashboard(user) {
             renderMaskedFields();
 
             var shares = data.shares || 0;
-            document.getElementById('dashShares').textContent = shares;
+            // Allotted / Purchased split. Older records without the split count as Allotted.
+            var hasSplit = data.allottedShares !== undefined || data.purchasedShares !== undefined;
+            var allottedMore = hasSplit ? (data.allottedShares || 0) : shares;
+            var purchasedMore = hasSplit ? (data.purchasedShares || 0) : 0;
+            document.getElementById('dashAllotted').textContent = allottedMore;
+            document.getElementById('dashPurchased').textContent = purchasedMore;
+            document.getElementById('dashShares').innerHTML = '<strong>' + shares + '</strong>';
 
             var prod = data.savingsByProduct || {};
             var investment = prod.investment || 0;
@@ -1383,7 +1403,7 @@ function loadDashboard(user) {
             }
 
             loadUsdtPriceDisplay();
-            loadMoreValue(shares);
+            loadMoreValue(shares, allottedMore, purchasedMore);
             loadSellRequests(user.uid);
             loadTransfers(user.uid);
             loadWithdrawalRequests(user.uid);

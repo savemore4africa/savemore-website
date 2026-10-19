@@ -1183,7 +1183,7 @@ function loadMembers() {
                 '<summary style="cursor:pointer; list-style:none;">' +
                     '<h3 style="display:inline;">' + escapeHtml(m.name || 'Unnamed') + '</h3>' +
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">' + escapeHtml(m.status || 'Pending Review') + '</span>' +
-                    ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#fff4e5; color:#ff8c00;">MORE: ' + (m.shares || 0) + '</span>' +
+                    ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#fff4e5; color:#ff8c00;">MORE: ' + (m.shares || 0) + ' (Allotted ' + splitMore(m).allotted + ' · Purchased ' + splitMore(m).purchased + ')</span>' +
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">Balance: ₦' + nairaBalanceSummary.toLocaleString('en-NG') + '</span>' +
                     usdtBadge +
                     referralBadge +
@@ -1258,8 +1258,12 @@ function loadMembers() {
                         '</select>' +
                     '</div>' +
                     '<div>' +
-                        '<label>(MORE) Participation Shares</label>' +
-                        '<input type="number" id="shares-' + id + '" value="' + (m.shares || 0) + '">' +
+                        '<label>Allotted MORE</label>' +
+                        '<input type="number" id="allotted-' + id + '" value="' + splitMore(m).allotted + '">' +
+                    '</div>' +
+                    '<div>' +
+                        '<label>Purchased MORE</label>' +
+                        '<input type="number" id="purchased-' + id + '" value="' + splitMore(m).purchased + '">' +
                     '</div>' +
                     '<div>' +
                         '<label>Savings Goal (₦)</label>' +
@@ -1430,10 +1434,33 @@ function progressBarHtml(m) {
         '</div>';
 }
 
+// ---- MORE split helpers (Allotted / Purchased). "shares" stays the total. ----
+function splitMore(d) {
+    var total = d.shares || 0;
+    var hasSplit = d.allottedShares !== undefined || d.purchasedShares !== undefined;
+    return {
+        allotted: hasSplit ? (d.allottedShares || 0) : total,
+        purchased: hasSplit ? (d.purchasedShares || 0) : 0
+    };
+}
+// Units sold or transferred out are taken from Purchased MORE first, then Allotted MORE.
+function deductMore(d, units) {
+    var s = splitMore(d);
+    var fromP = Math.min(s.purchased, units);
+    var fromA = units - fromP;
+    return {
+        allottedShares: s.allotted - fromA,
+        purchasedShares: s.purchased - fromP,
+        shares: (s.allotted + s.purchased) - units
+    };
+}
+
 function saveMember(id) {
     var product = document.getElementById('product-' + id).value;
     var status = document.getElementById('status-' + id).value;
-    var shares = parseFloat(document.getElementById('shares-' + id).value) || 0;
+    var allottedMore = parseFloat(document.getElementById('allotted-' + id).value) || 0;
+    var purchasedMore = parseFloat(document.getElementById('purchased-' + id).value) || 0;
+    var shares = allottedMore + purchasedMore;
     var goal = parseFloat(document.getElementById('goal-' + id).value) || 0;
     var challengeTarget = parseFloat(document.getElementById('challengeTarget-' + id).value) || 0;
     var pInvestment = parseFloat(document.getElementById('prod-investment-' + id).value) || 0;
@@ -1456,6 +1483,8 @@ function saveMember(id) {
         product: product,
         status: status,
         shares: shares,
+        allottedShares: allottedMore,
+        purchasedShares: purchasedMore,
         savingsGoal: goal,
         challengeTarget: challengeTarget,
         savingsByProduct: {
@@ -1530,7 +1559,7 @@ function exportMembersCSV() {
             'Member ID', 'Name', 'Email', 'Phone', 'Status', 'Product',
             'Occupation', 'Date of Birth', 'Bank Name', 'Account Number', 'Account Name',
             'NIN', 'Residential Address', 'Shop Address', 'Next of Kin Name', 'Next of Kin Phone',
-            'MORE Units', 'Investment Savings (₦)', 'Emergency Savings (₦)', 'In-Dollar Savings (USDT)',
+            'MORE Units (Total)', 'Allotted MORE', 'Purchased MORE', 'Investment Savings (₦)', 'Emergency Savings (₦)', 'In-Dollar Savings (USDT)',
             '100 Days Challenge (₦)', 'Total Savings (₦)', 'Savings Goal (₦)', '100 Days Challenge Target (₦)'
         ]];
 
@@ -1541,7 +1570,7 @@ function exportMembersCSV() {
                 m.memberId || '', m.name || '', m.email || '', m.phone || '', m.status || '', m.product || '',
                 m.occupation || '', m.dob || '', m.bankName || '', m.accountNumber || '', m.accountName || '',
                 m.nin || '', m.residentialAddress || '', m.shopAddress || '', m.nokName || '', m.nokPhone || '',
-                m.shares || 0, p.investment || 0, p.emergency || 0, p.dollar || 0,
+                m.shares || 0, splitMore(m).allotted, splitMore(m).purchased, p.investment || 0, p.emergency || 0, p.dollar || 0,
                 p.challenge || 0, m.totalSavings || 0, m.savingsGoal || 0, m.challengeTarget || 0
             ]);
         });
@@ -2089,8 +2118,8 @@ function approveSellRequest(memberId, requestId, units) {
         status: 'Approved',
         resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function() {
-        return memberRef.update({
-            shares: firebase.firestore.FieldValue.increment(-units)
+        return memberRef.get().then(function(snap) {
+            return memberRef.update(deductMore(snap.data(), units));
         });
     }).then(function() {
         loadSellRequestsAdmin(memberId);
@@ -2189,8 +2218,14 @@ async function approveTransfer(id) {
             if (sSnap.data().memberId !== t.sellerMemberId) { throw new Error('Seller Member ID does not match.'); }
             if ((sSnap.data().shares || 0) < t.units) { throw new Error('The seller no longer holds enough MORE.'); }
 
-            tx.update(sRef, { shares: firebase.firestore.FieldValue.increment(-t.units) });
-            tx.update(bRef, { shares: firebase.firestore.FieldValue.increment(t.units) });
+            tx.update(sRef, deductMore(sSnap.data(), t.units));
+            var bs = splitMore(bSnap.data());
+            // Units received from another member count as the buyer's Purchased MORE.
+            tx.update(bRef, {
+                allottedShares: bs.allotted,
+                purchasedShares: bs.purchased + t.units,
+                shares: bs.allotted + bs.purchased + t.units
+            });
             tx.update(tRef, {
                 status: 'Completed',
                 resolvedAt: firebase.firestore.FieldValue.serverTimestamp(),

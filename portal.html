@@ -230,6 +230,15 @@ button.secondary {
     height: 30px;
     fill: white;
 }
+
+/* ---- Collapsible dashboard sections ---- */
+#dashboardBox .acc-head{cursor:pointer;background:#eef7f2;color:#075e3b;padding:14px 16px;border-radius:10px;margin:10px 0 0 !important;font-size:17px !important;display:flex;justify-content:space-between;align-items:center;user-select:none;-webkit-tap-highlight-color:transparent}
+#dashboardBox .acc-head::after{content:"+";font-size:22px;font-weight:bold;color:#ff8c00;line-height:1}
+#dashboardBox .acc-head[aria-expanded="true"]{background:#075e3b;color:#fff}
+#dashboardBox .acc-head[aria-expanded="true"]::after{content:"\2212";color:#ff8c00}
+#dashboardBox .acc-head:focus-visible{outline:3px solid #ff8c0066}
+#dashboardBox .acc-body{padding:12px 4px 6px}
+#dashboardBox .acc-body[hidden]{display:none}
 </style>
 </head>
 
@@ -1951,5 +1960,81 @@ window.addEventListener('appinstalled', function() {
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"></path><path d="M12.031 0h-.063C5.373 0 .312 5.062.312 11.406c0 2.531.788 4.878 2.13 6.807L1 24l6.007-1.577c1.86 1.024 3.996 1.615 6.286 1.615h.005c6.594 0 11.702-5.062 11.702-11.406C24.938 6.226 19.626 0 12.031 0zm5.943 17.302c-.876.876-2.386 1.379-4.246 1.379h-.004c-1.999 0-4.086-.622-5.855-1.717l-.42-.25-3.564.935.952-3.475-.273-.436C3.34 12.164 2.68 9.9 2.68 7.535 2.68 3.774 6.32.397 12.03.397c2.85 0 5.53 1.109 7.54 3.12 2.01 2.011 3.118 4.69 3.116 7.54-.002 4.076-3.712 6.245-4.712 6.245z"></path></svg>
 </a>
 
+<script>
+// Collapsible dashboard: each section opens only when its heading (or its quick-action button) is tapped.
+(function () {
+    var box = document.getElementById('dashboardBox');
+    if (!box) return;
+
+    var info = document.getElementById('dashboardInfo');
+    var firstH2 = box.querySelector(':scope > h2');
+    if (info && firstH2) box.insertBefore(info, firstH2);   // keep status messages always visible
+
+    // Give Withdraw and Sell MORE their own headings
+    function addHeading(anchorId, text) {
+        var el = document.getElementById(anchorId);
+        var block = el && el.parentElement;
+        if (block && block.parentElement === box) {
+            var h = document.createElement('h2');
+            h.textContent = text;
+            box.insertBefore(h, block);
+        }
+    }
+    addHeading('withdrawSection', 'Request a Withdrawal');
+    addHeading('sellBackSection', 'Sell MORE Back & Transfers');
+
+    var logoutBtn = box.querySelector(':scope > button[onclick="doLogout()"]');
+    var kids = Array.prototype.slice.call(box.children);
+    var body = null, started = false;
+
+    kids.forEach(function (el) {
+        if (el.tagName === 'H2') {
+            started = true;
+            el.classList.add('acc-head');
+            el.setAttribute('role', 'button');
+            el.setAttribute('tabindex', '0');
+            el.setAttribute('aria-expanded', 'false');
+            body = document.createElement('div');
+            body.className = 'acc-body';
+            body.hidden = true;
+            box.insertBefore(body, el.nextSibling);
+        } else if (started && el !== logoutBtn && body) {
+            body.appendChild(el);
+        }
+    });
+
+    function setOpen(head, open) {
+        head.setAttribute('aria-expanded', open ? 'true' : 'false');
+        head.nextElementSibling.hidden = !open;
+    }
+    function toggle(head) {
+        var willOpen = head.getAttribute('aria-expanded') !== 'true';
+        box.querySelectorAll('.acc-head').forEach(function (h) { setOpen(h, false); });
+        setOpen(head, willOpen);
+        if (willOpen) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    box.querySelectorAll('.acc-head').forEach(function (h) {
+        h.addEventListener('click', function () { toggle(h); });
+        h.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(h); }
+        });
+    });
+
+    // Quick-action buttons open the matching section
+    document.querySelectorAll('.quick-action-btn[href^="#"]').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            var target = document.getElementById(a.getAttribute('href').slice(1));
+            if (!target) return;
+            e.preventDefault();
+            var head = target.classList.contains('acc-head') ? target : (target.closest('.acc-body') || {}).previousElementSibling;
+            if (!head) return;
+            box.querySelectorAll('.acc-head').forEach(function (h) { setOpen(h, false); });
+            setOpen(head, true);
+            head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+})();
+</script>
 </body>
 </html>

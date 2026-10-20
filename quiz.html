@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAVEMORE Quiz Challenge | SAVEMORE GAMES</title>
+<meta name="description" content="Test your knowledge of savings, budgeting and business with the SAVEMORE Quiz Challenge. Free, no sign-up needed.">
+<meta name="theme-color" content="#075e3b">
+<link rel="icon" type="image/png" href="../icon-192.png">
+<link rel="stylesheet" href="games.css">
+</head>
+<body>
+
+<header class="site-header">
+  <a class="logo" href="index.html">SAVEMORE <span>GAMES</span></a>
+  <a class="back" href="index.html">All games</a>
+</header>
+
+<main id="main">
+
+  <noscript>
+    <p class="lead">This quiz needs JavaScript. Please turn it on in your browser and reload the page.</p>
+  </noscript>
+
+  <!-- 1. Choose a category -->
+  <section id="screenPick" aria-labelledby="pickTitle">
+    <h1 id="pickTitle">Quiz Challenge</h1>
+    <p class="lead">Pick a category. Each round has 10 questions, and you will see the explanation after every answer.</p>
+    <div class="cat-list" id="catList"></div>
+    <p class="fine">Your best scores are saved on this device only. Game points are for fun and learning, have no cash value, and are separate from your SAVEMORE savings and MORE.</p>
+  </section>
+
+  <!-- 2. Play -->
+  <section id="screenPlay" hidden aria-labelledby="qText">
+    <div class="play-top">
+      <button type="button" class="link-btn" id="exitBtn">Exit quiz</button>
+      <p class="points-chip">Points: <strong id="pointsNow">0</strong></p>
+    </div>
+    <p class="progress-text" id="progText">Question 1 of 10</p>
+    <div class="bar" id="bar" role="progressbar" aria-label="Quiz progress" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0">
+      <div class="bar-fill" id="barFill"></div>
+    </div>
+    <p class="cat-tag" id="catTag"></p>
+    <h2 class="question" id="qText"></h2>
+    <div class="options" id="options" role="group" aria-labelledby="qText"></div>
+    <div class="feedback" id="feedback" hidden tabindex="-1">
+      <p class="fb-title" id="fbTitle"></p>
+      <p class="fb-answer" id="fbAnswer"></p>
+      <p class="fb-explain" id="fbExplain"></p>
+    </div>
+    <button type="button" class="btn" id="nextBtn" hidden>Next question</button>
+  </section>
+
+  <!-- 3. Results -->
+  <section id="screenResult" hidden aria-labelledby="resHeading">
+    <h1 id="resHeading" tabindex="-1">Round complete</h1>
+    <div class="result-card">
+      <p class="res-line" id="resCat"></p>
+      <p class="big" id="resScore">0/10</p>
+      <p class="res-tier" id="resTier"></p>
+      <p class="res-line" id="resPoints"></p>
+      <p class="res-line" id="resBest"></p>
+    </div>
+
+    <details class="missed" id="missedBox" hidden>
+      <summary id="missedSummary">Questions to revisit</summary>
+      <div id="missedList"></div>
+    </details>
+
+    <a class="btn btn-wa" id="shareBtn" href="#" target="_blank" rel="noopener">Share my score on WhatsApp</a>
+    <button type="button" class="btn" id="againBtn">Play this category again</button>
+    <button type="button" class="btn btn-ghost" id="changeBtn">Choose another category</button>
+    <a class="btn btn-ghost" href="index.html">Back to SAVEMORE GAMES</a>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p><strong>SAVEMORE</strong> is a product of Moresales Venture, a business registered with the Corporate Affairs Commission (CAC), Nigeria (BN 3605081).</p>
+  <p><a href="../terms.html">Terms</a> &middot; <a href="../privacy.html">Privacy</a> &middot; <a href="../risk.html">Risk Disclosure</a></p>
+</footer>
+
+<script src="questions.js" defer></script>
+<script src="quiz.js" defer></script>
+</body>
+</html>

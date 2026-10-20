@@ -2361,6 +2361,10 @@ function addTransaction(memberId) {
 
         var cached = memberCache[memberId];
         var unit = (productKey === 'dollar') ? ' USDT' : '₦';
+        var amountLabel = (productKey === 'dollar') ? (amount.toLocaleString('en-NG') + ' USDT') : ('₦' + amount.toLocaleString('en-NG'));
+        if (type === 'Deposit' && status === 'Confirmed') {
+            pushMemberNotification(memberId, 'Deposit confirmed', 'A deposit of ' + amountLabel + ' has been added to your ' + product + '.');
+        }
         logActivity(type + ' recorded', (cached ? cached.name : memberId) + ' — ' + unit + amount.toLocaleString('en-NG') + ' (' + product + ', ' + status + ')');
     }).catch(function(error) {
         alert('Failed to add transaction: ' + error.message);

@@ -360,6 +360,65 @@ button.secondary {
         grid-template-columns: 1fr;
     }
 }
+
+/* ---- Pending-request notification chips ---- */
+.notif-chip-wrap {
+    position: relative;
+}
+.notif-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #fdecea;
+    color: #b3261e;
+    border: 1px solid #f6c9c3;
+    border-radius: 20px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.notif-chip:hover, .notif-chip:focus-visible {
+    background: #fbdddb;
+    outline: none;
+}
+.notif-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.notif-panel {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin-top: 6px;
+    min-width: 220px;
+    max-height: 60vh;
+    overflow-y: auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    padding: 6px 0;
+    z-index: 210;
+}
+.notif-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    color: #222;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: normal;
+    border-radius: 0;
+}
+.notif-item:hover, .notif-item:focus-visible {
+    background: #eef7f2;
+    outline: none;
+}
 </style>
 </head>
 
@@ -538,7 +597,33 @@ PIN (in addition to your password) every time you log in.
 
 <div id="newMembersBanner" style="display:none; background:#fff4e5; color:#ff8c00; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:bold;"></div>
 
-<div id="pendingRequestsBanner" style="display:none; background:#fdecea; color:#b3261e; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; font-weight:bold;"></div>
+<div id="pendingRequestsBanner" style="display:none; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+
+<div class="notif-chip-wrap">
+<button type="button" class="notif-chip" id="notifChipPayment" onclick="toggleNotifPanel('Payment')" style="display:none;">
+<span class="notif-dot" style="background:#25D366;"></span>
+<span id="notifTextPayment">0 payment claims</span>
+</button>
+<div class="notif-panel" id="notifPanelPayment"></div>
+</div>
+
+<div class="notif-chip-wrap">
+<button type="button" class="notif-chip" id="notifChipSell" onclick="toggleNotifPanel('Sell')" style="display:none;">
+<span class="notif-dot" style="background:#b3261e;"></span>
+<span id="notifTextSell">0 sell-back requests</span>
+</button>
+<div class="notif-panel" id="notifPanelSell"></div>
+</div>
+
+<div class="notif-chip-wrap">
+<button type="button" class="notif-chip" id="notifChipWithdrawal" onclick="toggleNotifPanel('Withdrawal')" style="display:none;">
+<span class="notif-dot" style="background:#ff8c00;"></span>
+<span id="notifTextWithdrawal">0 withdrawal requests</span>
+</button>
+<div class="notif-panel" id="notifPanelWithdrawal"></div>
+</div>
+
+</div>
 
 <div class="member-card" id="sectionMore" style="border-left-color:#ff8c00;">
 <h3 style="color:#ff8c00;">MORE Reference Value</h3>
@@ -925,8 +1010,11 @@ function updateNewMembersBanner() {
 var pendingSellCountGlobal = 0;
 var pendingWithdrawalCountGlobal = 0;
 var pendingPaymentCountGlobal = 0;
+var pendingSellList = [];
+var pendingWithdrawalList = [];
+var pendingPaymentList = [];
 
-function checkPendingSellDot(memberId) {
+function checkPendingSellDot(memberId, memberName) {
     db.collection('members').doc(memberId).collection('sellRequests')
         .where('status', '==', 'Pending')
         .get()
@@ -934,6 +1022,9 @@ function checkPendingSellDot(memberId) {
             var dotEl = document.getElementById('sellDot-' + memberId);
             if (dotEl && !snapshot.empty) {
                 dotEl.innerHTML = ' <span title="Pending sell-back request" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#b3261e; margin-left:4px;"></span>';
+            }
+            if (!snapshot.empty) {
+                pendingSellList.push({ id: memberId, name: memberName, count: snapshot.size });
             }
             pendingSellCountGlobal += snapshot.size;
             updatePendingRequestsBanner();
@@ -948,6 +1039,9 @@ function checkPendingSellDot(memberId) {
             if (dotEl && !snapshot.empty) {
                 dotEl.innerHTML = ' <span title="Pending withdrawal request" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#ff8c00; margin-left:4px;"></span>';
             }
+            if (!snapshot.empty) {
+                pendingWithdrawalList.push({ id: memberId, name: memberName, count: snapshot.size });
+            }
             pendingWithdrawalCountGlobal += snapshot.size;
             updatePendingRequestsBanner();
         })
@@ -961,6 +1055,9 @@ function checkPendingSellDot(memberId) {
             if (dotEl && !snapshot.empty) {
                 dotEl.innerHTML = ' <span title="Pending payment claim" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#25D366; margin-left:4px;"></span>';
             }
+            if (!snapshot.empty) {
+                pendingPaymentList.push({ id: memberId, name: memberName, count: snapshot.size });
+            }
             pendingPaymentCountGlobal += snapshot.size;
             updatePendingRequestsBanner();
         })
@@ -969,16 +1066,66 @@ function checkPendingSellDot(memberId) {
 
 function updatePendingRequestsBanner() {
     var banner = document.getElementById('pendingRequestsBanner');
-    if (pendingSellCountGlobal > 0 || pendingWithdrawalCountGlobal > 0 || pendingPaymentCountGlobal > 0) {
-        var parts = [];
-        if (pendingPaymentCountGlobal > 0) parts.push(pendingPaymentCountGlobal + ' pending payment claim' + (pendingPaymentCountGlobal > 1 ? 's' : ''));
-        if (pendingSellCountGlobal > 0) parts.push(pendingSellCountGlobal + ' pending sell-back request' + (pendingSellCountGlobal > 1 ? 's' : ''));
-        if (pendingWithdrawalCountGlobal > 0) parts.push(pendingWithdrawalCountGlobal + ' pending withdrawal request' + (pendingWithdrawalCountGlobal > 1 ? 's' : ''));
-        banner.innerHTML = '🔔 ' + parts.join(' · ') + ' — expand a member below to review (look for the colored dot).';
-        banner.style.display = 'block';
-    } else {
-        banner.style.display = 'none';
+    var anyPending = pendingSellCountGlobal > 0 || pendingWithdrawalCountGlobal > 0 || pendingPaymentCountGlobal > 0;
+    banner.style.display = anyPending ? 'flex' : 'none';
+
+    renderNotifChip('Payment', pendingPaymentCountGlobal, pendingPaymentList, 'payment claim', 'payDetails');
+    renderNotifChip('Sell', pendingSellCountGlobal, pendingSellList, 'sell-back request', 'sellDetails');
+    renderNotifChip('Withdrawal', pendingWithdrawalCountGlobal, pendingWithdrawalList, 'withdrawal request', 'wdDetails');
+}
+
+function renderNotifChip(key, count, list, label, detailsPrefix) {
+    var chip = document.getElementById('notifChip' + key);
+    var textEl = document.getElementById('notifText' + key);
+    var panelEl = document.getElementById('notifPanel' + key);
+    if (!chip || !textEl || !panelEl) return;
+
+    if (count === 0) {
+        chip.style.display = 'none';
+        panelEl.style.display = 'none';
+        panelEl.innerHTML = '';
+        return;
     }
+
+    chip.style.display = 'inline-flex';
+    textEl.textContent = count + ' ' + label + (count > 1 ? 's' : '');
+
+    panelEl.innerHTML = list.map(function(item) {
+        var label = escapeHtml(item.name) + (item.count > 1 ? ' (' + item.count + ')' : '');
+        return '<button type="button" class="notif-item" onclick="jumpToPending(\'' + detailsPrefix + '\', \'' + item.id + '\')">' + label + '</button>';
+    }).join('');
+}
+
+function toggleNotifPanel(key) {
+    ['Payment', 'Sell', 'Withdrawal'].forEach(function(k) {
+        var panel = document.getElementById('notifPanel' + k);
+        if (!panel) return;
+        panel.style.display = (k === key && panel.style.display !== 'block') ? 'block' : 'none';
+    });
+}
+
+function jumpToPending(detailsPrefix, memberId) {
+    ['Payment', 'Sell', 'Withdrawal'].forEach(function(k) {
+        var panel = document.getElementById('notifPanel' + k);
+        if (panel) panel.style.display = 'none';
+    });
+
+    var searchBox = document.getElementById('memberSearch');
+    var statusSelect = document.getElementById('memberStatusFilter');
+    if (searchBox) searchBox.value = '';
+    if (statusSelect) statusSelect.value = 'All';
+    filterMemberCards();
+
+    var card = document.getElementById('memberCard-' + memberId);
+    if (!card) return;
+    var outer = card.querySelector(':scope > details');
+    if (outer) outer.open = true;
+    var target = document.getElementById(detailsPrefix + '-' + memberId);
+    if (target) target.open = true;
+
+    setTimeout(function() {
+        (target || card).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
 }
 
 function loadMoreSettings() {
@@ -1239,6 +1386,9 @@ function loadMembers() {
     pendingSellCountGlobal = 0;
     pendingWithdrawalCountGlobal = 0;
     pendingPaymentCountGlobal = 0;
+    pendingSellList = [];
+    pendingWithdrawalList = [];
+    pendingPaymentList = [];
     document.getElementById('pendingRequestsBanner').style.display = 'none';
 
     db.collection('members').orderBy('name').get().then(function(snapshot) {
@@ -1304,6 +1454,7 @@ function loadMembers() {
 
             var card = document.createElement('div');
             card.className = 'member-card';
+            card.id = 'memberCard-' + id;
             card.setAttribute('data-search', (
                 (m.name || '') + ' ' + (m.memberId || '') + ' ' + (m.email || '') + ' ' + (m.phone || '')
             ).toLowerCase());
@@ -1496,17 +1647,17 @@ function loadMembers() {
                 '</div>' +
                 '</details>' +
 
-                '<details ontoggle="if(this.open) loadSellRequestsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
+                '<details id="sellDetails-' + id + '" ontoggle="if(this.open) loadSellRequestsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
                 '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Sell-Back Requests</summary>' +
                 '<div id="sellReqList-' + id + '" style="margin-top:14px;">Loading requests...</div>' +
                 '</details>' +
 
-                '<details ontoggle="if(this.open) loadWithdrawalRequestsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
+                '<details id="wdDetails-' + id + '" ontoggle="if(this.open) loadWithdrawalRequestsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
                 '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Withdrawal Requests</summary>' +
                 '<div id="wdReqList-' + id + '" style="margin-top:14px;">Loading requests...</div>' +
                 '</details>' +
 
-                '<details ontoggle="if(this.open) loadPaymentClaimsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
+                '<details id="payDetails-' + id + '" ontoggle="if(this.open) loadPaymentClaimsAdmin(\'' + id + '\')" style="margin-top:14px;">' +
                 '<summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Payment Claims</summary>' +
                 '<div id="paymentClaimsList-' + id + '" style="margin-top:14px;">Loading claims...</div>' +
                 '</details>' +
@@ -1519,7 +1670,7 @@ function loadMembers() {
                 '</details>';
 
             list.appendChild(card);
-            checkPendingSellDot(id);
+            checkPendingSellDot(id, m.name || 'Unnamed');
         });
     }).catch(function(error) {
         list.innerHTML = '<p>Unable to load members: ' + escapeHtml(error.message) + '</p>';

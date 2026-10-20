@@ -666,6 +666,10 @@ Loading...
 <input type="checkbox" id="signupAgreeTerms" style="width:auto; margin-top:3px;">
 <span>I have read and agree to SAVEMORE's <a href="terms.html" target="_blank" style="color:#075e3b;">Terms & Conditions</a>, <a href="privacy.html" target="_blank" style="color:#075e3b;">Privacy Policy</a>, and <a href="risk.html" target="_blank" style="color:#075e3b;">Risk Disclosure</a>.</span>
 </label>
+<label style="display:flex; align-items:flex-start; gap:8px; font-weight:normal; font-size:13px; margin-bottom:16px;">
+<input type="checkbox" id="signupWhatsappOptIn" style="width:auto; margin-top:3px;">
+<span>Send me account updates and announcements on WhatsApp (optional — you can change this any time on your dashboard).</span>
+</label>
 <button onclick="doSignup()">Create Account</button>
 <button class="secondary" onclick="showLogin()">Already have an account? Log in</button>
 </div>
@@ -952,6 +956,13 @@ function svcFilter(query) {
 <div class="dashboard-row"><span>Phone</span><span id="dashPhone">—</span></div>
 <div class="dashboard-row"><span>Savings Product</span><span id="dashProduct">—</span></div>
 <div class="dashboard-row"><span>Membership Status</span><span id="dashStatus">—</span></div>
+<div class="dashboard-row" style="align-items:center;">
+<span>WhatsApp notifications</span>
+<label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin:0; cursor:pointer;">
+<input type="checkbox" id="dashWhatsappOptIn" style="width:auto; margin:0;" onchange="saveWhatsappPref(this)">
+<span id="dashWhatsappState" style="font-size:13px;">Off</span>
+</label>
+</div>
 
 <details id="profileSection" style="margin-top:20px;">
 <summary style="cursor:pointer; color:#075e3b; font-weight:bold;">Profile / KYC Information</summary>
@@ -1200,6 +1211,7 @@ function doSignup() {
     var email = document.getElementById('signupEmail').value.trim();
     var password = document.getElementById('signupPassword').value;
     var agreedTerms = document.getElementById('signupAgreeTerms').checked;
+    var whatsappOptIn = document.getElementById('signupWhatsappOptIn').checked;
 
     if (!name || !phone || !product || !occupation || !dob || !bankName || !accountNumber || !accountName || !nin || !residentialAddress || !nokName || !nokPhone || !email || !password) {
         showError('signupError', 'Please fill in all required fields (Shop/Office Address is optional).');
@@ -1239,6 +1251,7 @@ function doSignup() {
                 shares: 0,
                 status: 'Pending Review',
                 agreedToTermsAt: firebase.firestore.FieldValue.serverTimestamp(),
+                whatsappOptIn: whatsappOptIn,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         })
@@ -1926,6 +1939,25 @@ function cancelTransfer(id) {
 }
 
 // ---- DASHBOARD ----
+function saveWhatsappPref(box) {
+    var user = auth.currentUser;
+    if (!user) return;
+    var want = box.checked;
+    var label = document.getElementById('dashWhatsappState');
+    box.disabled = true;
+    db.collection('members').doc(user.uid).update({
+        whatsappOptIn: want,
+        whatsappOptInUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        label.textContent = want ? 'On' : 'Off';
+        if (currentMemberData) currentMemberData.whatsappOptIn = want;
+    }).catch(function() {
+        box.checked = !want;
+        label.textContent = !want ? 'On' : 'Off';
+        alert('Could not save your preference. Please try again.');
+    }).then(function() { box.disabled = false; });
+}
+
 function loadDashboard(user) {
     setTimeout(function() { loadPdfLib(null, function() {}); }, 4000);
     showBox('dashboardBox');
@@ -1940,6 +1972,8 @@ function loadDashboard(user) {
             document.getElementById('dashMemberId').textContent = data.memberId || '—';
             document.getElementById('dashName').textContent = data.name || '—';
             document.getElementById('dashPhone').textContent = data.phone || '—';
+            document.getElementById('dashWhatsappOptIn').checked = data.whatsappOptIn === true;
+            document.getElementById('dashWhatsappState').textContent = data.whatsappOptIn === true ? 'On' : 'Off';
             document.getElementById('dashOccupation').textContent = data.occupation || '—';
             document.getElementById('dashDOB').textContent = data.dob || '—';
             document.getElementById('dashProduct').textContent = data.product || '—';
@@ -2550,6 +2584,15 @@ window.addEventListener('appinstalled', function() {
 });
 
 </script>
+
+<footer style="max-width:480px; margin:24px auto 90px; padding:0 16px; text-align:center; font-size:12px; line-height:1.6; color:#666;">
+<p style="margin:0 0 6px;"><strong>SAVEMORE</strong> is a product of <strong>Moresales Venture</strong>, a business registered with the Corporate Affairs Commission (CAC), Nigeria (BN 3605081).</p>
+<p style="margin:0;">&copy; <span id="footerYear"></span> Moresales Venture. All rights reserved.<br>
+<a href="terms.html" target="_blank" style="color:#075e3b;">Terms</a> &middot;
+<a href="privacy.html" target="_blank" style="color:#075e3b;">Privacy</a> &middot;
+<a href="risk.html" target="_blank" style="color:#075e3b;">Risk Disclosure</a></p>
+</footer>
+<script>document.getElementById('footerYear').textContent = new Date().getFullYear();</script>
 
 <a href="https://wa.me/2348031509452?text=Hi%2C%20I%20need%20help%20with%20my%20SAVEMORE%20account" target="_blank" class="whatsapp-float" aria-label="Chat with SAVEMORE on WhatsApp" title="Chat with us on WhatsApp">
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"></path><path d="M12.031 0h-.063C5.373 0 .312 5.062.312 11.406c0 2.531.788 4.878 2.13 6.807L1 24l6.007-1.577c1.86 1.024 3.996 1.615 6.286 1.615h.005c6.594 0 11.702-5.062 11.702-11.406C24.938 6.226 19.626 0 12.031 0zm5.943 17.302c-.876.876-2.386 1.379-4.246 1.379h-.004c-1.999 0-4.086-.622-5.855-1.717l-.42-.25-3.564.935.952-3.475-.273-.436C3.34 12.164 2.68 9.9 2.68 7.535 2.68 3.774 6.32.397 12.03.397c2.85 0 5.53 1.109 7.54 3.12 2.01 2.011 3.118 4.69 3.116 7.54-.002 4.076-3.712 6.245-4.712 6.245z"></path></svg>

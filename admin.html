@@ -534,6 +534,10 @@ PIN (in addition to your password) every time you log in.
 <svg viewBox="0 0 24 24"><path d="M4 18 9.5 11l4 4L20 7"></path><path d="M14.5 7H20v5.5"></path></svg>
 <span>Growth Analytics</span>
 </button>
+<button type="button" class="menu-item" role="menuitem" data-svc="announcements broadcast post notification" onclick="adminMenuGo('sectionAnnouncements')">
+<svg viewBox="0 0 24 24"><path d="M3 10.5v3a1 1 0 0 0 1 1h2.5l5 3.5v-12l-5 3.5H4a1 1 0 0 0-1 1Z"></path><path d="M17 8.5a5 5 0 0 1 0 7M19.5 6a8.5 8.5 0 0 1 0 12"></path></svg>
+<span>Announcements</span>
+</button>
 </div>
 
 <div class="menu-group">Data</div>
@@ -727,6 +731,26 @@ you log in, so this chart will fill in over the coming days/weeks.
 <div id="savingsGrowthChart">Not enough data yet — check back after a few days of use.</div>
 </div>
 
+<div class="member-card" id="sectionAnnouncements" style="border-left-color:#075e3b;">
+<h3 style="color:#075e3b;">Announcements</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">
+Posted here go out to every member's notification bell on their portal — use this for general updates, not individual account matters.
+</p>
+<div class="field-row">
+<div>
+<label>Title</label>
+<input type="text" id="announcementTitle" placeholder="e.g. New Savings Product Launched">
+</div>
+</div>
+<div style="margin-top:10px;">
+<label>Message</label>
+<textarea id="announcementMessage" rows="3" placeholder="Write the announcement members will see…" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:8px; font-size:14px; font-family:inherit;"></textarea>
+</div>
+<button onclick="postAnnouncement()" style="margin-top:12px;">Post Announcement</button>
+<span class="save-status" id="announcementSaveStatus">✓ Posted</span>
+<div id="announcementsList" style="margin-top:18px;">Loading announcements...</div>
+</div>
+
 <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
 <input type="text" id="memberSearch" placeholder="Search by name, Member ID, email, or phone…" oninput="filterMemberCards()" style="flex:1; min-width:200px; padding:10px; border:1px solid #ccc; border-radius:8px; font-size:14px;">
 <select id="memberStatusFilter" onchange="filterMemberCards()" style="padding:10px; border:1px solid #ccc; border-radius:8px; font-size:14px;">
@@ -782,6 +806,83 @@ function notifyMemberAccountUpdate(memberEmail, memberName) {
         member_name: memberName
     }).catch(function(error) {
         console.error('Member notification email failed:', error);
+    });
+}
+
+function postAnnouncement() {
+    var titleEl = document.getElementById('announcementTitle');
+    var messageEl = document.getElementById('announcementMessage');
+    var title = titleEl.value.trim();
+    var message = messageEl.value.trim();
+
+    if (!title || !message) {
+        alert('Please enter both a title and a message.');
+        return;
+    }
+
+    db.collection('announcements').add({
+        title: title,
+        message: message,
+        postedBy: (currentAdminUser && currentAdminUser.email) || 'admin',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function() {
+        titleEl.value = '';
+        messageEl.value = '';
+        var status = document.getElementById('announcementSaveStatus');
+        status.style.display = 'inline';
+        setTimeout(function() { status.style.display = 'none'; }, 2000);
+        logActivity('Announcement posted', title);
+        loadAnnouncements();
+    }).catch(function(error) {
+        alert('Failed to post announcement: ' + error.message);
+    });
+}
+
+function loadAnnouncements() {
+    var container = document.getElementById('announcementsList');
+    if (!container) return;
+    container.innerHTML = 'Loading announcements...';
+
+    db.collection('announcements').orderBy('createdAt', 'desc').limit(20).get().then(function(snapshot) {
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color:#777; font-size:14px;">No announcements posted yet.</p>';
+            return;
+        }
+        var html = '';
+        snapshot.forEach(function(doc) {
+            var a = doc.data();
+            var when = (a.createdAt && typeof a.createdAt.toDate === 'function')
+                ? a.createdAt.toDate().toLocaleString('en-NG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : '';
+            html += '<div style="padding:10px; border-bottom:1px solid #eee; font-size:14px;">' +
+                '<strong>' + escapeHtml(a.title || '') + '</strong>' +
+                '<div style="color:#555; margin-top:3px;">' + escapeHtml(a.message || '') + '</div>' +
+                '<div style="color:#999; font-size:12px; margin-top:4px;">' + when + '</div>' +
+                '<button style="padding:4px 10px; font-size:12px; background:#999; margin-top:6px;" onclick="deleteAnnouncement(\'' + doc.id + '\')">Delete</button>' +
+                '</div>';
+        });
+        container.innerHTML = html;
+    }).catch(function(error) {
+        container.innerHTML = '<p style="color:#b3261e;">Unable to load announcements: ' + escapeHtml(error.message) + '</p>';
+    });
+}
+
+function deleteAnnouncement(id) {
+    if (!confirm('Delete this announcement? Members who have not yet seen it will no longer see it.')) return;
+    db.collection('announcements').doc(id).delete().then(function() {
+        loadAnnouncements();
+    }).catch(function(error) {
+        alert('Failed to delete: ' + error.message);
+    });
+}
+
+function pushMemberNotification(memberId, title, message) {
+    db.collection('members').doc(memberId).collection('notifications').add({
+        title: title,
+        message: message,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function(error) {
+        console.error('In-app member notification failed:', error);
     });
 }
 
@@ -987,11 +1088,13 @@ function proceedToAdminPanel() {
             loadMoreSettings();
             loadUsdtPrice();
             loadMoreTransfers();
+            loadAnnouncements();
         }).catch(function() {
             loadMembers();
             loadMoreSettings();
             loadUsdtPrice();
             loadMoreTransfers();
+            loadAnnouncements();
         });
     });
 }
@@ -2437,6 +2540,7 @@ function approveSellRequest(memberId, requestId, units) {
         if (cached) {
             notifyMemberAccountUpdate(cached.email, cached.name);
         }
+        pushMemberNotification(memberId, 'Sell-back approved', 'Your request to sell back ' + units + ' MORE unit' + (units === 1 ? '' : 's') + ' has been approved.');
         logActivity('Sell-back approved', (cached ? cached.name : memberId) + ' — ' + units + ' MORE units');
     }).catch(function(error) {
         alert('Failed to approve request: ' + error.message);
@@ -2448,6 +2552,7 @@ function rejectSellRequest(memberId, requestId) {
         status: 'Rejected',
         resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function() {
+        pushMemberNotification(memberId, 'Sell-back declined', 'Your sell-back request was not approved. Please contact SAVEMORE on WhatsApp for details.');
         loadSellRequestsAdmin(memberId);
     }).catch(function(error) {
         alert('Failed to reject request: ' + error.message);
@@ -2654,6 +2759,7 @@ function approveWithdrawalRequest(memberId, requestId) {
                 notifyMemberAccountUpdate(cached.email, cached.name);
             }
             var unitLabel = (r.unit === 'USDT') ? (r.amountRequested + ' USDT') : ('₦' + r.amountRequested.toLocaleString('en-NG'));
+            pushMemberNotification(memberId, 'Withdrawal approved', 'Your withdrawal of ' + unitLabel + ' from ' + r.product + ' has been approved and recorded.');
             logActivity('Withdrawal approved', (cached ? cached.name : memberId) + ' — ' + unitLabel + ' (' + r.product + ')');
         }).catch(function(error) {
             alert('Failed to approve withdrawal: ' + error.message);
@@ -2666,6 +2772,7 @@ function rejectWithdrawalRequest(memberId, requestId) {
         status: 'Rejected',
         resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function() {
+        pushMemberNotification(memberId, 'Withdrawal declined', 'Your withdrawal request was not approved. Please contact SAVEMORE on WhatsApp for details.');
         loadWithdrawalRequestsAdmin(memberId);
     }).catch(function(error) {
         alert('Failed to reject request: ' + error.message);
@@ -2756,6 +2863,7 @@ function confirmPaymentClaim(memberId, claimId) {
                 notifyMemberAccountUpdate(cached.email, cached.name);
             }
             var unitLabel = (c.unit === 'USDT') ? (c.amount + ' USDT') : ('₦' + c.amount.toLocaleString('en-NG'));
+            pushMemberNotification(memberId, 'Payment confirmed', 'Your payment of ' + unitLabel + ' for ' + c.product + ' has been confirmed and added to your savings.');
             logActivity('Payment claim confirmed', (cached ? cached.name : memberId) + ' — ' + unitLabel + ' (' + c.product + ')');
         }).catch(function(error) {
             alert('Failed to confirm payment: ' + error.message);
@@ -2768,6 +2876,7 @@ function rejectPaymentClaim(memberId, claimId) {
         status: 'Rejected',
         resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function() {
+        pushMemberNotification(memberId, 'Payment claim declined', 'Your payment claim could not be confirmed. Please contact SAVEMORE on WhatsApp for details.');
         loadPaymentClaimsAdmin(memberId);
     }).catch(function(error) {
         alert('Failed to reject claim: ' + error.message);

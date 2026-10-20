@@ -247,8 +247,124 @@ button.secondary {
     padding:16px 18px;
     display:flex;
     align-items:center;
+    justify-content:space-between;
     gap:12px;
     margin-bottom:10px;
+}
+.bal-head-left{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:0;
+}
+
+/* ---- Notification bell ---- */
+.bell-wrap{
+    position:relative;
+    flex-shrink:0;
+}
+.bell-btn{
+    width:38px; height:38px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.15);
+    border:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    position:relative;
+}
+.bell-btn svg{
+    width:19px; height:19px;
+    fill:none;
+    stroke:#fff;
+    stroke-width:1.7;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+}
+.bell-badge{
+    position:absolute;
+    top:-2px; right:-2px;
+    min-width:16px;
+    height:16px;
+    padding:0 3px;
+    border-radius:10px;
+    background:#ff8c00;
+    color:#fff;
+    font-size:10px;
+    font-weight:bold;
+    line-height:16px;
+    text-align:center;
+}
+.notif-panel{
+    position:absolute;
+    right:0;
+    top:calc(100% + 10px);
+    width:300px;
+    max-width:84vw;
+    max-height:70vh;
+    overflow-y:auto;
+    background:#fff;
+    border-radius:14px;
+    box-shadow:0 12px 30px rgba(0,0,0,0.25);
+    z-index:300;
+}
+.notif-panel[hidden]{ display:none; }
+.notif-panel-head{
+    padding:14px 16px 10px;
+    font-size:14px;
+    font-weight:bold;
+    color:#075e3b;
+    border-bottom:1px solid #eee;
+}
+.notif-list{ padding:4px 0; }
+.notif-empty{
+    padding:18px 16px;
+    font-size:13px;
+    color:#999;
+    text-align:center;
+}
+.notif-row{
+    padding:11px 16px;
+    border-bottom:1px solid #f1f1f1;
+}
+.notif-row:last-child{ border-bottom:none; }
+.notif-row-title{
+    font-size:13.5px;
+    font-weight:bold;
+    color:#222;
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+.notif-row.unread .notif-row-title::before{
+    content:"";
+    width:7px; height:7px;
+    border-radius:50%;
+    background:#ff8c00;
+    flex-shrink:0;
+}
+.notif-row-msg{
+    font-size:13px;
+    color:#666;
+    margin-top:3px;
+    line-height:1.4;
+}
+.notif-row-time{
+    font-size:11px;
+    color:#aaa;
+    margin-top:5px;
+}
+.notif-row-tag{
+    display:inline-block;
+    font-size:10px;
+    font-weight:bold;
+    letter-spacing:0.3px;
+    color:#0a7a4f;
+    background:#eaf4ee;
+    padding:1px 7px;
+    border-radius:8px;
+    margin-bottom:4px;
 }
 .bal-avatar{
     width:40px; height:40px;
@@ -558,10 +674,24 @@ Loading...
 <div class="box hidden" id="dashboardBox">
 
 <div class="bal-head">
+<div class="bal-head-left">
 <div class="bal-avatar"><svg viewBox="0 0 24 24"><path d="M4 9.5 12 4l8 5.5V19a1 1 0 0 1-1 1h-14a1 1 0 0 1-1-1Z"></path><path d="M9.5 20v-6h5v6"></path></svg></div>
 <div>
 <p class="bal-eyebrow">SAVEMORE MEMBER</p>
 <p class="bal-name" id="summaryName">—</p>
+</div>
+</div>
+
+<div class="bell-wrap">
+<button type="button" class="bell-btn" id="bellBtn" onclick="toggleNotifPanel()" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
+<svg viewBox="0 0 24 24"><path d="M6 10.5a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 14.5 6 10.5Z"></path><path d="M10 19a2 2 0 0 0 4 0"></path></svg>
+<span class="bell-badge" id="bellBadge" hidden>0</span>
+</button>
+
+<div class="notif-panel" id="notifPanel" hidden>
+<div class="notif-panel-head">Notifications</div>
+<div id="notifList" class="notif-list"><p class="notif-empty">Loading…</p></div>
+</div>
 </div>
 </div>
 
@@ -678,6 +808,107 @@ function stampBalanceUpdatedTime() {
     var date = now.toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
     el.textContent = 'Updated ' + time + ', ' + date;
 }
+
+var notifItems = [];
+var notifReadAtMillis = 0;
+var notifCurrentUid = null;
+
+function loadNotifications(uid, readAtTimestamp) {
+    notifCurrentUid = uid;
+    notifReadAtMillis = (readAtTimestamp && typeof readAtTimestamp.toMillis === 'function')
+        ? readAtTimestamp.toMillis() : 0;
+
+    var announcementsP = db.collection('announcements').orderBy('createdAt', 'desc').limit(20).get()
+        .catch(function() { return { forEach: function() {} }; });
+    var personalP = db.collection('members').doc(uid).collection('notifications').orderBy('createdAt', 'desc').limit(20).get()
+        .catch(function() { return { forEach: function() {} }; });
+
+    Promise.all([announcementsP, personalP]).then(function(results) {
+        var items = [];
+        results[0].forEach(function(doc) {
+            var a = doc.data();
+            items.push({
+                title: a.title || 'Announcement',
+                message: a.message || '',
+                tag: 'Announcement',
+                millis: (a.createdAt && typeof a.createdAt.toMillis === 'function') ? a.createdAt.toMillis() : 0
+            });
+        });
+        results[1].forEach(function(doc) {
+            var n = doc.data();
+            items.push({
+                title: n.title || 'Account Update',
+                message: n.message || '',
+                tag: 'Account',
+                millis: (n.createdAt && typeof n.createdAt.toMillis === 'function') ? n.createdAt.toMillis() : 0
+            });
+        });
+        items.sort(function(a, b) { return b.millis - a.millis; });
+        notifItems = items;
+        renderNotifications();
+    });
+}
+
+function renderNotifications() {
+    var listEl = document.getElementById('notifList');
+    var badgeEl = document.getElementById('bellBadge');
+    if (!listEl || !badgeEl) return;
+
+    if (!notifItems.length) {
+        listEl.innerHTML = '<p class="notif-empty">No notifications yet.</p>';
+        badgeEl.hidden = true;
+        return;
+    }
+
+    var unreadCount = 0;
+    var html = '';
+    notifItems.forEach(function(item) {
+        var isUnread = item.millis > notifReadAtMillis;
+        if (isUnread) unreadCount++;
+        var when = item.millis ? new Date(item.millis).toLocaleString('en-NG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+        html += '<div class="notif-row' + (isUnread ? ' unread' : '') + '">' +
+            '<span class="notif-row-tag">' + escapeHtml(item.tag) + '</span>' +
+            '<div class="notif-row-title">' + escapeHtml(item.title) + '</div>' +
+            '<div class="notif-row-msg">' + escapeHtml(item.message) + '</div>' +
+            '<div class="notif-row-time">' + when + '</div>' +
+            '</div>';
+    });
+    listEl.innerHTML = html;
+
+    if (unreadCount > 0) {
+        badgeEl.hidden = false;
+        badgeEl.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+    } else {
+        badgeEl.hidden = true;
+    }
+}
+
+function toggleNotifPanel() {
+    var panel = document.getElementById('notifPanel');
+    var btn = document.getElementById('bellBtn');
+    if (!panel) return;
+    var opening = panel.hidden;
+    panel.hidden = !opening;
+    if (btn) btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+
+    if (opening) {
+        notifReadAtMillis = Date.now();
+        renderNotifications();
+        if (notifCurrentUid) {
+            db.collection('members').doc(notifCurrentUid).update({
+                notifReadAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(function() {});
+        }
+    }
+}
+
+document.addEventListener('click', function(e) {
+    var wrap = document.querySelector('.bell-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+        var panel = document.getElementById('notifPanel');
+        if (panel && !panel.hidden) panel.hidden = true;
+    }
+});
 
 function toggleBalanceVisibility() {
     var stats = document.getElementById('balStats');
@@ -1752,6 +1983,7 @@ function loadDashboard(user) {
             document.getElementById('summaryDollar').textContent = dollar.toLocaleString('en-NG') + ' USDT';
             document.getElementById('summaryAvailable').textContent = '₦' + emergency.toLocaleString('en-NG');
             stampBalanceUpdatedTime();
+            loadNotifications(user.uid, data.notifReadAt);
 
             var challengeTarget = data.challengeTarget || 0;
             if (challengeTarget > 0) {

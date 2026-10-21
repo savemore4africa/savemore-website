@@ -1,10 +1,10 @@
 /*
-  SAVEMORE GAMES: Quiz Challenge question bank (Stage 1 draft, for review)
+  SAVEMORE GAMES: Quiz Challenge question bank (Stage 2 draft, for review)
 
   Each question:
     id       unique text id
     cat      category id (must match a category below)
-    level    "easy" | "medium" | "hard"   (not used by the screen yet; kept for Stage 2)
+    level    "easy" | "medium" | "hard"   (drives the difficulty choice and the points: 10 / 15 / 20)
     q        the question
     options  exactly 4 answer choices
     answer   position of the correct option in "options" (0 to 3)
@@ -24,6 +24,21 @@ window.SM_QUIZ = {
       id: "business",
       name: "Business & Economics",
       blurb: "Profit, inflation, supply and demand, and running a small business."
+    },
+    {
+      id: "islamic",
+      name: "Islamic Finance Basics",
+      blurb: "Riba, zakat, halal earning and the principles of Islamic partnerships."
+    },
+    {
+      id: "general",
+      name: "General Knowledge",
+      blurb: "Nigeria, Africa, science and the world around us."
+    },
+    {
+      id: "entrepreneurship",
+      name: "Entrepreneurship",
+      blurb: "Starting, pricing and growing a small business."
     }
   ],
 
@@ -335,6 +350,456 @@ window.SM_QUIZ = {
       ],
       answer: 1,
       explain: "At break-even there is no profit and no loss. Every sale after that point starts to add profit."
+    },
+    /* ---------- Islamic Finance Basics (DRAFT: needs review by a knowledgeable scholar before publishing) ---------- */
+    {
+      id: "isl-01", cat: "islamic", level: "easy",
+      q: "In Islamic finance, riba generally refers to…",
+      options: [
+        "Interest, or a guaranteed extra amount charged on a loan",
+        "A voluntary gift to the poor",
+        "A business partnership",
+        "A tax paid to the government"
+      ],
+      answer: 0,
+      explain: "Riba (often translated as usury or interest) is prohibited in Islam. A loan that brings the lender a guaranteed increase is the classic example."
+    },
+    {
+      id: "isl-02", cat: "islamic", level: "medium",
+      q: "Gharar in a contract means…",
+      options: [
+        "Excessive uncertainty or ambiguity about what is being sold or paid",
+        "A gift given in secret",
+        "A debt that has been fully paid",
+        "Profit shared between partners"
+      ],
+      answer: 0,
+      explain: "Contracts should be clear to both sides. Excessive gharar, such as selling something that does not exist or whose price or quality is unknown, makes a deal unacceptable."
+    },
+    {
+      id: "isl-03", cat: "islamic", level: "easy",
+      q: "Maysir refers to…",
+      options: [
+        "Gambling, or gaining money purely by chance",
+        "Honest trade",
+        "Giving charity",
+        "Saving for the future"
+      ],
+      answer: 0,
+      explain: "Maysir is gambling. Islam encourages earning through honest work, trade and fair exchange, not through games of chance."
+    },
+    {
+      id: "isl-04", cat: "islamic", level: "medium",
+      q: "What rate of zakat generally applies to cash savings held for a full lunar year above the nisab?",
+      options: ["1%", "2.5%", "5%", "10%"],
+      answer: 1,
+      explain: "The standard rate on cash and savings that reach the nisab and are held for a year is 2.5%. For your own situation, ask a trusted scholar."
+    },
+    {
+      id: "isl-05", cat: "islamic", level: "medium",
+      q: "What is the nisab?",
+      options: [
+        "The minimum amount of wealth above which zakat becomes due",
+        "A type of Islamic contract",
+        "The penalty for late payment",
+        "The month in which zakat must be paid"
+      ],
+      answer: 0,
+      explain: "Zakat is due only on wealth that reaches the nisab and has been held for a full lunar year. Scholars set the nisab using the value of gold or silver."
+    },
+    {
+      id: "isl-06", cat: "islamic", level: "easy",
+      q: "Which of these is generally a halal source of income?",
+      options: [
+        "Honest wages from lawful work",
+        "Interest on a loan",
+        "Gambling winnings",
+        "Selling goods you know are fake"
+      ],
+      answer: 0,
+      explain: "Islam encourages earning through lawful, honest work and trade. Income from interest, gambling or deception is not acceptable."
+    },
+    {
+      id: "isl-07", cat: "islamic", level: "hard",
+      q: "In a mudarabah partnership, who normally bears a financial loss if the manager was not negligent?",
+      options: [
+        "The partner who provided the capital",
+        "The manager",
+        "Both equally",
+        "The government"
+      ],
+      answer: 0,
+      explain: "In mudarabah one partner provides capital and the other provides work. Profit is shared by an agreed ratio, the capital provider bears the financial loss, and the manager loses the effort he put in."
+    },
+    {
+      id: "isl-08", cat: "islamic", level: "hard",
+      q: "In a musharakah partnership, how are losses normally shared?",
+      options: [
+        "In proportion to each partner\u2019s capital contribution",
+        "Equally, whatever each partner invested",
+        "Only the active partner bears them",
+        "They are ignored"
+      ],
+      answer: 0,
+      explain: "In musharakah all partners contribute capital. Profit is shared as agreed in advance, but losses follow each partner\u2019s share of the capital."
+    },
+    {
+      id: "isl-09", cat: "islamic", level: "medium",
+      q: "A murabaha sale is one where…",
+      options: [
+        "The seller discloses the cost and adds an agreed profit",
+        "The price is kept secret",
+        "The buyer pays interest on the price",
+        "The goods are chosen by chance"
+      ],
+      answer: 0,
+      explain: "Murabaha is cost-plus selling. Both sides know the seller\u2019s cost and the agreed profit, which keeps the deal transparent."
+    },
+    {
+      id: "isl-10", cat: "islamic", level: "medium",
+      q: "Qard hasan is…",
+      options: [
+        "A kind loan repaid without any extra charge",
+        "A loan with a fixed interest rate",
+        "A type of lottery",
+        "A tax on savings"
+      ],
+      answer: 0,
+      explain: "Qard hasan means a good loan. The borrower repays only what was borrowed, and the lender seeks reward from Allah, not profit."
+    },
+    {
+      id: "isl-11", cat: "islamic", level: "easy",
+      q: "What is voluntary charity given for the sake of Allah called?",
+      options: ["Sadaqah", "Riba", "Gharar", "Maysir"],
+      answer: 0,
+      explain: "Sadaqah is voluntary charity. Unlike zakat, it has no fixed amount and can be given at any time."
+    },
+    {
+      id: "isl-12", cat: "islamic", level: "easy",
+      q: "Which behaviour is encouraged in Islamic business ethics?",
+      options: [
+        "Being honest about the goods and the price",
+        "Hiding defects in the goods",
+        "Giving short measure",
+        "Making false claims to win customers"
+      ],
+      answer: 0,
+      explain: "Honesty and fair dealing are central. A trader who is open about the quality and price builds trust and earns blessing in trade."
+    },
+    {
+      id: "isl-13", cat: "islamic", level: "medium",
+      q: "Islamic teaching discourages israf. What does israf mean?",
+      options: [
+        "Wastefulness and extravagance",
+        "Saving money",
+        "Paying zakat",
+        "Giving to the poor"
+      ],
+      answer: 0,
+      explain: "Believers are encouraged to be moderate in spending: neither wasteful nor stingy. This fits well with budgeting and avoiding unnecessary spending."
+    },
+    {
+      id: "isl-14", cat: "islamic", level: "medium",
+      q: "Why is a clear written contract important in Islamic finance?",
+      options: [
+        "It reduces uncertainty and disputes between the parties",
+        "It lets one side hide the terms",
+        "It allows hidden charges",
+        "It is only needed for large companies"
+      ],
+      answer: 0,
+      explain: "Clear terms reduce gharar and protect everyone involved. This is why Islamic finance puts so much weight on transparency."
+    },
+    {
+      id: "isl-15", cat: "islamic", level: "medium",
+      q: "The longest verse of the Quran (Al-Baqarah 2:282) encourages believers to do what with debts?",
+      options: [
+        "Write them down",
+        "Keep them secret",
+        "Forget them",
+        "Pay them only if asked"
+      ],
+      answer: 0,
+      explain: "The verse teaches believers to record debts with the amount and the due date. Clear records protect both the lender and the borrower."
+    },
+    {
+      id: "isl-16", cat: "islamic", level: "easy",
+      q: "In Islamic finance, what does \u201Charam\u201D mean?",
+      options: ["Prohibited", "Permitted", "Recommended", "Optional"],
+      answer: 0,
+      explain: "Haram means prohibited. Its opposite is halal, which means permitted. Islamic finance aims to keep money dealings halal."
+    },
+
+    /* ---------- General Knowledge ---------- */
+    {
+      id: "gen-01", cat: "general", level: "easy",
+      q: "What is the capital city of Nigeria?",
+      options: ["Lagos", "Abuja", "Kano", "Ibadan"],
+      answer: 1,
+      explain: "Abuja became Nigeria\u2019s capital in 1991, replacing Lagos."
+    },
+    {
+      id: "gen-02", cat: "general", level: "easy",
+      q: "In which year did Nigeria gain independence?",
+      options: ["1957", "1960", "1963", "1966"],
+      answer: 1,
+      explain: "Nigeria became independent from Britain on 1 October 1960."
+    },
+    {
+      id: "gen-03", cat: "general", level: "easy",
+      q: "Which colours are on the Nigerian flag?",
+      options: ["Green and white", "Green and yellow", "Red and white", "Blue and green"],
+      answer: 0,
+      explain: "The flag has two green stripes with a white stripe in the middle."
+    },
+    {
+      id: "gen-04", cat: "general", level: "easy",
+      q: "Which is the longest river in Africa?",
+      options: ["Niger", "Congo", "Nile", "Zambezi"],
+      answer: 2,
+      explain: "The Nile is about 6,650 km long, and it is generally considered the longest river in Africa."
+    },
+    {
+      id: "gen-05", cat: "general", level: "easy",
+      q: "Which is the largest ocean on Earth?",
+      options: ["Atlantic", "Indian", "Arctic", "Pacific"],
+      answer: 3,
+      explain: "The Pacific Ocean covers more area than all the land on Earth put together."
+    },
+    {
+      id: "gen-06", cat: "general", level: "medium",
+      q: "How many states does Nigeria have (not counting the Federal Capital Territory)?",
+      options: ["30", "34", "36", "40"],
+      answer: 2,
+      explain: "Nigeria has 36 states, plus the Federal Capital Territory, Abuja."
+    },
+    {
+      id: "gen-07", cat: "general", level: "easy",
+      q: "Which planet is known as the Red Planet?",
+      options: ["Venus", "Mars", "Jupiter", "Mercury"],
+      answer: 1,
+      explain: "Mars looks red because its surface is rich in iron oxide, which is rust."
+    },
+    {
+      id: "gen-08", cat: "general", level: "easy",
+      q: "What is the chemical formula of water?",
+      options: ["CO\u2082", "O\u2082", "H\u2082O", "NaCl"],
+      answer: 2,
+      explain: "A water molecule has two hydrogen atoms and one oxygen atom."
+    },
+    {
+      id: "gen-09", cat: "general", level: "medium",
+      q: "Which is the largest country in Africa by area?",
+      options: ["Nigeria", "Algeria", "DR Congo", "Sudan"],
+      answer: 1,
+      explain: "Algeria is the largest African country by area. Nigeria is the most populous."
+    },
+    {
+      id: "gen-10", cat: "general", level: "medium",
+      q: "What is the capital of Osun State?",
+      options: ["Ile-Ife", "Ilesa", "Osogbo", "Ede"],
+      answer: 2,
+      explain: "Osogbo is the capital of Osun State, known for the Osun-Osogbo Sacred Grove, a UNESCO World Heritage Site."
+    },
+    {
+      id: "gen-11", cat: "general", level: "easy",
+      q: "How many continents are there?",
+      options: ["5", "6", "7", "8"],
+      answer: 2,
+      explain: "The seven continents are Africa, Antarctica, Asia, Australia (Oceania), Europe, North America and South America."
+    },
+    {
+      id: "gen-12", cat: "general", level: "hard",
+      q: "At which Nigerian town do the Niger and Benue rivers meet?",
+      options: ["Lokoja", "Makurdi", "Onitsha", "Jebba"],
+      answer: 0,
+      explain: "The two rivers meet at Lokoja in Kogi State, forming a famous confluence."
+    },
+    {
+      id: "gen-13", cat: "general", level: "easy",
+      q: "What is the hardest natural substance?",
+      options: ["Iron", "Diamond", "Quartz", "Granite"],
+      answer: 1,
+      explain: "Diamond is the hardest known natural material."
+    },
+    {
+      id: "gen-14", cat: "general", level: "medium",
+      q: "How many minutes are there in 2\u00BD hours?",
+      options: ["120", "150", "180", "210"],
+      answer: 1,
+      explain: "2 hours is 120 minutes, and half an hour is 30 minutes, so the total is 150 minutes."
+    },
+    {
+      id: "gen-15", cat: "general", level: "easy",
+      q: "Which is the largest hot desert in the world, found in Africa?",
+      options: ["Kalahari", "Namib", "Sahara", "Gobi"],
+      answer: 2,
+      explain: "The Sahara stretches across North Africa and is about the size of the United States."
+    },
+
+    /* ---------- Entrepreneurship ---------- */
+    {
+      id: "ent-01", cat: "entrepreneurship", level: "easy",
+      q: "What is a business plan?",
+      options: [
+        "A written plan describing your goals, customers and finances",
+        "A loan application",
+        "A tax receipt",
+        "A list of your friends"
+      ],
+      answer: 0,
+      explain: "A business plan sets out what you will sell, who will buy it, what it will cost and how you expect to earn money. It guides your decisions."
+    },
+    {
+      id: "ent-02", cat: "entrepreneurship", level: "easy",
+      q: "What does market research help you discover?",
+      options: [
+        "What customers want and who your competitors are",
+        "How to avoid keeping records",
+        "How to skip paying suppliers",
+        "How to hide your prices"
+      ],
+      answer: 0,
+      explain: "Researching the market before you invest reduces the risk of making something nobody wants."
+    },
+    {
+      id: "ent-03", cat: "entrepreneurship", level: "easy",
+      q: "Your \u201Ctarget market\u201D is…",
+      options: [
+        "The group of customers you most want to serve",
+        "The place where you buy stock",
+        "Your biggest competitor",
+        "Your monthly sales figure"
+      ],
+      answer: 0,
+      explain: "Knowing exactly who you serve helps you choose the right product, price and place to sell."
+    },
+    {
+      id: "ent-04", cat: "entrepreneurship", level: "medium",
+      q: "A \u201Cunique selling point\u201D (USP) is…",
+      options: [
+        "What makes your product or service different from others",
+        "The lowest price in the market",
+        "A discount for family members",
+        "The name of your shop"
+      ],
+      answer: 0,
+      explain: "A USP gives customers a reason to choose you, such as better quality, faster delivery or friendlier service."
+    },
+    {
+      id: "ent-05", cat: "entrepreneurship", level: "medium",
+      q: "What is a sensible way to test a new product idea?",
+      options: [
+        "Sell a small batch to a few customers and ask for feedback",
+        "Spend all your savings on stock at once",
+        "Copy a competitor exactly",
+        "Wait until everything is perfect"
+      ],
+      answer: 0,
+      explain: "A small test shows whether people really want the product before you risk a lot of money."
+    },
+    {
+      id: "ent-06", cat: "entrepreneurship", level: "medium",
+      q: "What does \u201Ccash flow\u201D mean?",
+      options: [
+        "The movement of money into and out of the business over time",
+        "The total value of your stock",
+        "The profit you made last year",
+        "The cash kept at home"
+      ],
+      answer: 0,
+      explain: "Cash flow shows whether you will have enough money on hand to pay suppliers, staff and bills when they are due."
+    },
+    {
+      id: "ent-07", cat: "entrepreneurship", level: "hard",
+      q: "A profitable business can still fail if…",
+      options: [
+        "It runs out of cash to pay its bills on time",
+        "It has too many happy customers",
+        "It keeps good records",
+        "It sells at a price above cost"
+      ],
+      answer: 0,
+      explain: "Profit on paper is not the same as cash in hand. If customers pay late while bills are due now, the business can run short."
+    },
+    {
+      id: "ent-08", cat: "entrepreneurship", level: "easy",
+      q: "Which is a sign of good customer service?",
+      options: [
+        "Listening to complaints and fixing problems quickly",
+        "Ignoring complaints",
+        "Arguing with customers",
+        "Changing prices without telling anyone"
+      ],
+      answer: 0,
+      explain: "Customers who feel respected come back and recommend you to others."
+    },
+    {
+      id: "ent-09", cat: "entrepreneurship", level: "easy",
+      q: "Why is it useful to keep a record of your customers?",
+      options: [
+        "You can follow up and serve repeat customers better",
+        "It makes your shop look bigger",
+        "It removes the need to sell",
+        "It lowers your costs automatically"
+      ],
+      answer: 0,
+      explain: "Knowing who buys, what they buy and when helps you plan stock and keep them coming back."
+    },
+    {
+      id: "ent-10", cat: "entrepreneurship", level: "medium",
+      q: "What is \u201Cworking capital\u201D?",
+      options: [
+        "Money available for the day-to-day running of the business",
+        "The owner\u2019s salary",
+        "The value of the building",
+        "Last year\u2019s profit only"
+      ],
+      answer: 0,
+      explain: "Working capital pays for stock, wages, transport and other daily costs while you wait for sales money to come in."
+    },
+    {
+      id: "ent-11", cat: "entrepreneurship", level: "medium",
+      q: "What does \u201Cbootstrapping\u201D a business mean?",
+      options: [
+        "Starting and growing it with your own savings and sales",
+        "Buying shoes for staff",
+        "Selling the business immediately",
+        "Relying only on outside investors"
+      ],
+      answer: 0,
+      explain: "Bootstrapping keeps control in your hands and forces discipline, though growth can be slower."
+    },
+    {
+      id: "ent-12", cat: "entrepreneurship", level: "medium",
+      q: "Selling goods on credit without keeping records mainly risks…",
+      options: [
+        "Losing track of who owes you and not recovering your money",
+        "Having too many customers",
+        "Paying too much tax",
+        "Getting better prices"
+      ],
+      answer: 0,
+      explain: "Always write down who owes what and when it is due. Unrecorded credit is one of the most common ways small businesses lose money."
+    },
+    {
+      id: "ent-13", cat: "entrepreneurship", level: "hard",
+      q: "It costs \u20A6600 to make an item. You want a 25% markup on cost. What should the selling price be?",
+      options: ["\u20A6625", "\u20A6700", "\u20A6750", "\u20A6800"],
+      answer: 2,
+      explain: "25% of \u20A6600 is \u20A6150. Add it to the cost: \u20A6600 + \u20A6150 = \u20A6750."
+    },
+    {
+      id: "ent-14", cat: "entrepreneurship", level: "medium",
+      q: "What does it mean to reinvest profit?",
+      options: [
+        "Use part of the profit to grow the business",
+        "Spend all of it on personal items",
+        "Hide it from the records",
+        "Give it all away"
+      ],
+      answer: 0,
+      explain: "Putting part of the profit back into stock, equipment or marketing helps the business grow stronger over time."
     }
   ]
 };

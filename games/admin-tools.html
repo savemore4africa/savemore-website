@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>SAVEMORE GAMES | Admin tools</title>
+<meta name="theme-color" content="#075e3b">
+<link rel="icon" type="image/png" href="../icon-192.png">
+<link rel="stylesheet" href="games.css">
+<style>
+  textarea { width: 100%; min-height: 140px; font: 13px/1.4 monospace; padding: 10px; border: 2px solid var(--line); border-radius: 12px; margin-top: 8px; }
+  pre { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 13px; white-space: pre-wrap; word-break: break-word; margin-top: 10px; }
+  .ok { color: var(--ok); font-weight: bold; }
+  .err { color: var(--bad); font-weight: bold; }
+  input[type=file] { margin-top: 8px; max-width: 100%; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a class="logo" href="index.html">SAVEMORE <span>GAMES</span></a>
+  <a class="back" href="index.html">All games</a>
+</header>
+
+<main id="main">
+  <h1>Admin tools</h1>
+  <p class="lead">For SAVEMORE administrators. Nothing here changes any savings, MORE or member record.</p>
+
+  <section class="card">
+    <h2>1. Test the server</h2>
+    <p>Checks that the games server is deployed and reachable. It works for anyone, with no login.</p>
+    <button type="button" class="btn" id="pingBtn">Test the server</button>
+    <pre id="pingOut" hidden></pre>
+  </section>
+
+  <section class="card">
+    <h2>2. Import challenge questions</h2>
+    <p>You must be logged in to the Member Portal with your administrator account. Choose the <b>challenge-questions.json</b> file, or paste its contents, then tap Import. Importing again with the same ids safely updates those questions.</p>
+    <p id="who" class="hint">Checking login&hellip;</p>
+    <input type="file" id="fileIn" accept=".json,application/json">
+    <textarea id="jsonIn" placeholder="Or paste the questions here" spellcheck="false"></textarea>
+    <button type="button" class="btn" id="importBtn">Import questions</button>
+    <pre id="importOut" hidden></pre>
+  </section>
+
+  <p class="fine">Keep challenge-questions.json private. Do not upload it to GitHub, because its answers would become public.</p>
+</main>
+
+<script src="games-config.js"></script>
+<script>
+(function () {
+  'use strict';
+  var cfg = window.SM_GAMES_CONFIG;
+  function $(id) { return document.getElementById(id); }
+  function show(id, text, ok) {
+    var o = $(id); o.hidden = false; o.textContent = text; o.className = ok ? 'ok' : 'err';
+  }
+
+  function api(name, data, token) {
+    var h = { 'Content-Type': 'application/json' };
+    if (token) h.Authorization = 'Bearer ' + token;
+    return fetch(cfg.apiBase + '/' + name, { method: 'POST', headers: h, body: JSON.stringify({ data: data || {} }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        if (j && j.result !== undefined) return j.result;
+        throw new Error((j && j.error && (j.error.status + ': ' + j.error.message)) || 'No answer from the server.');
+      });
+  }
+
+  $('pingBtn').addEventListener('click', function () {
+    show('pingOut', 'Testing\u2026', true);
+    api('gamesPing', {}).then(function (r) {
+      show('pingOut', 'Server is working.\n' + JSON.stringify(r, null, 2), true);
+    }).catch(function (e) {
+      show('pingOut', 'Could not reach the server. ' + e.message + '\nCheck apiBase in games-config.js and that the functions were deployed.', false);
+    });
+  });
+
+  var user = null;
+  function loadFirebase() {
+    var base = 'https://www.gstatic.com/firebasejs/' + cfg.sdkVersion + '/';
+    function add(src) { return new Promise(function (res, rej) { var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
+    return add(base + 'firebase-app-compat.js').then(function () { return add(base + 'firebase-auth-compat.js'); }).then(function () {
+      if (!firebase.apps.length) firebase.initializeApp(cfg.firebase);
+      return new Promise(function (resolve) {
+        var done = false;
+        firebase.auth().onAuthStateChanged(function (u) { if (!done) { done = true; resolve(u); } });
+        setTimeout(function () { if (!done) { done = true; resolve(firebase.auth().currentUser); } }, 6000);
+      });
+    });
+  }
+  loadFirebase().then(function (u) {
+    user = u;
+    $('who').textContent = u ? 'Logged in as ' + (u.email || 'a member') + '.' : 'Not logged in. Log in at the Member Portal with your administrator account, then reload this page.';
+  }).catch(function () { $('who').textContent = 'Could not load the login library.'; });
+
+  $('fileIn').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () { $('jsonIn').value = String(rd.result); };
+    rd.readAsText(f);
+  });
+
+  $('importBtn').addEventListener('click', function () {
+    var list;
+    try { list = JSON.parse($('jsonIn').value); } catch (e) { show('importOut', 'That is not valid JSON. Choose the file again.', false); return; }
+    if (!Array.isArray(list)) { show('importOut', 'Expected a list of questions.', false); return; }
+    if (!user) { show('importOut', 'Please log in to the Member Portal as an administrator first.', false); return; }
+    show('importOut', 'Importing ' + list.length + ' questions\u2026', true);
+    user.getIdToken().then(function (t) { return api('seedQuestions', { questions: list }, t); })
+      .then(function (r) { show('importOut', 'Done. Imported ' + r.imported + ' questions.', true); })
+      .catch(function (e) { show('importOut', 'Import failed. ' + e.message, false); });
+  });
+})();
+</script>
+</body>
+</html>

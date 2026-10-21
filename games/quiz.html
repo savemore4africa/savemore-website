@@ -39,6 +39,14 @@
     <h1 id="pickTitle">Quiz Challenge</h1>
     <p class="lead">Pick a category. Each round has 10 questions, and you will see the explanation after every answer.</p>
     <div class="stats-line" id="statsLine"></div>
+
+    <div class="member-box" id="memberBox" hidden>
+      <h2>Daily Challenge</h2>
+      <p>One new set of 10 questions every day for SAVEMORE members. Scored by our server, with daily and weekly leaderboards.</p>
+      <button type="button" class="btn" id="dailyBtn">Play today&rsquo;s challenge</button>
+      <button type="button" class="btn btn-ghost" id="lbBtn">Leaderboards</button>
+    </div>
+
     <div class="cat-list" id="catList"></div>
     <button type="button" class="btn btn-ghost" id="badgesBtn">My badges</button>
     <p class="fine">Your best scores, points and badges are saved on this device only. Game points are for fun and learning, have no cash value, and are separate from your SAVEMORE savings and MORE.</p>
@@ -129,6 +137,45 @@
     <p class="fine">Badges and points are saved on this device only. If you clear your browser data they will be reset.</p>
   </section>
 
+  <!-- 6. Daily Challenge (members) -->
+  <section id="screenDaily" hidden aria-labelledby="dailyTitle">
+    <button type="button" class="link-btn" id="dailyBack">&larr; Back to the quiz</button>
+    <h1 id="dailyTitle" tabindex="-1">Daily Challenge</h1>
+    <p class="lead" id="dailyMsg">Checking your account&hellip;</p>
+    <div id="dailyInfo"></div>
+    <div class="daily-actions" id="dailyActions"></div>
+
+    <div id="dailyPlay" hidden>
+      <div class="play-top">
+        <p class="timer-chip" id="dTimerChip">Time left: <strong id="dTimer">10:00</strong></p>
+        <p class="points-chip" id="dCount">1 / 10</p>
+      </div>
+      <div class="bar" id="dBar" role="progressbar" aria-label="Challenge progress" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0">
+        <div class="bar-fill" id="dBarFill"></div>
+      </div>
+      <p class="cat-tag" id="dTag"></p>
+      <h2 class="question" id="dQ"></h2>
+      <div class="options" id="dOptions" role="group" aria-labelledby="dQ"></div>
+      <p class="hint">Answers and explanations appear after you submit.</p>
+      <button type="button" class="btn" id="dNext" disabled>Next question</button>
+    </div>
+
+    <div id="dailyResult" hidden></div>
+  </section>
+
+  <!-- 7. Leaderboards -->
+  <section id="screenLb" hidden aria-labelledby="lbTitle">
+    <button type="button" class="link-btn" id="lbBack">&larr; Back to the quiz</button>
+    <h1 id="lbTitle">Leaderboards</h1>
+    <div class="seg" role="group" aria-label="Leaderboard period">
+      <button type="button" class="seg-btn on" id="lbDaily" aria-pressed="true">Today</button>
+      <button type="button" class="seg-btn" id="lbWeekly" aria-pressed="false">This week</button>
+    </div>
+    <p class="lead" id="lbMsg">Loading&hellip;</p>
+    <ol class="lb-list" id="lbList"></ol>
+    <p class="fine">Only first names and scores are shown. Points are for fun and have no cash value. Only members can appear on the leaderboards.</p>
+  </section>
+
 </main>
 
 <footer class="site-footer">
@@ -137,6 +184,8 @@
 </footer>
 
 <script src="questions.js" defer></script>
+<script src="games-config.js" defer></script>
 <script src="quiz.js" defer></script>
+<script src="challenge.js" defer></script>
 </body>
 </html>

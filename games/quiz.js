@@ -46,7 +46,9 @@
     setup: $('screenSetup'),
     play: $('screenPlay'),
     result: $('screenResult'),
-    badges: $('screenBadges')
+    badges: $('screenBadges'),
+    daily: $('screenDaily'),
+    lb: $('screenLb')
   };
   var data = window.SM_QUIZ;
 
@@ -542,6 +544,9 @@
     round = null;
     buildPick();
   });
+
+  // lets challenge.js (member features) use the same screens
+  window.SMG = { show: show, home: buildPick };
 
   buildPick();
 })();

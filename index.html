@@ -817,6 +817,100 @@ footer {
 .price-card .pc-detail { font-size: 13px; color: #555; line-height: 1.4; }
 .price-strip-note { max-width: 900px; margin: 12px auto 0; font-size: 12px; color: #666; text-align: center; }
 @media (max-width: 560px) { .price-strip-grid { grid-template-columns: 1fr; } }
+
+/* ===== COMPACT APP-STYLE HOMEPAGE ===== */
+.games-banner {
+    display: block;
+    background: #ff8c00;
+    color: #2b1700;
+    text-align: center;
+    padding: 9px 6%;
+    font-size: 15px;
+    text-decoration: none;
+    line-height: 1.4;
+}
+.games-banner strong { color: #2b1700; }
+.games-banner span { text-decoration: underline; font-weight: bold; white-space: nowrap; }
+
+.quick-actions { padding: 22px 5% 8px; }
+.qa-grid {
+    max-width: 900px;
+    margin: auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+.qa-tile {
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    padding: 16px 6px 14px;
+    text-align: center;
+    text-decoration: none;
+    color: #075e3b;
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 1.25;
+}
+.qa-tile .qa-icon { display: block; font-size: 30px; margin-bottom: 6px; }
+.qa-tile:hover { box-shadow: 0 4px 15px rgba(7,94,59,0.25); }
+
+.games-promo { padding: 14px 5% 8px; }
+.games-card {
+    max-width: 900px;
+    margin: auto;
+    background: #075e3b;
+    color: #fff;
+    border-radius: 15px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.games-card h2 { font-size: 20px; color: #fff; margin: 0 0 2px; }
+.games-card p { margin: 0; color: #ffcf99; font-weight: bold; }
+.games-card small { color: #dff0e7; font-size: 13px; }
+.games-card .button { margin-top: 0; }
+
+section.folded { padding: 6px 5%; background: none !important; }
+.sec-fold { max-width: 900px; margin: auto; }
+.sec-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid #dfe7e3;
+    border-radius: 14px;
+    padding: 16px 18px;
+    color: #075e3b;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    list-style: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.sec-summary::-webkit-details-marker { display: none; }
+.sec-summary::after {
+    content: "\203A";
+    font-size: 26px;
+    line-height: 1;
+    color: #ff8c00;
+    transform: rotate(90deg);
+    transition: transform 0.2s;
+}
+.sec-fold[open] > .sec-summary { border-color: #075e3b; }
+.sec-fold[open] > .sec-summary::after { transform: rotate(-90deg); }
+.sec-body { padding: 18px 0 14px; }
+
+@media (min-width: 700px) {
+    .qa-grid { grid-template-columns: repeat(6, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sec-summary::after { transition: none; }
+}
 </style>
 </head>
 
@@ -888,7 +982,14 @@ SAVEMORE
 <strong id="moreTickerValue">₦215</strong>
 <span id="moreTickerDetail">(₦5 × 43 paid applicants)</span></a>
 <div class="more-ticker-sub" id="moreRemainingWrap" style="display:none;"></div>
+
+
 </div>
+
+<a class="games-banner" href="games/index.html">
+&#127918; <strong>New: SAVEMORE GAMES</strong><br>
+Save. Play. Learn. Grow. <span>Play free &rsaquo;</span>
+</a>
 
 
 <!-- HERO -->
@@ -926,6 +1027,19 @@ Member Portal
 </section>
 
 
+<!-- QUICK ACTIONS -->
+
+<section class="quick-actions" aria-label="Quick actions">
+<div class="qa-grid">
+<a class="qa-tile" href="#products"><span class="qa-icon">&#128176;</span>Savings Products</a>
+<a class="qa-tile" href="#calculator"><span class="qa-icon">&#129518;</span>Calculator</a>
+<a class="qa-tile" href="#education"><span class="qa-icon">&#128218;</span>Learn</a>
+<a class="qa-tile" href="games/index.html"><span class="qa-icon">&#127918;</span>Games</a>
+<a class="qa-tile" href="#more"><span class="qa-icon">&#128200;</span>MORE</a>
+<a class="qa-tile" href="portal.html"><span class="qa-icon">&#128274;</span>Member Portal</a>
+</div>
+</section>
+
 <!-- LIVE PRICES -->
 <section class="price-strip" id="prices">
 <div class="price-strip-grid">
@@ -943,11 +1057,27 @@ Member Portal
 <p class="price-strip-note">The reference value is a formula figure (&#8358;5 &times; paid applicants), not a redemption guarantee. The registration fee rises in steps of 40 members. <a href="#more">How MORE works</a> &middot; <a href="fees.html">Fees</a></p>
 </section>
 
+<!-- SAVEMORE GAMES -->
+
+<section id="games" class="games-promo">
+<div class="games-card">
+<div>
+<h2>&#127918; SAVEMORE GAMES</h2>
+<p>Save. Play. Learn. Grow.</p>
+<small>Free quiz &middot; No sign-up needed</small>
+</div>
+<a class="button" href="games/index.html">Play now</a>
+</div>
+</section>
+
+
+
 <!-- ABOUT -->
 
-<section id="about">
-
-<h2 class="section-title">About SAVEMORE</h2>
+<section id="about" class="folded">
+<details class="sec-fold">
+<summary class="sec-summary">About SAVEMORE</summary>
+<div class="sec-body">
 
 <div class="about">
 
@@ -973,14 +1103,17 @@ the foundation for meaningful long-term financial progress.
 
 </div>
 
+</div>
+</details>
 </section>
 
 
 <!-- VIDEO -->
 
-<section style="background: #eef7f2; text-align: center;">
-
-<h2 class="section-title">See Our Products in Action</h2>
+<section style="background: #eef7f2; text-align: center;" class="folded">
+<details class="sec-fold">
+<summary class="sec-summary">See Our Products in Action</summary>
+<div class="sec-body">
 
 <div style="max-width: 700px; margin: 0 auto;">
 <video controls preload="none" poster="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20800%20450%22%3E%3Cdefs%3E%3ClinearGradient%20id=%22g%22%20x1=%220%22%20y1=%220%22%20x2=%221%22%20y2=%221%22%3E%3Cstop%20offset=%220%22%20stop-color=%22%23075e3b%22/%3E%3Cstop%20offset=%221%22%20stop-color=%22%230b8f5b%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width=%22800%22%20height=%22450%22%20fill=%22url%28%23g%29%22/%3E%3Ccircle%20cx=%22400%22%20cy=%22195%22%20r=%2262%22%20fill=%22%23ff8c00%22/%3E%3Cpolygon%20points=%22382,163%20382,227%20438,195%22%20fill=%22%23ffffff%22/%3E%3Ctext%20x=%22400%22%20y=%22320%22%20text-anchor=%22middle%22%20font-family=%22Arial,Helvetica,sans-serif%22%20font-size=%2240%22%20font-weight=%22bold%22%20fill=%22%23ffffff%22%3ESAVEMORE%3C/text%3E%3Ctext%20x=%22400%22%20y=%22362%22%20text-anchor=%22middle%22%20font-family=%22Arial,Helvetica,sans-serif%22%20font-size=%2222%22%20fill=%22%23ffffff%22%3ESee%20our%20products%20in%20action%3C/text%3E%3C/svg%3E" style="width: 100%; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.12);">
@@ -989,14 +1122,17 @@ Your browser does not support the video tag.
 </video>
 </div>
 
+</div>
+</details>
 </section>
 
 
 <!-- PRODUCTS -->
 
-<section id="products">
-
-<h2 class="section-title">Our Savings Products</h2>
+<section id="products" class="folded">
+<details class="sec-fold">
+<summary class="sec-summary">Our Savings Products</summary>
+<div class="sec-body">
 
 <div class="cards">
 
@@ -1105,14 +1241,17 @@ Our fee is progressive and rises in steps of 40 members.
 </ul>
 </div>
 
+</div>
+</details>
 </section>
 
 
 <!-- SAVINGS CALCULATOR -->
 
-<section id="calculator">
-
-<h2 class="section-title">Savings Calculator</h2>
+<section id="calculator" class="folded">
+<details class="sec-fold">
+<summary class="sec-summary">Savings Calculator</summary>
+<div class="sec-body">
 
 <div class="calc-box">
 
@@ -1165,14 +1304,17 @@ Our fee is progressive and rises in steps of 40 members.
 
 <p class="calc-note" id="calcNote"></p>
 
+</div>
+</details>
 </section>
 
 
 <!-- HOW IT WORKS -->
 
-<section class="steps">
-
-<h2 class="section-title">How SAVEMORE Works</h2>
+<section class="steps folded">
+<details class="sec-fold">
+<summary class="sec-summary">How SAVEMORE Works</summary>
+<div class="sec-body">
 
 <div class="cards">
 
@@ -1221,14 +1363,17 @@ Our fee is progressive and rises in steps of 40 members.
 
 </div>
 
+</div>
+</details>
 </section>
 
 
 <!-- TRUST -->
 
-<section id="trust">
-
-<h2 class="section-title">Why Members Trust SAVEMORE</h2>
+<section id="trust" class="folded">
+<details class="sec-fold">
+<summary class="sec-summary">Why Members Trust SAVEMORE</summary>
+<div class="sec-body">
 
 <div class="cards">
 
@@ -1274,13 +1419,16 @@ SAVEMORE is not a bank, and savings are not insured by the NDIC. Please read our
 <a href="risk.html">Risk Disclosure</a> before you start.
 </p>
 
+</div>
+</details>
 </section>
 
 <!-- FINANCIAL EDUCATION -->
 
-<section id="education" class="education">
-
-<h2 class="section-title">SAVEMORE Financial Education Series</h2>
+<section id="education" class="education folded">
+<details class="sec-fold">
+<summary class="sec-summary">SAVEMORE Financial Education Series</summary>
+<div class="sec-body">
 
 <div class="about">
 
@@ -1349,42 +1497,17 @@ saving, budgeting, spending and personal financial management.
 
 </div>
 
-</section>
-
-
-<!-- SAVEMORE GAMES -->
-
-<section id="games">
-
-<h2 class="section-title">SAVEMORE GAMES</h2>
-
-<div class="about">
-
-<p>
-<strong>Save. Play. Learn. Grow.</strong>
-</p>
-
-<br>
-
-<p>
-Test what you know about savings, budgeting and business with our free
-Quiz Challenge. Short rounds, instant explanations, and no sign-up needed.
-</p>
-
-<a class="button" href="games/index.html">
-Play the Quiz Challenge
-</a>
-
 </div>
-
+</details>
 </section>
 
 
 <!-- WHITE PAPER -->
 
-<section id="whitepaper">
-
-<h2 class="section-title">SAVEMORE White Paper 2.0</h2>
+<section id="whitepaper" class="folded">
+<details class="sec-fold">
+<summary class="sec-summary">SAVEMORE White Paper 2.0</summary>
+<div class="sec-body">
 
 <div class="about">
 
@@ -1400,14 +1523,17 @@ Read White Paper 2.0
 
 </div>
 
+</div>
+</details>
 </section>
 
 
 <!-- MORE 1.0 -->
 
-<section class="education" id="more">
-
-<h2 class="section-title">MORE 1.0</h2>
+<section class="education folded" id="more">
+<details class="sec-fold">
+<summary class="sec-summary">MORE 1.0</summary>
+<div class="sec-body">
 
 <div class="about">
 
@@ -1526,14 +1652,17 @@ Read MORE 1.0
 
 </div>
 
+</div>
+</details>
 </section>
 
 
 <!-- NEWS / ANNOUNCEMENTS -->
 
-<section id="news">
-
-<h2 class="section-title">News &amp; Announcements</h2>
+<section id="news" class="folded">
+<details class="sec-fold">
+<summary class="sec-summary">News &amp; Announcements</summary>
+<div class="sec-body">
 
 <div class="news-list">
 
@@ -1583,14 +1712,17 @@ series, White Paper, Policy documents and more, all in one place.
 
 </div>
 
+</div>
+</details>
 </section>
 
 
 <!-- KYC / REGISTRATION -->
 
-<section id="kyc" class="education">
-
-<h2 class="section-title">KYC &amp; Registration Information</h2>
+<section id="kyc" class="education folded">
+<details class="sec-fold">
+<summary class="sec-summary">KYC &amp; Registration Information</summary>
+<div class="sec-body">
 
 <div class="about">
 
@@ -1631,14 +1763,17 @@ Start Registration on WhatsApp
 
 </div>
 
+</div>
+</details>
 </section>
 
 
 <!-- TRANSPARENCY -->
 
-<section id="transparency" class="education">
-
-<h2 class="section-title">Transparency Comes First</h2>
+<section id="transparency" class="education folded">
+<details class="sec-fold">
+<summary class="sec-summary">Transparency Comes First</summary>
+<div class="sec-body">
 
 <div class="about">
 
@@ -1692,14 +1827,17 @@ to keep things clear:
 </p>
 </div>
 
+</div>
+</details>
 </section>
 
 
 <!-- ROADMAP -->
 
-<section id="roadmap" class="roadmap">
-
-<h2 class="section-title">Our Strategic Roadmap</h2>
+<section id="roadmap" class="roadmap folded">
+<details class="sec-fold">
+<summary class="sec-summary">Our Strategic Roadmap</summary>
+<div class="sec-body">
 
 <details class="fold" style="max-width:850px; margin:auto;">
 <summary>View the full roadmap (2026–2030+)</summary>
@@ -1784,14 +1922,17 @@ capital formation and productive investment.
 </div>
 </details>
 
+</div>
+</details>
 </section>
 
 
 <!-- FIVE PILLARS -->
 
-<section>
-
-<h2 class="section-title">Our Five Strategic Pillars</h2>
+<section class="folded">
+<details class="sec-fold">
+<summary class="sec-summary">Our Five Strategic Pillars</summary>
+<div class="sec-body">
 
 <div class="cards">
 
@@ -1822,6 +1963,8 @@ capital formation and productive investment.
 
 </div>
 
+</div>
+</details>
 </section>
 
 
@@ -2110,6 +2253,35 @@ onProductChange();
 <a href="https://wa.me/2348031509452?text=Hi%2C%20I%20have%20a%20question%20about%20SAVEMORE" target="_blank" class="whatsapp-float" aria-label="Chat with SAVEMORE on WhatsApp" title="Chat with us on WhatsApp">
 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"></path><path d="M12.031 0h-.063C5.373 0 .312 5.062.312 11.406c0 2.531.788 4.878 2.13 6.807L1 24l6.007-1.577c1.86 1.024 3.996 1.615 6.286 1.615h.005c6.594 0 11.702-5.062 11.702-11.406C24.938 6.226 19.626 0 12.031 0zm5.943 17.302c-.876.876-2.386 1.379-4.246 1.379h-.004c-1.999 0-4.086-.622-5.855-1.717l-.42-.25-3.564.935.952-3.475-.273-.436C3.34 12.164 2.68 9.9 2.68 7.535 2.68 3.774 6.32.397 12.03.397c2.85 0 5.53 1.109 7.54 3.12 2.01 2.011 3.118 4.69 3.116 7.54-.002 4.076-3.712 6.245-4.712 6.245z"></path></svg>
 </a>
+
+<script>
+/* Open a collapsed section when a link points to it, then scroll to it. */
+(function () {
+    function reveal(id) {
+        var t = document.getElementById(id);
+        if (!t) return null;
+        var d = t.querySelector('details.sec-fold');
+        if (d) d.open = true;
+        return t;
+    }
+    document.addEventListener('click', function (e) {
+        var a = e.target.closest ? e.target.closest('a[href^="#"]') : null;
+        if (!a) return;
+        var id = a.getAttribute('href').slice(1);
+        if (!id) return;
+        var t = reveal(id);
+        if (t) {
+            e.preventDefault();
+            t.scrollIntoView();
+            if (window.history && history.replaceState) history.replaceState(null, '', '#' + id);
+        }
+    });
+    if (location.hash.length > 1) {
+        var t = reveal(decodeURIComponent(location.hash.slice(1)));
+        if (t) setTimeout(function () { t.scrollIntoView(); }, 60);
+    }
+})();
+</script>
 
 </body>
 </html>

@@ -503,7 +503,8 @@
       missedBox.hidden = true;
     }
 
-    var pageUrl = window.location.href.split('#')[0].split('?')[0];
+    // "?r=wa" gives WhatsApp a fresh address to read, so it builds a new preview card instead of reusing an old cached one.
+    var pageUrl = window.location.href.split('#')[0].split('?')[0] + '?r=wa';
     var msg = 'I scored ' + correct + '/' + total + ' (' + round.points + ' points) on the SAVEMORE Quiz Challenge: ' +
       cat.name + ', ' + LEVEL_NAME[round.level] + '. Can you beat me? ' + pageUrl;
     $('shareBtn').href = 'https://wa.me/?text=' + encodeURIComponent(msg);

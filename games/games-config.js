@@ -9,7 +9,7 @@
   firebase: the same public web settings your Member Portal already uses.
 */
 window.SM_GAMES_CONFIG = {
-  enabled: false,
+  enabled: true,
   apiBase: 'https://savemore-games.buymore4africa.workers.dev',
   firebase: {
     apiKey: 'AIzaSyBj8opxzN423qkwPGy5IhhxWHBPAZlwOJo',

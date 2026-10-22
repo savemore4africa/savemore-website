@@ -150,41 +150,6 @@ button.secondary {
     margin-bottom: 18px;
 }
 
-.member-group {
-    background: #fff;
-    border: 1px solid #eee;
-    border-left: 5px solid #075e3b;
-    border-radius: 10px;
-    margin-bottom: 16px;
-    padding: 0 14px;
-}
-.member-group > summary {
-    cursor: pointer;
-    list-style: none;
-    padding: 14px 0;
-    font-size: 17px;
-    font-weight: bold;
-}
-.member-group > summary::-webkit-details-marker { display: none; }
-.member-group > summary::after { content: "▾"; float: right; color: #999; }
-.member-group[open] > summary::after { content: "▴"; }
-.member-group-count {
-    font-size: 13px;
-    padding: 2px 9px;
-    border-radius: 10px;
-    background: #f1f1f1;
-    color: #555;
-    margin-left: 6px;
-}
-.member-group-body { padding-bottom: 6px; }
-.member-group-body:empty::before {
-    content: "No members in this group.";
-    display: block;
-    color: #777;
-    font-size: 14px;
-    padding: 4px 0 16px;
-}
-
 .member-card h3 {
     color: #075e3b;
     margin-bottom: 4px;
@@ -600,6 +565,10 @@ PIN (in addition to your password) every time you log in.
 <button type="button" class="menu-item" role="menuitem" data-svc="community chat whatsapp" onclick="closeAdminMenu(); window.open('chat.html', '_blank')">
 <svg viewBox="0 0 24 24"><path d="M4 12.5c0-4.4 3.8-8 8.5-8s8.5 3.6 8.5 8-3.8 8-8.5 8c-1.1 0-2.2-.2-3.1-.6L4 21l1.3-3.9C4.5 15.9 4 14.3 4 12.5Z"></path></svg>
 <span>Community Chat</span>
+</button>
+<button type="button" class="menu-item" role="menuitem" data-svc="games import challenge questions admin tools" onclick="closeAdminMenu(); window.open('games/admin-tools.html', '_blank')">
+<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="5"></rect><path d="M8 10v4M6 12h4"></path><path d="M15.5 11.2h.01M17.8 13h.01"></path></svg>
+<span>Games: Import Questions</span>
 </button>
 <button type="button" class="menu-item" role="menuitem" data-svc="fix member id logins" onclick="closeAdminMenu(); backfillMemberIdLookups()">
 <svg viewBox="0 0 24 24"><path d="m14.5 6.5 3 3-8 8-3.8.8.8-3.8z"></path><path d="M17 4l3 3"></path></svg>
@@ -1256,8 +1225,6 @@ function jumpToPending(detailsPrefix, memberId) {
 
     var card = document.getElementById('memberCard-' + memberId);
     if (!card) return;
-    var grp = card.closest('details.member-group');
-    if (grp) grp.open = true;
     var outer = card.querySelector(':scope > details');
     if (outer) outer.open = true;
     var target = document.getElementById(detailsPrefix + '-' + memberId);
@@ -1367,35 +1334,6 @@ async function backfillMemberIdLookups() {
     }
 }
 
-var MEMBER_GROUPS = [
-    { key: 'Active', label: 'Active', color: '#075e3b' },
-    { key: 'Pending Review', label: 'Pending', color: '#c96a00' },
-    { key: 'Suspended', label: 'Suspended', color: '#b3261e' }
-];
-var memberFilterWasActive = false;
-
-function memberGroupKey(status) {
-    return (status === 'Active' || status === 'Suspended') ? status : 'Pending Review';
-}
-
-function buildMemberGroups(list) {
-    MEMBER_GROUPS.forEach(function(g) {
-        var d = document.createElement('details');
-        d.className = 'member-group';
-        d.setAttribute('data-group', g.key);
-        d.style.borderLeftColor = g.color;
-        d.innerHTML = '<summary style="color:' + g.color + ';">' + g.label +
-            ' <span class="member-group-count">0</span></summary>' +
-            '<div class="member-group-body"></div>';
-        list.appendChild(d);
-    });
-}
-
-function memberGroupBody(status) {
-    return document.querySelector('#membersList details.member-group[data-group="' +
-        memberGroupKey(status) + '"] .member-group-body');
-}
-
 function filterMemberCards() {
     var searchText = document.getElementById('memberSearch').value.trim().toLowerCase();
     var statusFilter = document.getElementById('memberStatusFilter').value;
@@ -1410,26 +1348,8 @@ function filterMemberCards() {
         if (show) visibleCount++;
     });
 
-    var filtering = !!(searchText || statusFilter !== 'All');
-
-    document.querySelectorAll('#membersList details.member-group').forEach(function(g) {
-        var groupCards = g.querySelectorAll('.member-card');
-        var visible = 0;
-        groupCards.forEach(function(c) { if (c.style.display !== 'none') visible++; });
-        var countEl = g.querySelector('.member-group-count');
-        if (countEl) countEl.textContent = filtering ? (visible + ' of ' + groupCards.length) : groupCards.length;
-        if (filtering) {
-            g.style.display = visible > 0 ? '' : 'none';
-            g.open = visible > 0;
-        } else {
-            g.style.display = '';
-            if (memberFilterWasActive) g.open = false;
-        }
-    });
-    memberFilterWasActive = filtering;
-
     var countEl = document.getElementById('filterResultCount');
-    if (filtering) {
+    if (searchText || statusFilter !== 'All') {
         countEl.textContent = 'Showing ' + visibleCount + ' of ' + cards.length + ' member(s)';
         countEl.style.display = 'block';
     } else {
@@ -1620,8 +1540,6 @@ function loadMembers() {
             return;
         }
 
-        buildMemberGroups(list);
-
         snapshot.forEach(function(doc) {
             var m = doc.data();
             var id = doc.id;
@@ -1652,7 +1570,7 @@ function loadMembers() {
                 '<details>' +
                 '<summary style="cursor:pointer; list-style:none;">' +
                     '<h3 style="display:inline;">' + escapeHtml(m.name || 'Unnamed') + '</h3>' +
-                    ' <span class="member-status-badge" style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">' + escapeHtml(m.status || 'Pending Review') + '</span>' +
+                    ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">' + escapeHtml(m.status || 'Pending Review') + '</span>' +
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#fff4e5; color:#ff8c00;">MORE: ' + (m.shares || 0) + ' (Allotted ' + splitMore(m).allotted + ' · Purchased ' + splitMore(m).purchased + ')</span>' +
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">Balance: ₦' + nairaBalanceSummary.toLocaleString('en-NG') + '</span>' +
                     usdtBadge +
@@ -1858,10 +1776,9 @@ function loadMembers() {
                 '</div>' +
                 '</details>';
 
-            memberGroupBody(m.status).appendChild(card);
+            list.appendChild(card);
             checkPendingSellDot(id, m.name || 'Unnamed');
         });
-        filterMemberCards();
     }).catch(function(error) {
         list.innerHTML = '<p>Unable to load members: ' + escapeHtml(error.message) + '</p>';
     });
@@ -1979,21 +1896,6 @@ function saveMember(id) {
         var statusEl = document.getElementById('saveStatus-' + id);
         statusEl.style.display = 'inline';
         setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
-
-        var savedCard = document.getElementById('memberCard-' + id);
-        if (savedCard) {
-            savedCard.setAttribute('data-status', status);
-            var badge = savedCard.querySelector('.member-status-badge');
-            if (badge) badge.textContent = status;
-            var targetBody = memberGroupBody(status);
-            if (targetBody && savedCard.parentNode !== targetBody) {
-                targetBody.appendChild(savedCard);
-                var targetGroup = targetBody.closest('details.member-group');
-                if (targetGroup) targetGroup.open = true;
-                setTimeout(function() { savedCard.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
-            }
-            filterMemberCards();
-        }
 
         var cached = memberCache[id];
         if (cached) {

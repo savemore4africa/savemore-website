@@ -29,9 +29,12 @@
 
   <section class="card">
     <h2>1. Test the server</h2>
-    <p>Checks that the games server is deployed and reachable. It works for anyone, with no login.</p>
+    <p>Checks that the games server is set up and reachable. It works for anyone, with no login.</p>
     <button type="button" class="btn" id="pingBtn">Test the server</button>
     <pre id="pingOut" hidden></pre>
+    <p>Then check that the server is connected to its database (also works for anyone).</p>
+    <button type="button" class="btn btn-ghost" id="dbBtn">Test the database</button>
+    <pre id="dbOut" hidden></pre>
   </section>
 
   <section class="card">
@@ -73,7 +76,16 @@
     api('gamesPing', {}).then(function (r) {
       show('pingOut', 'Server is working.\n' + JSON.stringify(r, null, 2), true);
     }).catch(function (e) {
-      show('pingOut', 'Could not reach the server. ' + e.message + '\nCheck apiBase in games-config.js and that the functions were deployed.', false);
+      show('pingOut', 'Could not reach the server. ' + e.message + '\nCheck that apiBase in games-config.js is your worker\u2019s address and that the worker is deployed.', false);
+    });
+  });
+
+  $('dbBtn').addEventListener('click', function () {
+    show('dbOut', 'Testing\u2026', true);
+    api('getLeaderboards', { period: 'daily' }).then(function (r) {
+      show('dbOut', 'Database is connected. Players on today\u2019s leaderboard: ' + r.total + '.', true);
+    }).catch(function (e) {
+      show('dbOut', 'The database test failed. ' + e.message + '\nIn Cloudflare, open the Worker, then Settings, then Bindings, and check there is a D1 binding named DB that points to savemore-games-db.', false);
     });
   });
 

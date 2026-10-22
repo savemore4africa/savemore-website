@@ -617,6 +617,17 @@ Loading...
 <button class="secondary" onclick="showSignup()">New member? Create an account</button>
 </div>
 
+<!-- EMAIL VERIFICATION (new members) -->
+<div class="box hidden" id="verifyBox">
+<h2>Verify Your Email</h2>
+<p style="margin-bottom:12px;">We sent a verification link to <strong id="verifyEmailAddress"></strong>. Click the link in that email (check your spam folder too), then come back here and tap the button below.</p>
+<div class="error-msg" id="verifyError"></div>
+<div class="info-msg" id="verifyInfo"></div>
+<button onclick="checkEmailVerified()">I've verified my email — Continue</button>
+<button class="secondary" id="resendVerifyBtn" onclick="resendVerification()">Resend verification email</button>
+<button class="secondary" onclick="doLogout()">Log out</button>
+</div>
+
 <!-- SIGNUP FORM -->
 <div class="box hidden" id="signupBox">
 <h2>Create Member Account</h2>
@@ -1152,7 +1163,7 @@ function togglePasswordVisibility(inputId, btn) {
 }
 
 function showBox(id) {
-    ['loadingBox','loginBox','signupBox','dashboardBox'].forEach(function(box) {
+    ['loadingBox','loginBox','signupBox','verifyBox','dashboardBox'].forEach(function(box) {
         document.getElementById(box).classList.add('hidden');
     });
     document.getElementById(id).classList.remove('hidden');
@@ -1176,13 +1187,75 @@ function showError(boxId, message) {
 }
 
 // ---- AUTH STATE ----
+var signupInProgress = false;
+
 auth.onAuthStateChanged(function(user) {
+    if (signupInProgress) return;   // signup finishes by itself (saves the record, sends the verification email)
     if (user) {
-        loadDashboard(user);
+        routeSignedIn(user);
     } else {
         showLogin();
     }
 });
+
+// New members (flagged at signup) must verify their email before reaching the dashboard.
+// Existing members have no flag, so they are not asked to verify.
+function routeSignedIn(user) {
+    if (user.emailVerified) {
+        loadDashboard(user);
+        return;
+    }
+    db.collection('members').doc(user.uid).get().then(function(doc) {
+        if (doc.exists && doc.data().requiresEmailVerification === true) {
+            showVerifyBox(user);
+        } else {
+            loadDashboard(user);
+        }
+    }).catch(function() {
+        loadDashboard(user);   // shows its own error message if the record cannot be loaded
+    });
+}
+
+function showVerifyBox(user) {
+    document.getElementById('verifyEmailAddress').textContent = user.email || '';
+    document.getElementById('verifyError').style.display = 'none';
+    document.getElementById('verifyInfo').style.display = 'none';
+    showBox('verifyBox');
+}
+
+function checkEmailVerified() {
+    var user = auth.currentUser;
+    if (!user) { showLogin(); return; }
+    document.getElementById('verifyError').style.display = 'none';
+    user.reload().then(function() {
+        user = auth.currentUser;
+        if (user.emailVerified) {
+            return user.getIdToken(true).then(function() { loadDashboard(user); });
+        }
+        showError('verifyError', 'Your email is not verified yet. Please click the link in the email we sent, then try again.');
+    }).catch(function() {
+        showError('verifyError', 'Could not check your verification status. Please try again.');
+    });
+}
+
+function resendVerification() {
+    var user = auth.currentUser;
+    if (!user) { showLogin(); return; }
+    var btn = document.getElementById('resendVerifyBtn');
+    var infoEl = document.getElementById('verifyInfo');
+    document.getElementById('verifyError').style.display = 'none';
+    btn.disabled = true;
+    user.sendEmailVerification().then(function() {
+        infoEl.textContent = 'Verification email sent again to ' + user.email + '.';
+        infoEl.style.display = 'block';
+    }).catch(function(error) {
+        showError('verifyError', error.code === 'auth/too-many-requests'
+            ? 'Too many requests. Please wait a few minutes before trying again.'
+            : 'Could not send the email: ' + error.message);
+    }).then(function() {
+        setTimeout(function() { btn.disabled = false; }, 30000);
+    });
+}
 
 // ---- SIGNUP ----
 function generateMemberId() {
@@ -1226,6 +1299,7 @@ function doSignup() {
 
     var memberId = generateMemberId();
 
+    signupInProgress = true;
     auth.createUserWithEmailAndPassword(email, password)
         .then(function(cred) {
             return db.collection('members').doc(cred.user.uid).set({
@@ -1248,6 +1322,7 @@ function doSignup() {
                 totalSavings: 0,
                 shares: 0,
                 status: 'Pending Review',
+                requiresEmailVerification: true,
                 agreedToTermsAt: firebase.firestore.FieldValue.serverTimestamp(),
                 whatsappOptIn: whatsappOptIn,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1258,8 +1333,14 @@ function doSignup() {
         })
         .then(function() {
             notifyAdminNewMember(memberId, name, phone, email, product);
+            return auth.currentUser.sendEmailVerification();
+        })
+        .then(function() {
+            signupInProgress = false;
+            showVerifyBox(auth.currentUser);
         })
         .catch(function(error) {
+            signupInProgress = false;
             showError('signupError', error.message);
         });
 }

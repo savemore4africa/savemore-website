@@ -1052,11 +1052,9 @@ update below once reviewed.
 
 <h2 id="moreSection" style="margin-top:30px; font-size:18px;">MORE Participation</h2>
 <div class="dashboard-row"><span>Total MORE Supply</span><span>200</span></div>
-<div class="dashboard-row"><span>Allotted MORE</span><span id="dashAllotted">—</span></div>
-<div class="dashboard-row"><span>Purchased MORE</span><span id="dashPurchased">—</span></div>
-<div class="dashboard-row"><span><strong>Total MORE Held</strong></span><span id="dashShares"><strong>—</strong></span></div>
-<div class="dashboard-row"><span>Reference Value per Allotted MORE</span><span id="dashMoreValue">—</span></div>
-<div class="dashboard-row"><span>Registration Fee per Purchased MORE</span><span id="dashMoreFee">—</span></div>
+<div class="dashboard-row"><span><strong>MORE Held</strong></span><span id="dashShares"><strong>—</strong></span></div>
+<div class="dashboard-row"><span>MORE Nominal Value</span><span id="dashMoreValue">—</span></div>
+<div class="dashboard-row"><span>MORE Purchasing Price</span><span id="dashMoreFee">—</span></div>
 <div class="dashboard-row"><span><strong>Total MORE Value</strong></span><span id="dashMoreTotal"><strong>—</strong></span></div>
 
 <div style="margin-top:16px; padding:16px; background:#eef7f2; border-radius:10px;">
@@ -1082,7 +1080,7 @@ Transfers are recorded at SAVEMORE's current reference value, in whole units onl
 
 <div id="transfersList" style="margin-top:14px;"></div>
 <p style="font-size:12px; color:#888; margin-top:8px;">
-MORE reference value is calculated by SAVEMORE using its participation formula and updated
+MORE Nominal Value is calculated by SAVEMORE using its participation formula and updated
 periodically. No dividend has been declared at this time.
 </p>
 
@@ -1495,27 +1493,20 @@ function loadUsdtPriceDisplay() {
     });
 }
 
-function loadMoreValue(shares, allotted, purchased) {
+function loadMoreValue(shares) {
     currentSharesHeld = shares;
-    allotted = allotted || 0;
-    purchased = purchased || 0;
     var naira = function(n) { return '₦' + n.toLocaleString('en-NG'); };
     db.collection('settings').doc('more').get().then(function(doc) {
         var d = doc.exists ? doc.data() : {};
-        var refValue = d.referenceValuePerUnit || 0;   // value of each Allotted MORE
-        var feeValue = d.currentFee || 0;               // value of each Purchased MORE (registration fee)
+        var refValue = d.referenceValuePerUnit || 0;   // MORE Nominal Value
+        var feeValue = d.currentFee || 0;               // MORE Purchasing Price
         currentMoreRefValue = refValue;
-
-        var allottedValue = allotted * refValue;
-        var purchasedValue = purchased * feeValue;
 
         document.getElementById('dashMoreValue').textContent = refValue > 0 ? naira(refValue) : 'Not yet set';
         document.getElementById('dashMoreFee').textContent = feeValue > 0 ? naira(feeValue) : 'Not yet set';
-        document.getElementById('dashAllotted').textContent = allotted + (refValue > 0 ? ' (' + naira(allottedValue) + ')' : '');
-        document.getElementById('dashPurchased').textContent = purchased + (feeValue > 0 ? ' (' + naira(purchasedValue) + ')' : '');
 
-        if (refValue > 0 || feeValue > 0) {
-            document.getElementById('dashMoreTotal').innerHTML = '<strong>' + naira(allottedValue + purchasedValue) + '</strong>';
+        if (refValue > 0) {
+            document.getElementById('dashMoreTotal').innerHTML = '<strong>' + naira(shares * refValue) + '</strong>';
         } else {
             document.getElementById('dashMoreTotal').innerHTML = '<strong>—</strong>';
         }
@@ -1988,12 +1979,6 @@ function loadDashboard(user) {
             renderMaskedFields();
 
             var shares = data.shares || 0;
-            // Allotted / Purchased split. Older records without the split count as Allotted.
-            var hasSplit = data.allottedShares !== undefined || data.purchasedShares !== undefined;
-            var allottedMore = hasSplit ? (data.allottedShares || 0) : shares;
-            var purchasedMore = hasSplit ? (data.purchasedShares || 0) : 0;
-            document.getElementById('dashAllotted').textContent = allottedMore;
-            document.getElementById('dashPurchased').textContent = purchasedMore;
             document.getElementById('dashShares').innerHTML = '<strong>' + shares + '</strong>';
 
             var prod = data.savingsByProduct || {};
@@ -2038,7 +2023,7 @@ function loadDashboard(user) {
             }
 
             loadUsdtPriceDisplay();
-            loadMoreValue(shares, allottedMore, purchasedMore);
+            loadMoreValue(shares);
             loadSellRequests(user.uid);
             loadTransfers(user.uid);
             loadWithdrawalRequests(user.uid);

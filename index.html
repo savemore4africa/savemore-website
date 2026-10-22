@@ -979,9 +979,12 @@ SAVEMORE
 </header>
 
 <div class="more-ticker" id="moreTicker">
-<a href="#more">MORE reference value today:
+<a href="#more">MORE Nominal Value today:
 <strong id="moreTickerValue">₦215</strong>
-<span id="moreTickerDetail">(₦5 × 43 paid applicants)</span></a>
+<span id="moreTickerDetail">(₦5 × 43 paid applicants)</span><br>
+MORE Purchasing Price today:
+<strong id="moreTickerFee">₦2,000</strong>
+<span id="moreTickerFeeDetail">(members 41–80)</span></a>
 <div class="more-ticker-sub" id="moreRemainingWrap" style="display:none;"></div>
 
 
@@ -1020,7 +1023,7 @@ Member Portal
 
 <ul class="hero-trust">
 <li>4 savings products</li>
-<li>Weekly financial education</li>
+<li>Weekly financial education &amp; educational games</li>
 <li>Fees &amp; risks published openly</li>
 <li>Local office in Modakeke</li>
 </ul>
@@ -1047,17 +1050,17 @@ Member Portal
 <section class="price-strip" id="prices">
 <div class="price-strip-grid">
 <div class="price-card">
-<div class="pc-label">MORE reference value</div>
+<div class="pc-label">MORE Nominal Value</div>
 <div class="pc-value" id="pcValue">&#8358;215</div>
 <div class="pc-detail" id="pcValueDetail">&#8358;5 &times; 43 paid applicants</div>
 </div>
 <div class="price-card fee">
-<div class="pc-label">Registration fee now</div>
+<div class="pc-label">MORE Purchasing Price</div>
 <div class="pc-value" id="pcFee">&#8358;2,000</div>
-<div class="pc-detail" id="pcFeeDetail">Members 41&ndash;80 &middot; 37 spots left at this fee</div>
+<div class="pc-detail" id="pcFeeDetail">Members 41&ndash;80 &middot; 37 spots left at this price</div>
 </div>
 </div>
-<p class="price-strip-note">The reference value is a formula figure (&#8358;5 &times; paid applicants), not a redemption guarantee. The registration fee rises in steps of 40 members. <a href="#more">How MORE works</a> &middot; <a href="fees.html">Fees</a></p>
+<p class="price-strip-note">The reference value is a formula figure (&#8358;5 &times; paid applicants), not a redemption guarantee. The MORE Purchasing Price rises in steps of 40 members. <a href="#more">How MORE works</a> &middot; <a href="fees.html">Fees</a></p>
 </section>
 
 <!-- SAVEMORE GAMES -->
@@ -1232,7 +1235,7 @@ consistent daily saving over a 100-day period.
 
 
 <div class="fee-note">
-<h3>Registration Fee</h3>
+<h3>MORE Purchasing Price</h3>
 <p>
 Our fee is progressive and rises in steps of 40 members.
 <strong id="feeNoteCurrent">Current fee: ₦2,000</strong> <span id="feeNoteRange">(members 41&ndash;80).</span>
@@ -1575,7 +1578,7 @@ SAVEMORE participation formula:
 </p>
 
 <p style="margin: 15px 0; font-size: 20px; font-weight: bold; color: #075e3b;">
-MORE Reference Value = ₦5n
+MORE Nominal Value = ₦5n
 </p>
 
 <p>
@@ -1669,6 +1672,8 @@ Read MORE 1.0
 
 <div class="news-list">
 
+<div id="liveAnnouncements"></div>
+
 <!--
 HOW TO ADD A NEW ANNOUNCEMENT:
 Copy the whole block below (from <div class="news-item"> to </div>)
@@ -1690,7 +1695,7 @@ Our next 100 Days Savings Challenge kicks off soon! Here's what to know:
 </p>
 <details class="fold">
 <summary>See slot details &amp; fees</summary>
-<p style="margin-top:10px;"><strong>New applicants (41st–80th):</strong> ₦2,000 Application/Registration Fee.</p>
+<p style="margin-top:10px;"><strong>New applicants (41st–80th):</strong> ₦2,000 Application/MORE Purchasing Price.</p>
 <p style="margin-top:10px;"><strong>Existing members — choose your slot:</strong></p>
 <ul style="margin: 8px 0 8px 20px;">
 <li>¼ Slot — ₦500/day, Commitment Fee ₦500, MORE Allocation: 0.25 MORE</li>
@@ -2058,7 +2063,55 @@ var SAVEMORE_TESTIMONIALS = [
 </script>
 
 <script>
-// Live prices: MORE reference value (5 x n) and registration fee (steps of 40).
+// News & Announcements: shows announcements posted in the admin panel, newest first.
+// The static items below stay as a fallback if the live list cannot be loaded.
+(function () {
+    var URL = 'https://firestore.googleapis.com/v1/projects/savemore-portal/databases/(default)/documents:runQuery?key=AIzaSyBj8opxzN423qkwPGy5IhhxWHBPAZlwOJo';
+    var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    function esc(t) {
+        return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function str(f) { return f && f.stringValue !== undefined ? f.stringValue : ''; }
+
+    try {
+        fetch(URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ structuredQuery: {
+                from: [{ collectionId: 'announcements' }],
+                orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
+                limit: 20
+            }})
+        }).then(function (r) {
+            if (!r.ok) throw new Error('not available');
+            return r.json();
+        }).then(function (rows) {
+            var html = '';
+            for (var i = 0; i < rows.length; i++) {
+                if (!rows[i].document) continue;
+                var f = rows[i].document.fields || {};
+                var title = str(f.title), message = str(f.message);
+                if (!title && !message) continue;
+                var date = '';
+                if (f.createdAt && f.createdAt.timestampValue) {
+                    var d = new Date(f.createdAt.timestampValue);
+                    if (!isNaN(d)) date = MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+                }
+                html += '<div class="news-item">' +
+                    (date ? '<div class="news-date">' + date + '</div>' : '') +
+                    '<h3>' + esc(title) + '</h3>' +
+                    '<p>' + esc(message).replace(/\n/g, '<br>') + '</p></div>';
+            }
+            var box = document.getElementById('liveAnnouncements');
+            if (box && html) box.innerHTML = html;
+        }).catch(function () { /* keep the static announcements */ });
+    } catch (e) {}
+})();
+</script>
+
+<script>
+// Live prices: MORE Nominal Value (5 x n) and MORE Purchasing Price (steps of 40).
 // Both come from the paid-applicant count n saved in the admin panel (settings/more).
 // If the live data cannot be loaded, the fallback below is used. Update it occasionally.
 (function () {
@@ -2084,10 +2137,12 @@ var SAVEMORE_TESTIMONIALS = [
 
         set('moreTickerValue', naira(value));
         set('moreTickerDetail', '(\u20A65 \u00D7 ' + n + ' paid applicants)');
+        set('moreTickerFee', naira(fee));
+        set('moreTickerFeeDetail', '(members ' + from + '\u2013' + to + ')');
         set('pcValue', naira(value));
         set('pcValueDetail', '\u20A65 \u00D7 ' + n + ' paid applicants');
         set('pcFee', naira(fee));
-        set('pcFeeDetail', 'Members ' + from + '\u2013' + to + ' \u00B7 ' + left + ' spot' + (left === 1 ? '' : 's') + ' left at this fee');
+        set('pcFeeDetail', 'Members ' + from + '\u2013' + to + ' \u00B7 ' + left + ' spot' + (left === 1 ? '' : 's') + ' left at this price');
         set('feeNoteCurrent', 'Current fee: ' + naira(fee));
         set('feeNoteRange', '(members ' + from + '\u2013' + to + ').');
 

@@ -549,9 +549,9 @@ PIN (in addition to your password) every time you log in.
 <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.4"></circle><path d="M3.5 19c.8-3.2 3-5 5.5-5s4.7 1.8 5.5 5"></path><circle cx="17" cy="9" r="2.6"></circle><path d="M15 13.2c2 .2 3.6 1.7 4.2 4"></path></svg>
 <span>Members</span>
 </button>
-<button type="button" class="menu-item" role="menuitem" data-svc="more reference value price" onclick="adminMenuGo('sectionMore')">
+<button type="button" class="menu-item" role="menuitem" data-svc="MORE Nominal Value price" onclick="adminMenuGo('sectionMore')">
 <svg viewBox="0 0 24 24"><path d="M12 2.5 20.5 9l-8.5 12.5L3.5 9z"></path><path d="M3.5 9h17M12 2.5 8.3 9l3.7 12.5L15.7 9z"></path></svg>
-<span>MORE Reference Value</span>
+<span>MORE Nominal Value</span>
 </button>
 <button type="button" class="menu-item" role="menuitem" data-svc="more transfers" onclick="adminMenuGo('sectionTransfers')">
 <svg viewBox="0 0 24 24"><path d="M4 8h13M13.5 4.5 17 8l-3.5 3.5"></path><path d="M20 16H7M10.5 12.5 7 16l3.5 3.5"></path></svg>
@@ -604,10 +604,6 @@ PIN (in addition to your password) every time you log in.
 <button type="button" class="menu-item" role="menuitem" data-svc="fix member id logins" onclick="closeAdminMenu(); backfillMemberIdLookups()">
 <svg viewBox="0 0 24 24"><path d="m14.5 6.5 3 3-8 8-3.8.8.8-3.8z"></path><path d="M17 4l3 3"></path></svg>
 <span>Fix Member ID Logins</span>
-</button>
-<button type="button" class="menu-item" role="menuitem" data-svc="admin tools games" onclick="closeAdminMenu(); window.open('https://savemore4africa.github.io/savemore-website/games/admin-tools.html?v=12', '_blank')">
-<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"></path></svg>
-<span>Admin Tools</span>
 </button>
 </div>
 
@@ -669,9 +665,9 @@ PIN (in addition to your password) every time you log in.
 </div>
 
 <div class="member-card" id="sectionMore" style="border-left-color:#ff8c00;">
-<h3 style="color:#ff8c00;">MORE Reference Value</h3>
+<h3 style="color:#ff8c00;">MORE Nominal Value</h3>
 <p style="font-size:13px; color:#777; margin-bottom:12px;">
-Enter the number of paid applicants (n). The reference value (₦5 × n) and the current registration fee are worked out automatically and shown on the homepage and member dashboards.
+Enter the number of paid applicants (n). The reference value (₦5 × n) and the current MORE Purchasing Price are worked out automatically and shown on the homepage and member dashboards.
 </p>
 <div class="field-row">
 <div>
@@ -693,7 +689,7 @@ Enter the number of paid applicants (n). The reference value (₦5 × n) and the
 <div style="font-size:20px; font-weight:bold; color:#075e3b;">200</div>
 </div>
 <div>
-<label>Allotted to Members</label>
+<label>Held by Members</label>
 <div style="font-size:20px; font-weight:bold; color:#075e3b;" id="moreAllotted">—</div>
 </div>
 <div>
@@ -1564,7 +1560,7 @@ function saveMoreSettings() {
         var statusEl = document.getElementById('moreSaveStatus');
         statusEl.style.display = 'inline';
         setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
-        logActivity('MORE reference value updated', '₦' + refValue.toLocaleString('en-NG') + ' per unit (n=' + n + ')');
+        logActivity('MORE Nominal Value updated', '₦' + refValue.toLocaleString('en-NG') + ' per unit (n=' + n + ')');
     }).catch(function(error) {
         alert('Failed to save MORE settings: ' + error.message);
     });
@@ -1657,7 +1653,7 @@ function loadMembers() {
                 '<summary style="cursor:pointer; list-style:none;">' +
                     '<h3 style="display:inline;">' + escapeHtml(m.name || 'Unnamed') + '</h3>' +
                     ' <span class="member-status-badge" style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">' + escapeHtml(m.status || 'Pending Review') + '</span>' +
-                    ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#fff4e5; color:#ff8c00;">MORE: ' + (m.shares || 0) + ' (Allotted ' + splitMore(m).allotted + ' · Purchased ' + splitMore(m).purchased + ')</span>' +
+                    ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#fff4e5; color:#ff8c00;">MORE: ' + (m.shares || 0) + '</span>' +
                     ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef7f2; color:#075e3b;">Balance: ₦' + nairaBalanceSummary.toLocaleString('en-NG') + '</span>' +
                     usdtBadge +
                     referralBadge +
@@ -1732,12 +1728,8 @@ function loadMembers() {
                         '</select>' +
                     '</div>' +
                     '<div>' +
-                        '<label>Allotted MORE</label>' +
-                        '<input type="number" id="allotted-' + id + '" value="' + splitMore(m).allotted + '">' +
-                    '</div>' +
-                    '<div>' +
-                        '<label>Purchased MORE</label>' +
-                        '<input type="number" id="purchased-' + id + '" value="' + splitMore(m).purchased + '">' +
+                        '<label>MORE</label>' +
+                        '<input type="number" id="shares-' + id + '" value="' + (m.shares || 0) + '">' +
                     '</div>' +
                     '<div>' +
                         '<label>Savings Goal (₦)</label>' +
@@ -1909,33 +1901,16 @@ function progressBarHtml(m) {
         '</div>';
 }
 
-// ---- MORE split helpers (Allotted / Purchased). "shares" stays the total. ----
-function splitMore(d) {
-    var total = d.shares || 0;
-    var hasSplit = d.allottedShares !== undefined || d.purchasedShares !== undefined;
-    return {
-        allotted: hasSplit ? (d.allottedShares || 0) : total,
-        purchased: hasSplit ? (d.purchasedShares || 0) : 0
-    };
-}
-// Units sold or transferred out are taken from Purchased MORE first, then Allotted MORE.
+// ---- MORE helper: "shares" is the member's single MORE total. ----
+// Units sold or transferred out are taken off the member's MORE total.
 function deductMore(d, units) {
-    var s = splitMore(d);
-    var fromP = Math.min(s.purchased, units);
-    var fromA = units - fromP;
-    return {
-        allottedShares: s.allotted - fromA,
-        purchasedShares: s.purchased - fromP,
-        shares: (s.allotted + s.purchased) - units
-    };
+    return { shares: Math.max(0, (d.shares || 0) - units) };
 }
 
 function saveMember(id) {
     var product = document.getElementById('product-' + id).value;
     var status = document.getElementById('status-' + id).value;
-    var allottedMore = parseFloat(document.getElementById('allotted-' + id).value) || 0;
-    var purchasedMore = parseFloat(document.getElementById('purchased-' + id).value) || 0;
-    var shares = allottedMore + purchasedMore;
+    var shares = parseFloat(document.getElementById('shares-' + id).value) || 0;
     var goal = parseFloat(document.getElementById('goal-' + id).value) || 0;
     var challengeTarget = parseFloat(document.getElementById('challengeTarget-' + id).value) || 0;
     var pInvestment = parseFloat(document.getElementById('prod-investment-' + id).value) || 0;
@@ -1958,8 +1933,6 @@ function saveMember(id) {
         product: product,
         status: status,
         shares: shares,
-        allottedShares: allottedMore,
-        purchasedShares: purchasedMore,
         savingsGoal: goal,
         challengeTarget: challengeTarget,
         savingsByProduct: {
@@ -2049,7 +2022,7 @@ function exportMembersCSV() {
             'Member ID', 'Name', 'Email', 'Phone', 'Status', 'Product',
             'Occupation', 'Date of Birth', 'Bank Name', 'Account Number', 'Account Name',
             'NIN', 'Residential Address', 'Shop Address', 'Next of Kin Name', 'Next of Kin Phone',
-            'MORE Units (Total)', 'Allotted MORE', 'Purchased MORE', 'Investment Savings (₦)', 'Emergency Savings (₦)', 'In-Dollar Savings (USDT)',
+            'MORE Units', 'Investment Savings (₦)', 'Emergency Savings (₦)', 'In-Dollar Savings (USDT)',
             '100 Days Challenge (₦)', 'Total Savings (₦)', 'Savings Goal (₦)', '100 Days Challenge Target (₦)'
         ]];
 
@@ -2060,7 +2033,7 @@ function exportMembersCSV() {
                 m.memberId || '', m.name || '', m.email || '', m.phone || '', m.status || '', m.product || '',
                 m.occupation || '', m.dob || '', m.bankName || '', m.accountNumber || '', m.accountName || '',
                 m.nin || '', m.residentialAddress || '', m.shopAddress || '', m.nokName || '', m.nokPhone || '',
-                m.shares || 0, splitMore(m).allotted, splitMore(m).purchased, p.investment || 0, p.emergency || 0, p.dollar || 0,
+                m.shares || 0, p.investment || 0, p.emergency || 0, p.dollar || 0,
                 p.challenge || 0, m.totalSavings || 0, m.savingsGoal || 0, m.challengeTarget || 0
             ]);
         });
@@ -2743,13 +2716,7 @@ async function approveTransfer(id) {
             if ((sSnap.data().shares || 0) < t.units) { throw new Error('The seller no longer holds enough MORE.'); }
 
             tx.update(sRef, deductMore(sSnap.data(), t.units));
-            var bs = splitMore(bSnap.data());
-            // Units received from another member count as the buyer's Purchased MORE.
-            tx.update(bRef, {
-                allottedShares: bs.allotted,
-                purchasedShares: bs.purchased + t.units,
-                shares: bs.allotted + bs.purchased + t.units
-            });
+            tx.update(bRef, { shares: (bSnap.data().shares || 0) + t.units });
             tx.update(tRef, {
                 status: 'Completed',
                 resolvedAt: firebase.firestore.FieldValue.serverTimestamp(),

@@ -911,6 +911,45 @@ section.folded { padding: 6px 5%; background: none !important; }
 @media (prefers-reduced-motion: reduce) {
     .sec-summary::after { transition: none; }
 }
+
+/* INCOME SPLITTER */
+.bt-box { max-width: 640px; margin: auto; background: white; padding: 26px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+.bt-box h3 { color: #075e3b; font-size: 17px; margin-bottom: 10px; }
+.bt-box label { display: block; margin-bottom: 6px; font-weight: bold; color: #075e3b; font-size: 14px; }
+.bt-box input { width: 100%; padding: 10px; margin-bottom: 16px; border: 1px solid #ccc; border-radius: 8px; font-size: 15px; background: white; }
+.bt-box input:focus-visible, .bt-box button:focus-visible { outline: 3px solid #ff8c00; outline-offset: 2px; }
+.bt-split { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.bt-split input { margin-bottom: 6px; }
+.bt-bar { display: flex; height: 14px; border-radius: 8px; overflow: hidden; background: #e3e9e6; margin: 4px 0 8px; }
+.bt-bar span { display: block; height: 100%; transition: width 0.2s; }
+.bt-status { font-size: 13px; margin-bottom: 14px; }
+.bt-status.ok { color: #075e3b; }
+.bt-status.bad { color: #b3261e; font-weight: bold; }
+.bt-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.bt-row > * { flex: 1 1 140px; }
+.bt-btn { width: 100%; padding: 12px; background: #ff8c00; color: white; border: none; border-radius: 30px; font-weight: bold; font-size: 15px; cursor: pointer; }
+.bt-btn:disabled { background: #c9c9c9; cursor: not-allowed; }
+.bt-btn.alt { background: white; color: #075e3b; border: 2px solid #075e3b; padding: 8px 14px; font-size: 13px; width: auto; }
+.bt-btn.alt:hover { background: #eef7f2; }
+.bt-preview { margin: 4px 0 16px; padding: 12px 14px; background: #eef7f2; border-radius: 10px; font-size: 14px; display: none; }
+.bt-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 6px 0 18px; }
+.bt-tot { background: #eef7f2; border-radius: 10px; padding: 12px; text-align: center; }
+.bt-tot small { display: block; color: #555; font-size: 12px; }
+.bt-tot strong { color: #075e3b; font-size: 16px; word-break: break-word; }
+.bt-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.bt-sync { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 12px; font-size: 13px; color: #555; }
+.bt-list { list-style: none; max-height: 420px; overflow-y: auto; }
+.bt-item { border-top: 1px solid #e3e9e6; padding: 12px 0; font-size: 14px; }
+.bt-item-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.bt-item-top strong { color: #075e3b; font-size: 16px; }
+.bt-when { color: #555; font-size: 12px; }
+.bt-alloc { margin-top: 4px; color: #333; }
+.bt-alloc span { white-space: nowrap; margin-right: 12px; display: inline-block; }
+.bt-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #fff4e5; color: #7a4300; margin-left: 6px; }
+.bt-tag.done { background: #e3f4ea; color: #075e3b; }
+.bt-del { background: none; border: none; color: #b3261e; cursor: pointer; font-size: 12px; margin-left: 8px; text-decoration: underline; }
+.bt-empty { text-align: center; color: #555; padding: 14px 0 4px; font-size: 14px; }
+.bt-note { text-align: center; max-width: 600px; margin: 15px auto 0; font-size: 13px; color: #555; }
 </style>
 </head>
 
@@ -937,6 +976,7 @@ SAVEMORE
 <div class="dropdown">
 <a href="#products">Savings Products</a>
 <a href="#calculator">Savings Calculator</a>
+<a href="#budget">Income Splitter</a>
 </div>
 </div>
 
@@ -1312,6 +1352,58 @@ Our fee is progressive and rises in steps of 40 members.
 </div>
 
 <p class="calc-note" id="calcNote"></p>
+
+</div>
+</details>
+</section>
+
+
+<!-- INCOME SPLITTER -->
+
+<section id="budget" class="folded">
+<details class="sec-fold">
+<summary class="sec-summary">Income Splitter (50-30-20)</summary>
+<div class="sec-body">
+
+<div class="bt-box">
+
+<h3>1. Your split</h3>
+<div class="bt-split">
+<div><label for="btP0">Needs %</label><input type="number" id="btP0" inputmode="decimal" min="0" max="100" step="any"></div>
+<div><label for="btP1">Wants %</label><input type="number" id="btP1" inputmode="decimal" min="0" max="100" step="any"></div>
+<div><label for="btP2">Savings %</label><input type="number" id="btP2" inputmode="decimal" min="0" max="100" step="any"></div>
+</div>
+<div class="bt-bar" aria-hidden="true"><span id="btB0" style="background:#075e3b"></span><span id="btB1" style="background:#ff8c00"></span><span id="btB2" style="background:#1d6fb8"></span></div>
+<p class="bt-status" id="btStatus" role="status"></p>
+<button type="button" class="bt-btn alt" id="btReset">Reset to 50-30-20</button>
+
+<h3 style="margin-top:22px;">2. Record income</h3>
+<label for="btAmount">Amount received (₦)</label>
+<input type="number" id="btAmount" inputmode="decimal" min="0" step="any" placeholder="e.g. 25000">
+<div class="bt-row">
+<div><label for="btWhen">Date and time</label><input type="datetime-local" id="btWhen"></div>
+<div><label for="btNote">Source (optional)</label><input type="text" id="btNote" maxlength="60" placeholder="e.g. Salary, shop sales"></div>
+</div>
+<div class="bt-preview" id="btPreview" aria-live="polite"></div>
+<button type="button" class="bt-btn" id="btSave">Record and split</button>
+
+<h3 style="margin-top:26px;">Your totals</h3>
+<div class="bt-totals">
+<div class="bt-tot"><small>Total income</small><strong id="btTotAll">₦0.00</strong></div>
+<div class="bt-tot"><small><i class="bt-dot" style="background:#075e3b"></i>Needs</small><strong id="btTot0">₦0.00</strong></div>
+<div class="bt-tot"><small><i class="bt-dot" style="background:#ff8c00"></i>Wants</small><strong id="btTot1">₦0.00</strong></div>
+<div class="bt-tot"><small><i class="bt-dot" style="background:#1d6fb8"></i>Savings</small><strong id="btTot2">₦0.00</strong></div>
+</div>
+
+<div class="bt-sync">
+<span id="btSyncMsg"></span>
+<span><button type="button" class="bt-btn alt" id="btSyncNow" style="display:none">Sync now</button> <button type="button" class="bt-btn alt" id="btClear" style="display:none">Use this account instead</button> <button type="button" class="bt-btn alt" id="btExport">Download CSV</button></span>
+</div>
+<ul class="bt-list" id="btList"></ul>
+<p class="bt-empty" id="btEmpty">No income recorded yet. Your entries will appear here.</p>
+
+</div>
+<p class="bt-note">Entries are saved on this device and work without internet. Log in on the Member Portal to back them up and sync across your devices. Each entry keeps the percentages used when it was recorded, so changing your split later does not alter past records.</p>
 
 </div>
 </details>
@@ -2319,6 +2411,299 @@ function calculateSavings() {
 }
 
 onProductChange();
+</script>
+
+<script>
+/* INCOME SPLITTER: saved on this device (works offline); signed-in members also back up and sync through their Member Portal account. */
+(function () {
+    var FB = {
+        apiKey: 'AIzaSyBj8opxzN423qkwPGy5IhhxWHBPAZlwOJo',
+        authDomain: 'savemore-portal.firebaseapp.com',
+        projectId: 'savemore-portal',
+        appId: '1:32261102803:web:82ad3eaf3eb3998621c826'
+    };
+    var KEY = 'savemore_budget_v1';
+    var NAMES = ['Needs', 'Wants', 'Savings'];
+    var DEFAULT = [50, 30, 20];
+    var state = load();
+    var storageOk = true, db = null, user = null, authChecked = false, syncing = false, notice = '', fbReady = null;
+
+    function $(id) { return document.getElementById(id); }
+    function load() {
+        var s = null;
+        try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+        if (!s || !Array.isArray(s.split) || s.split.length !== 3 || !Array.isArray(s.entries)) {
+            s = { split: DEFAULT.slice(), entries: [] };
+        }
+        if (!Array.isArray(s.deleted)) s.deleted = [];
+        if (typeof s.uid !== 'string') s.uid = '';
+        return s;
+    }
+    function persist() {
+        try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; }
+        catch (e) { storageOk = false; }
+    }
+    function money(cents) {
+        return '₦' + (cents / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function nowLocal() {
+        var d = new Date();
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+    function pcts() {
+        return [0, 1, 2].map(function (i) { var v = parseFloat($('btP' + i).value); return isNaN(v) ? 0 : v; });
+    }
+    function totalPct() { return pcts().reduce(function (a, b) { return a + b; }, 0); }
+    function splitOk() {
+        var p = pcts();
+        return Math.abs(totalPct() - 100) < 0.001 && p.every(function (v) { return v >= 0; });
+    }
+    // Split in whole kobo; the last bucket takes the remainder so the parts always add up exactly.
+    function allocate(cents, p) {
+        var a = Math.round(cents * p[0] / 100);
+        var b = Math.round(cents * p[1] / 100);
+        return [a, b, cents - a - b];
+    }
+
+    function renderSplit() {
+        var p = pcts(), t = totalPct();
+        for (var i = 0; i < 3; i++) $('btB' + i).style.width = Math.max(0, Math.min(100, p[i] / Math.max(t, 100) * 100)) + '%';
+        var st = $('btStatus');
+        if (splitOk()) {
+            st.className = 'bt-status ok';
+            st.textContent = 'Total: 100%. Ready to record.';
+        } else {
+            var diff = Math.round((100 - t) * 100) / 100;
+            st.className = 'bt-status bad';
+            st.textContent = 'Percentages add up to ' + (Math.round(t * 100) / 100) + '%. ' +
+                (diff > 0 ? 'Add ' + diff + '% more' : 'Remove ' + (-diff) + '%') + ' to reach 100%.';
+        }
+        updateControls();
+    }
+    function renderPreview() {
+        var box = $('btPreview'), amt = parseFloat($('btAmount').value);
+        if (!splitOk() || isNaN(amt) || amt <= 0) { box.style.display = 'none'; return; }
+        var al = allocate(Math.round(amt * 100), pcts());
+        box.textContent = NAMES[0] + ' ' + money(al[0]) + '  |  ' + NAMES[1] + ' ' + money(al[1]) + '  |  ' + NAMES[2] + ' ' + money(al[2]);
+        box.style.display = 'block';
+    }
+    function updateControls() {
+        var amt = parseFloat($('btAmount').value);
+        $('btSave').disabled = !(splitOk() && !isNaN(amt) && amt > 0 && $('btWhen').value);
+        renderPreview();
+    }
+
+    function renderList() {
+        var list = $('btList'), tot = [0, 0, 0], all = 0;
+        list.innerHTML = '';
+        state.entries.slice().sort(function (x, y) { return y.at < x.at ? -1 : 1; }).forEach(function (e) {
+            all += e.amt;
+            for (var i = 0; i < 3; i++) tot[i] += e.alloc[i];
+
+            var li = document.createElement('li'); li.className = 'bt-item';
+            var top = document.createElement('div'); top.className = 'bt-item-top';
+            var amt = document.createElement('strong'); amt.textContent = money(e.amt);
+            var when = document.createElement('span'); when.className = 'bt-when';
+            when.textContent = new Date(e.at).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
+            top.appendChild(amt); top.appendChild(when);
+            li.appendChild(top);
+
+            if (e.note) {
+                var n = document.createElement('div'); n.className = 'bt-when'; n.textContent = e.note; li.appendChild(n);
+            }
+            var al = document.createElement('div'); al.className = 'bt-alloc';
+            for (var j = 0; j < 3; j++) {
+                var s = document.createElement('span');
+                s.textContent = NAMES[j] + ' (' + e.pct[j] + '%): ' + money(e.alloc[j]);
+                al.appendChild(s);
+            }
+            li.appendChild(al);
+
+            var meta = document.createElement('div'); meta.style.marginTop = '4px';
+            var tag = document.createElement('span');
+            tag.className = 'bt-tag' + (e.synced ? ' done' : '');
+            tag.textContent = e.synced ? 'Synced' : (state.uid ? 'Waiting to sync' : 'Saved on this device');
+            var del = document.createElement('button'); del.type = 'button'; del.className = 'bt-del'; del.textContent = 'Delete';
+            del.addEventListener('click', function () {
+                if (!confirm('Delete this income record? This cannot be undone.')) return;
+                if (e.synced && state.deleted.indexOf(e.id) < 0) state.deleted.push(e.id);
+                state.entries = state.entries.filter(function (x) { return x.id !== e.id; });
+                persist(); renderList(); syncNow();
+            });
+            meta.appendChild(tag); meta.appendChild(del);
+            li.appendChild(meta);
+            list.appendChild(li);
+        });
+        $('btTotAll').textContent = money(all);
+        for (var k = 0; k < 3; k++) $('btTot' + k).textContent = money(tot[k]);
+        $('btEmpty').style.display = state.entries.length ? 'none' : 'block';
+        renderSyncMsg();
+    }
+    function pending() { return state.entries.filter(function (e) { return !e.synced; }); }
+    function renderSyncMsg() {
+        var msg = $('btSyncMsg'), n = pending().length + state.deleted.length;
+        msg.textContent = '';
+        if (!storageOk) {
+            msg.textContent = 'Could not save on this device. Download a CSV backup.';
+        } else if (notice === 'mismatch') {
+            msg.textContent = 'Records on this device belong to a different account.';
+        } else if (notice === 'denied') {
+            msg.textContent = 'Syncing is not available for your account yet. If you are new, verify your email on the Member Portal. Your records are safe on this device.';
+        } else if ((authChecked && !user) || (!state.uid && !user)) {
+            msg.appendChild(document.createTextNode('Stored on this device only. '));
+            var a = document.createElement('a'); a.href = 'portal.html'; a.textContent = 'Log in on the Member Portal';
+            a.style.color = '#075e3b'; a.style.fontWeight = 'bold';
+            msg.appendChild(a); msg.appendChild(document.createTextNode(' to back up and sync.'));
+        } else if (!navigator.onLine) {
+            msg.textContent = n ? 'Offline. ' + n + ' change' + (n > 1 ? 's' : '') + ' will sync when you reconnect.' : 'Offline. Everything is saved on this device.';
+        } else if (syncing) {
+            msg.textContent = 'Syncing...';
+        } else if (!user) {
+            msg.textContent = 'Checking your login...';
+        } else {
+            msg.textContent = n ? n + ' waiting to sync.' : 'All entries synced.';
+        }
+        $('btSyncNow').style.display = (user && notice !== 'mismatch') ? '' : 'none';
+        $('btClear').style.display = (notice === 'mismatch') ? '' : 'none';
+    }
+
+    // ---- Cloud sync (same Firebase login as the Member Portal; loaded only when needed and online) ----
+    function loadScript(src) {
+        return new Promise(function (res, rej) {
+            var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej;
+            document.head.appendChild(s);
+        });
+    }
+    function initFirebase() {
+        if (fbReady) return fbReady;
+        var base = 'https://www.gstatic.com/firebasejs/10.12.0/';
+        fbReady = loadScript(base + 'firebase-app-compat.js')
+            .then(function () { return loadScript(base + 'firebase-auth-compat.js'); })
+            .then(function () { return loadScript(base + 'firebase-firestore-compat.js'); })
+            .then(function () {
+                if (!firebase.apps.length) firebase.initializeApp(FB);
+                db = firebase.firestore();
+                return new Promise(function (resolve) {
+                    var first = true;
+                    firebase.auth().onAuthStateChanged(function (u) {
+                        user = u; authChecked = true;
+                        if (first) { first = false; resolve(); } else { notice = ''; renderList(); syncNow(); }
+                    });
+                });
+            })
+            .catch(function () { fbReady = null; });
+        return fbReady;
+    }
+    function withTimeout(p, ms) {
+        return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, ms); })]);
+    }
+    function cleanRemote(id, d) {
+        if (!d || typeof d.at !== 'string' || isNaN(new Date(d.at).getTime())) return null;
+        if (typeof d.amt !== 'number' || d.amt <= 0 || !isFinite(d.amt)) return null;
+        var ok = function (a) { return Array.isArray(a) && a.length === 3 && a.every(function (v) { return typeof v === 'number' && isFinite(v); }); };
+        if (!ok(d.pct) || !ok(d.alloc)) return null;
+        return { id: id, at: d.at, amt: Math.round(d.amt), note: String(d.note || '').slice(0, 60), pct: d.pct, alloc: d.alloc, synced: true };
+    }
+    function syncNow() {
+        if (syncing || !navigator.onLine) { renderSyncMsg(); return; }
+        syncing = true; notice = ''; renderSyncMsg();
+        initFirebase().then(function () {
+            if (!db || !user) return;
+            if (state.uid && state.uid !== user.uid && (state.entries.length || state.deleted.length)) { notice = 'mismatch'; return; }
+            state.uid = user.uid; persist();
+            var col = db.collection('members').doc(user.uid).collection('budgetEntries');
+            var up = pending(), gone = state.deleted.slice();
+            var writes = up.map(function (e) {
+                return col.doc(e.id).set({ at: e.at, amt: e.amt, note: e.note, pct: e.pct, alloc: e.alloc });
+            }).concat(gone.map(function (id) { return col.doc(id).delete(); }));
+            return withTimeout(Promise.all(writes), 20000).then(function () {
+                up.forEach(function (e) { e.synced = true; });
+                state.deleted = state.deleted.filter(function (id) { return gone.indexOf(id) < 0; });
+                persist();
+                return withTimeout(col.get(), 20000);
+            }).then(function (snap) {
+                var remote = {};
+                snap.forEach(function (doc) { var r = cleanRemote(doc.id, doc.data()); if (r) remote[doc.id] = r; });
+                var have = {};
+                state.entries.forEach(function (e) { have[e.id] = true; });
+                // removed on another device
+                state.entries = state.entries.filter(function (e) { return !e.synced || remote[e.id]; });
+                // added on another device
+                Object.keys(remote).forEach(function (id) { if (!have[id] && state.deleted.indexOf(id) < 0) state.entries.push(remote[id]); });
+                persist();
+            });
+        }).catch(function (err) {
+            if (err && err.code === 'permission-denied') notice = 'denied';
+        }).then(function () { syncing = false; renderList(); });
+    }
+
+    function record() {
+        if (!splitOk()) return;
+        var amt = parseFloat($('btAmount').value);
+        var when = new Date($('btWhen').value);
+        if (isNaN(amt) || amt <= 0 || isNaN(when.getTime())) return;
+        var cents = Math.round(amt * 100), p = pcts();
+        state.split = p;
+        state.entries.push({
+            id: 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            at: when.toISOString(),
+            amt: cents,
+            note: $('btNote').value.trim(),
+            pct: p,
+            alloc: allocate(cents, p),
+            synced: false
+        });
+        persist();
+        $('btAmount').value = ''; $('btNote').value = ''; $('btWhen').value = nowLocal();
+        updateControls(); renderList(); syncNow();
+    }
+
+    function exportCsv() {
+        var rows = [['Date and time', 'Source', 'Amount', NAMES[0] + ' %', NAMES[1] + ' %', NAMES[2] + ' %', NAMES[0], NAMES[1], NAMES[2]]];
+        state.entries.slice().sort(function (x, y) { return x.at < y.at ? -1 : 1; }).forEach(function (e) {
+            rows.push([new Date(e.at).toLocaleString('en-NG'), e.note, (e.amt / 100).toFixed(2), e.pct[0], e.pct[1], e.pct[2],
+                (e.alloc[0] / 100).toFixed(2), (e.alloc[1] / 100).toFixed(2), (e.alloc[2] / 100).toFixed(2)]);
+        });
+        var csv = rows.map(function (r) {
+            return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(',');
+        }).join('\r\n');
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
+        a.download = 'savemore-income.csv';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+    }
+
+    // Wire up
+    for (var i = 0; i < 3; i++) $('btP' + i).value = state.split[i];
+    $('btWhen').value = nowLocal();
+    ['btP0', 'btP1', 'btP2'].forEach(function (id) { $(id).addEventListener('input', renderSplit); });
+    ['btAmount', 'btWhen'].forEach(function (id) { $(id).addEventListener('input', updateControls); });
+    $('btReset').addEventListener('click', function () {
+        for (var i = 0; i < 3; i++) $('btP' + i).value = DEFAULT[i];
+        renderSplit();
+    });
+    $('btSave').addEventListener('click', record);
+    $('btSyncNow').addEventListener('click', syncNow);
+    $('btExport').addEventListener('click', exportCsv);
+    $('btClear').addEventListener('click', function () {
+        if (!confirm('Remove the records saved on this device so this account\'s own records can load? Download the CSV first if you want to keep them.')) return;
+        state.entries = []; state.deleted = []; state.uid = '';
+        persist(); notice = ''; renderList(); syncNow();
+    });
+    window.addEventListener('online', syncNow);
+    window.addEventListener('offline', renderSyncMsg);
+    var det = document.querySelector('#budget details');
+    if (det) det.addEventListener('toggle', function () {
+        if (!det.open) return;
+        if (!$('btAmount').value) $('btWhen').value = nowLocal();
+        syncNow();
+    });
+
+    persist(); renderSplit(); renderList();
+    if (det && det.open) syncNow();
+})();
 </script>
 
 <a href="https://wa.me/2348031509452?text=Hi%2C%20I%20have%20a%20question%20about%20SAVEMORE" target="_blank" class="whatsapp-float" aria-label="Chat with SAVEMORE on WhatsApp" title="Chat with us on WhatsApp">

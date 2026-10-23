@@ -1,35 +1,49 @@
 // SAVEMORE service worker
 //
 // 1) Keeps the site installable (as before).
-// 2) NEW: lets the Financial Education articles (education.html) be read offline.
+// 2) Lets two public reading pages be opened offline: the homepage and the Financial Education articles.
 //
 // Safety rules:
-//  - Only education.html is ever stored. Nothing from the portal, admin, chat, games, Firebase or
-//    any server is cached, so savings data and scores always come live from the internet.
-//  - Online, members always get the newest article. The saved copy is used only when the
-//    network is down or very slow.
+//  - Only these two pages are ever stored. Nothing from the portal, admin, chat, games, Firebase or any
+//    server is cached, so savings data, scores, announcements and live MORE figures always come from
+//    the internet, never from a saved copy.
+//  - Online, members always get the newest page. The saved copy is used only when the network is down
+//    or very slow.
 //  - Change CACHE_NAME whenever you want phones to throw away old saved copies.
 
-var CACHE_NAME = 'savemore-education-v1';
+var CACHE_NAME = 'savemore-offline-v2';
 var SLOW_NETWORK_MS = 4000;   // on a slow connection, show the saved copy after 4 seconds
 
-function educationUrl() {
-    return new URL('education.html', self.registration.scope).href;
+function scopeUrl() {
+    return self.registration.scope;                       // e.g. https://savemore4africa.github.io/savemore-website/
 }
 
-function isEducationRequest(request) {
-    if (request.method !== 'GET') return false;
+var PAGES = {
+    home: function () { return scopeUrl(); },                                 // the homepage
+    education: function () { return new URL('education.html', scopeUrl()).href; }
+};
+
+// which saved page (if any) does this request ask for?
+function pageKeyFor(request) {
+    if (request.method !== 'GET') return null;
     var url = new URL(request.url);
-    return url.origin === self.location.origin && /\/education\.html$/.test(url.pathname);
+    if (url.origin !== self.location.origin) return null;
+    var scopePath = new URL(scopeUrl()).pathname;
+    if (url.pathname === scopePath || url.pathname === scopePath + 'index.html') return PAGES.home();
+    if (url.pathname === scopePath + 'education.html') return PAGES.education();
+    return null;
 }
 
 self.addEventListener('install', function (event) {
     event.waitUntil(
         caches.open(CACHE_NAME).then(function (cache) {
             // a failure here must never stop the worker from installing
-            return fetch(educationUrl(), { cache: 'reload' }).then(function (res) {
-                if (res && res.ok) return cache.put(educationUrl(), res);
-            }).catch(function () {});
+            return Promise.all(Object.keys(PAGES).map(function (name) {
+                var key = PAGES[name]();
+                return fetch(key, { cache: 'reload' }).then(function (res) {
+                    if (res && res.ok) return cache.put(key, res);
+                }).catch(function () {});
+            }));
         }).then(function () { return self.skipWaiting(); })
     );
 });
@@ -49,13 +63,11 @@ function offlineMessage() {
         '<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Offline | SAVEMORE</title></head>' +
         '<body style="font-family:Arial,sans-serif;text-align:center;padding:40px 20px;color:#222">' +
         '<h1 style="color:#075e3b">You are offline</h1>' +
-        '<p>Connect to the internet once and open the Financial Education page. After that it can be read offline.</p>' +
-        '<p><a href="index.html" style="color:#075e3b">Back to SAVEMORE</a></p></body></html>',
+        '<p>Connect to the internet once and open this page. After that it can be opened offline.</p></body></html>',
         { status: 200, headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
 }
 
-function educationResponse(request) {
-    var key = educationUrl();
+function savedPageResponse(request, key) {
     var network = fetch(request).then(function (res) {
         if (res && res.ok) {
             var copy = res.clone();
@@ -75,8 +87,9 @@ function educationResponse(request) {
 }
 
 self.addEventListener('fetch', function (event) {
-    if (isEducationRequest(event.request)) {
-        event.respondWith(educationResponse(event.request));
+    var key = pageKeyFor(event.request);
+    if (key) {
+        event.respondWith(savedPageResponse(event.request, key));
         return;
     }
     // everything else behaves exactly as before: straight to the network, nothing stored

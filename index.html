@@ -915,6 +915,9 @@ section.folded { padding: 6px 5%; background: none !important; }
 </head>
 
 <body>
+<div id="offlineNote" hidden style="background:#fff4e5;color:#7a4300;text-align:center;padding:10px 14px;font:14px Arial,Helvetica,sans-serif;border-bottom:1px solid #ffd9a3;">
+Could not reach the internet. You are viewing the copy saved on your phone. MORE figures, prices and announcements may be out of date. Reconnect to see the latest.
+</div>
 
 <!-- HEADER -->
 
@@ -2351,5 +2354,28 @@ onProductChange();
 })();
 </script>
 
+<script>
+/* Offline reading: save this page on the phone so it can be opened without internet. */
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('service-worker.js').catch(function () {});
+    });
+}
+(function () {
+    var note = document.getElementById('offlineNote');
+    // Shows the notice when the internet cannot really be reached (also when the phone has signal but no data).
+    function check() {
+        if (!navigator.onLine) { note.hidden = false; return; }
+        var ctl = window.AbortController ? new AbortController() : null;
+        var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 6000);
+        fetch('service-worker.js?ping=' + Date.now(), { method: 'HEAD', cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+            .then(function () { clearTimeout(timer); note.hidden = true; })
+            .catch(function () { clearTimeout(timer); note.hidden = false; });
+    }
+    window.addEventListener('online', check);
+    window.addEventListener('offline', check);
+    window.addEventListener('load', check);
+})();
+</script>
 </body>
 </html>

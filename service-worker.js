@@ -11,7 +11,7 @@
 //    or very slow.
 //  - Change CACHE_NAME whenever you want phones to throw away old saved copies.
 
-var CACHE_NAME = 'savemore-offline-v3';
+var CACHE_NAME = 'savemore-offline-v4';
 var SLOW_NETWORK_MS = 4000;   // on a slow connection, show the saved copy after 4 seconds
 
 function scopeUrl() {

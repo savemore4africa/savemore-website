@@ -1013,6 +1013,8 @@ After transferring, select the product and amount below, then tap "I've Made Pay
 <option value="100 Days Savings Challenge">100 Days Savings Challenge</option>
 </select>
 <input type="number" id="depositAmount" placeholder="Amount transferred" min="1" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
+<label for="depositDate" style="display:block; font-size:13px; color:#555; margin-bottom:4px;">Date of Payment</label>
+<input type="date" id="depositDate" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:8px;">
 <button onclick="claimPayment()">I've Made Payment</button>
 </div>
 
@@ -1601,14 +1603,33 @@ function loadMoreValue(shares) {
 // ---- SELL-BACK REQUESTS ----
 // ---- WITHDRAWAL REQUESTS ----
 // ---- PAYMENT CLAIMS (DEPOSITS) ----
+(function initDepositDate() {
+    var el = document.getElementById('depositDate');
+    if (!el) return;
+    var today = new Date().toLocaleDateString('en-CA');
+    el.value = today;
+    el.max = today;
+})();
+
 async function claimPayment() {
     var product = document.getElementById('depositProduct').value;
     var amount = parseFloat(document.getElementById('depositAmount').value);
+    var paymentDate = document.getElementById('depositDate').value;
 
     if (!amount || amount <= 0) {
         alert('Please enter a valid amount.');
         return;
     }
+    if (!paymentDate) {
+        alert('Please select the date you made the payment.');
+        return;
+    }
+    var todayStr = new Date().toLocaleDateString('en-CA');
+    if (paymentDate > todayStr) {
+        alert('Payment date cannot be in the future.');
+        return;
+    }
+    var paymentDateText = new Date(paymentDate + 'T00:00:00').toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
 
     var uid = auth.currentUser.uid;
     var unit = (product === 'In-Dollar Savings Account') ? 'USDT' : '₦';
@@ -1619,11 +1640,13 @@ async function claimPayment() {
             product: product,
             amount: amount,
             unit: unit,
+            paymentDate: paymentDate,
             status: 'Pending',
             claimedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
         document.getElementById('depositAmount').value = '';
+        document.getElementById('depositDate').value = todayStr;
         loadPaymentClaims(uid);
 
         notifyAdminEvent(
@@ -1631,11 +1654,12 @@ async function claimPayment() {
             'Member: ' + currentMemberName,
             'Product: ' + product,
             'Amount: ' + amountText,
+            'Payment Date: ' + paymentDateText,
             'Please confirm and record in admin.'
         );
 
         var waText = encodeURIComponent(
-            'Hi, I have made a payment of ' + amountText + ' for my ' + product +
+            'Hi, I have made a payment of ' + amountText + ' on ' + paymentDateText + ' for my ' + product +
             ' (Member: ' + currentMemberName + '). Please confirm and record my transaction.'
         );
         window.open('https://wa.me/2348031509452?text=' + waText, '_blank');
@@ -1660,17 +1684,22 @@ function loadPaymentClaims(uid) {
             html += '<tr style="text-align:left; border-bottom:1px solid #ddd;">' +
                     '<th style="padding:6px;">Product</th>' +
                     '<th style="padding:6px;">Amount</th>' +
+                    '<th style="padding:6px;">Pay Date</th>' +
                     '<th style="padding:6px;">Status</th>' +
                     '</tr>';
 
             snapshot.forEach(function(doc) {
                 var c = doc.data();
+                var payDateDisplay = c.paymentDate
+                    ? new Date(c.paymentDate + 'T00:00:00').toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : (c.claimedAt && c.claimedAt.toDate ? c.claimedAt.toDate().toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
                 var amountDisplay = (c.unit === 'USDT')
                     ? (c.amount || 0).toLocaleString('en-NG') + ' USDT'
                     : '₦' + (c.amount || 0).toLocaleString('en-NG');
                 html += '<tr style="border-bottom:1px solid #eee;">' +
                     '<td style="padding:6px;">' + escapeHtml(c.product || '') + '</td>' +
                     '<td style="padding:6px;">' + amountDisplay + '</td>' +
+                    '<td style="padding:6px;">' + payDateDisplay + '</td>' +
                     '<td style="padding:6px;">' + escapeHtml(c.status || 'Pending') + '</td>' +
                     '</tr>';
             });

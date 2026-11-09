@@ -1140,6 +1140,246 @@ Member Portal
 
 
 
+<!-- DAILY QUOTE -->
+<section id="daily-quote" class="dq-wrap">
+<div class="dq">
+  <p class="dq-label">Quote of the day</p>
+  <blockquote class="dq-text" id="dq-text">Loading…</blockquote>
+  <p class="dq-author" id="dq-author"></p>
+  <div class="dq-actions">
+    <button type="button" id="dq-share">Share</button>
+    <a id="dq-wa" target="_blank" rel="noopener">WhatsApp</a>
+    <button type="button" id="dq-copy">Copy</button>
+  </div>
+  <p class="dq-status" id="dq-status" role="status" aria-live="polite"></p>
+</div>
+</section>
+
+<style>
+  /* Change these 3 colours to match your site */
+  .dq-wrap { padding: 14px 5% 8px; }
+  .dq {
+    --dq-bg: #eef7f2;
+    --dq-ink: #0b3d27;
+    --dq-accent: #075e3b;
+    max-width: 900px;
+    margin: auto;
+    padding: 28px 24px;
+    background: var(--dq-bg);
+    color: var(--dq-ink);
+    border-left: 5px solid #ff8c00;
+    border-radius: 15px;
+    box-sizing: border-box;
+  }
+  .dq-label { margin: 0 0 12px; font-size: .9rem; font-weight: bold; color: var(--dq-accent); }
+  .dq-text { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(1.25rem, 4.5vw, 1.7rem); line-height: 1.4; }
+  .dq-author { margin: 12px 0 0; font-style: italic; opacity: .8; }
+  .dq-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+  .dq-actions button, .dq-actions a {
+    padding: 10px 18px; border: 1.5px solid var(--dq-accent); border-radius: 999px;
+    background: transparent; color: var(--dq-accent); font: inherit; font-weight: 600;
+    text-decoration: none; cursor: pointer;
+  }
+  .dq-actions button:hover, .dq-actions a:hover,
+  .dq-actions button:focus-visible, .dq-actions a:focus-visible { background: var(--dq-accent); color: #fff; }
+  .dq-status { min-height: 1.2em; margin: 10px 0 0; font-size: .9rem; }
+</style>
+
+<script>
+(function () {
+  // One quote per day. Format: ["quote", "author"]. Leave the author as "" to show none.
+  var QUOTES = [
+    ["Little by little, a little becomes a lot.", "African proverb"],
+    ["Do not save what is left after spending, but spend what is left after saving.", "Warren Buffett"],
+    ["Beware of little expenses; a small leak will sink a great ship.", "Benjamin Franklin"],
+    ["An investment in knowledge pays the best interest.", "Benjamin Franklin"],
+    ["The habit of saving is itself an education.", "T. T. Munger"],
+    ["Never spend your money before you have it.", "Thomas Jefferson"],
+    ["It is not the man who has too little, but the man who craves more, that is poor.", "Seneca"],
+    ["Wealth consists not in having great possessions, but in having few wants.", "Epictetus"],
+    ["Small deeds done are better than great deeds planned.", "Peter Marshall"],
+    ["Drop by drop is the water pot filled.", "The Buddha"],
+    ["The best time to plant a tree was 20 years ago. The second best time is now.", "Proverb"],
+    ["A budget is telling your money where to go instead of wondering where it went.", "Dave Ramsey"],
+    ["Financial peace isn't the acquisition of stuff. It's learning to live on less than you make.", "Dave Ramsey"],
+    ["Wealth is not about having a lot of money; it's about having a lot of options.", "Chris Rock"],
+    ["It's not how much money you make, but how much money you keep.", "Robert Kiyosaki"],
+    ["Never depend on a single income. Make an investment to create a second source.", "Warren Buffett"],
+    ["Save before you spend. Pay yourself first.", "SAVEMORE"],
+    ["Consistent small savings build lasting wealth.", "SAVEMORE"],
+    ["Track your spending, and your money will start to listen.", "SAVEMORE"],
+    ["Discipline today is freedom tomorrow.", "SAVEMORE"],
+    // --- Daily wisdom (no named author; add one like "Author, Book" if you want) ---
+    ["Only a great desire for wealth is enough as a start-up for wealth.", ""],
+    ["Opportunity is a greatness who wastes no time with those who are unprepared.", ""],
+    ["A small return and a safe one is far more desirable than risk.", ""],
+    ["What we all call our necessary expenses will always grow to equal our incomes unless we protest to the contrary.", ""],
+    ["The first sound principle of investment is security for principal.", ""],
+    ["Preceding accomplishment must be desire. The desire must be simple, strong and definite.", ""],
+    ["General desires are but weak longings.", ""],
+    ["The more of wisdom we know, the more we may earn.", ""],
+    ["To attract good luck to oneself, it is necessary to take advantage of opportunities.", ""],
+    ["Action leads man to successes he desires.", ""],
+    ["Gold is reserved for those who know its laws and abide by them.", ""],
+    ["Dear fellow, be guided by the wisdom of age and not by the inexperience of youth.", ""],
+    ["Wealth that comes quickly goes the same way.", ""],
+    ["Wealth that stays to give enjoyment and satisfaction to its owner comes gradually, because it is a child born of knowledge and persistent purpose.", ""],
+    ["To earn wealth is but a slight burden upon the thoughtful man. Bearing the burden consistently from year to year accomplishes the final purpose.", ""],
+    ["In the strength of your own desires is a magic power.", ""],
+    ["If you desire to help your friend, do so in a way that will not bring your friend's burdens upon yourself.", ""],
+    ["If you risk to lose your business capital, you risk to lose all that it would earn as well.", ""],
+    ["Better a little caution than a great regret.", ""],
+    ["Ill fortune pursues every man who thinks more of borrowing than of repaying.", ""],
+    ["He who spends more than he earns is sowing the winds of needless self-indulgence from which he is sure to reap the whirlwinds of trouble and humiliation.", ""],
+    ["Whatever a man has in himself shall manifest.", ""],
+    ["No man can respect himself who does not repay honest debts.", ""],
+    ["Your debts are your enemies. They can run you out of your succor and grow stronger for you to fight.", ""],
+    ["Where the determination is, the way can be found.", ""],
+    ["Remember, work well done does good to the man who does it. It makes him a better man.", ""],
+    ["No work to do is bad for any man.", ""],
+    ["The problem is not how much we earn. It's how much we spend.", ""],
+    ["The more we make, the more we spend.", ""],
+    ["How much you earn has almost no bearing on whether or not you can and will build wealth.", ""],
+    ["Little spending habits you'd probably be better off without can be used to build wealth.", ""],
+    ["A latte spurned is a fortune earned.", ""],
+    ["Regardless of the size of your paycheck, you probably already make enough money to become rich.", ""],
+    ["Saving a small amount of money can make you rich, and the sooner you start, the better.", ""],
+    ["Inspiration unused is merely entertainment.", ""],
+    ["To get new results, you need to take new action.", ""],
+    ["The only way to get the financial future you want is to begin creating it.", ""],
+    ["We make a living by what we earn. We make a life by what we give.", ""],
+    ["There is more to life than money.", ""],
+    ["The more you give, the more comes back to you.", ""],
+    ["The more you give, the wealthier you feel.", ""],
+    ["Riches cannot always be measured in money.", ""],
+    ["All achievements, all earned riches, have their beginning in an idea.", ""],
+    ["Think and grow.", ""],
+    ["When one is truly ready for a thing, it puts in its appearance.", ""],
+    ["When opportunity comes, it may appear in a different form, and from a different direction than you expect.", ""],
+    ["More gold has been mined from the brains of men than has ever been taken from the earth.", ""],
+    ["Work that one does not love is not worth doing.", ""],
+    ["Only those who become \"money conscious\" ever accumulate great riches.", ""],
+    ["If you do not see great riches in your imagination, you will never see them in your bank balance.", ""],
+    ["Success requires no apologies. Failure permits no alibis.", ""],
+    ["Every failure brings with it the seed of an equivalent success.", ""],
+    ["Practical dreamers do not quit.", ""],
+    ["Dreams are the seedlings of reality.", ""],
+    ["No one is ever defeated until defeat has been accepted as a reality.", ""],
+    ["No more effort is required to aim high in life, to demand abundance and prosperity, than is required to accept misery and poverty.", ""],
+    ["Our only limitations are those we set up in our own minds.", ""],
+    ["Every adversity brings with it the seed of an equivalent advantage.", ""],
+    ["Handicaps can be converted into stepping stones on which one may climb toward some worthy goal, unless they are accepted as obstacles and used as alibis.", ""],
+    ["Desire can pay dividends even when victory is not yet complete.", ""],
+    ["Never is a long time.", ""],
+    ["Negative attitude towards others can never bring success.", ""],
+    ["Riches begin in the form of thought.", ""],
+    ["There are no limitations to the mind except those we acknowledge.", ""],
+    ["Both poverty and riches are the offspring of thought.", ""],
+    ["Knowledge is not power. It is only potential power.", ""],
+    ["Both success and failure are largely the results of habit.", ""],
+    ["Ideas with much less merit have been the seedlings from which great fortunes have grown.", ""],
+    ["There is no fixed price for sound ideas.", ""],
+    ["Back of all ideas is specialized knowledge.", ""],
+    ["Man can create anything which he can imagine.", ""],
+    ["Ideas are the beginning points of all fortunes. Ideas are products of imagination.", ""],
+    ["Truly, thoughts are things, and their scope of operation is the world itself.", ""],
+    ["Where there's a will, there's a way.", ""],
+    ["The only limitation is that which one sets up in one's own mind.", ""],
+    ["There is no standard price on ideas. The owner of ideas makes his own price and, if he is smart, gets it.", ""],
+    ["No one will work indefinitely without some form of compensation.", ""],
+    ["The most intelligent person living cannot succeed in accumulating money, or in any other undertaking, without plans which are practical and workable.", ""],
+    ["Temporary defeat is not permanent failure.", ""],
+    ["No one is ever whipped until he quits in his own mind.", ""],
+    ["We see people who have accumulated great fortunes, but we often recognize only their triumph, overlooking the temporary defeats they had to surmount before \"arriving\".", ""],
+    ["A quitter never wins, and a winner never quits.", ""],
+    ["Money, of itself, is nothing but inert matter. It cannot move, think, or talk, but it can \"hear\" when a person who desires it calls it to come.", ""],
+    ["Successful people must plan their work, and work their plan.", ""],
+    ["Guesswork without practical, definite plans is like a ship without a rudder. Sooner or later it will land on the rocks.", ""],
+    ["The world does not pay people for what they \"know\". It pays them for what they do, or induce others to do.", ""],
+    ["It is just as essential to know what not to do as it is to know what to do.", ""],
+    ["The person who cannot control himself can never control others.", ""],
+    ["Intemperance in any of its various forms destroys the endurance and the vitality of all who indulge in it.", ""],
+    ["The best-educated people are often the self-made or self-educated.", ""],
+    ["Education consists not so much of knowledge, but of knowledge effectively and persistently applied.", ""],
+    ["Power in the hands of one who did not acquire it gradually is often fatal to success.", ""],
+    ["Quick riches are more dangerous than poverty.", ""],
+    ["Genuine wisdom is usually conspicuous through modesty and silence.", ""],
+    ["The world has the habit of making room for the person whose words and actions show that he knows where he is going.", ""],
+    ["Weak desires bring weak results, just as a small amount of fire makes a small amount of heat.", ""],
+    ["Poverty consciousness will voluntarily seize the mind which is not occupied with money consciousness.", ""],
+    ["Riches do not respond to wishes.", ""],
+    ["Poverty needs no plan. Riches are shy and timid. They have to be \"attracted\".", ""],
+    ["There is no other road to genius than through voluntary self-effort.", ""],
+    ["Depression can be a blessing in disguise. It reduces everything to a new starting point that gives one a new opportunity.", ""],
+    ["Fears are nothing more than states of mind.", ""],
+    ["Thought impulses of fear and poverty cannot be translated into terms of courage and financial gain.", ""],
+    ["There can be no compromise between poverty and riches. The roads that lead to each go in opposite directions.", ""],
+    ["If you want riches, you must refuse to accept any circumstance that leads toward poverty.", ""],
+    ["A state of mind is something that one assumes. It cannot be purchased. It must be created.", ""],
+    ["Self-analysis may disclose weaknesses which one does not like to acknowledge.", ""],
+    ["The first and best victory is to conquer self.", ""],
+    ["A way to reduce a cost without a decrease in value is an opportunity.", ""],
+    ["Successful people don't waste time taking advantage of opportunity.", ""],
+    ["There is power in saying no to the things we don't care about. But there is even more power in saying a big yes to the things we love.", ""],
+    ["The mindset of conscious spenders is the key to being rich.", ""],
+    ["Habits do not change overnight, and if they do, chances are they won't be sustainable.", ""],
+    ["You don't waste time, it is infinite. You waste yourself, you're finite.", ""],
+    ["Healthy living is the wealthiness of a worthy life.", ""],
+    ["Regard what you have, so that you are not disregarded by what you do not have.", ""],
+    ["If you leave an opportunity for Allah's sake, a better opportunity awaits you.", ""]
+  ];
+
+  var SITE = "https://savemore4africa.github.io/savemore-website/";
+
+  // Day number since 1 Jan 1970, using the visitor's local date,
+  // so everyone sees the same quote on the same day.
+  var now = new Date();
+  var day = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86400000);
+  var q = QUOTES[day % QUOTES.length];
+
+  var textEl = document.getElementById("dq-text");
+  var authorEl = document.getElementById("dq-author");
+  var statusEl = document.getElementById("dq-status");
+  textEl.textContent = "\u201C" + q[0] + "\u201D";
+  authorEl.textContent = q[1] ? "\u2014 " + q[1] : "";
+
+  var shareText = "\u201C" + q[0] + "\u201D" + (q[1] ? " \u2014 " + q[1] : "") +
+                  "\n\nDaily money tips from SAVEMORE:\n" + SITE;
+
+  document.getElementById("dq-wa").href =
+    "https://wa.me/?text=" + encodeURIComponent(shareText);
+
+  function say(msg) {
+    statusEl.textContent = msg;
+    setTimeout(function () { statusEl.textContent = ""; }, 2500);
+  }
+
+  function copy() {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareText).then(function () { say("Copied."); },
+                                                    function () { say("Could not copy."); });
+    } else {
+      var t = document.createElement("textarea");
+      t.value = shareText; document.body.appendChild(t); t.select();
+      try { document.execCommand("copy"); say("Copied."); } catch (e) { say("Could not copy."); }
+      document.body.removeChild(t);
+    }
+  }
+
+  document.getElementById("dq-copy").addEventListener("click", copy);
+
+  document.getElementById("dq-share").addEventListener("click", function () {
+    if (navigator.share) {
+      navigator.share({ title: "SAVEMORE", text: shareText.split("\n\n")[0], url: SITE })
+        .catch(function () {});
+    } else {
+      copy();
+    }
+  });
+})();
+</script>
+
+
 <!-- ABOUT -->
 
 <section id="about" class="folded">

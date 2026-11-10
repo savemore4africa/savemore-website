@@ -2880,6 +2880,12 @@ function loadPaymentClaimsAdmin(memberId) {
                 var amountDisplay = (c.unit === 'USDT')
                     ? (c.amount || 0).toLocaleString('en-NG') + ' USDT'
                     : '₦' + (c.amount || 0).toLocaleString('en-NG');
+                var payDateDisplay = c.paymentDate
+                    ? new Date(c.paymentDate + 'T00:00:00').toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : '—';
+                var submittedDisplay = (c.claimedAt && c.claimedAt.toDate)
+                    ? c.claimedAt.toDate().toLocaleString('en-NG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                    : '—';
                 var actions = '';
                 if (c.status === 'Pending') {
                     actions =
@@ -2888,7 +2894,8 @@ function loadPaymentClaimsAdmin(memberId) {
                 }
                 html += '<div style="padding:10px; border-bottom:1px solid #eee; font-size:14px;">' +
                     escapeHtml(c.product || '') + ' — ' + amountDisplay +
-                    ' — status: <strong>' + escapeHtml(c.status || 'Pending') + '</strong><br>' + actions +
+                    '<br><span style="color:#555;">Payment date: <strong>' + payDateDisplay + '</strong> &nbsp;|&nbsp; Submitted: ' + submittedDisplay + '</span><br>' +
+                    'status: <strong>' + escapeHtml(c.status || 'Pending') + '</strong><br>' + actions +
                     '</div>';
             });
 
@@ -2906,7 +2913,8 @@ function confirmPaymentClaim(memberId, claimId) {
         if (!claimDoc.exists) return;
         var c = claimDoc.data();
 
-        if (!confirm('Confirm this payment and record it as a Deposit of ' + (c.unit === 'USDT' ? c.amount + ' USDT' : '₦' + c.amount.toLocaleString('en-NG')) + ' for ' + c.product + '?')) {
+        var claimPayDate = c.paymentDate || new Date().toISOString().slice(0, 10);
+        if (!confirm('Confirm this payment and record it as a Deposit of ' + (c.unit === 'USDT' ? c.amount + ' USDT' : '₦' + c.amount.toLocaleString('en-NG')) + ' for ' + c.product + ' dated ' + claimPayDate + '?')) {
             return;
         }
 
@@ -2914,7 +2922,7 @@ function confirmPaymentClaim(memberId, claimId) {
         var reference = generateReference();
 
         memberRef.collection('transactions').add({
-            date: new Date().toISOString().slice(0, 10),
+            date: claimPayDate,
             type: 'Deposit',
             reference: reference,
             product: c.product,

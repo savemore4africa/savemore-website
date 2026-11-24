@@ -580,6 +580,22 @@ a.svc-tile-danger:hover, a.svc-tile-danger:focus-visible{ border-color:rgba(255,
     text-align:center;
     padding:10px 0 4px;
 }
+/* ---- 100 Days Challenge number picker ---- */
+.ch-note{font-size:13px;color:#666;margin:0 0 12px;line-height:1.5}
+.ch-mine{background:#075e3b;color:#fff;border-radius:14px;padding:16px;text-align:center;margin-bottom:14px}
+.ch-mine small{display:block;font-size:12px;color:#ffcf99;margin-bottom:2px}
+.ch-mine strong{font-size:44px;line-height:1.1;color:#fff}
+.ch-mine span{display:block;font-size:12px;color:rgba(255,255,255,.75);margin-top:4px}
+.ch-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+button.ch-num{width:100%;margin:0;padding:12px 0;border-radius:10px;font-size:16px;font-weight:bold;background:#fff;color:#075e3b;border:1.5px solid #075e3b;position:relative}
+button.ch-num small{display:block;font-size:9px;font-weight:normal;line-height:1.1;margin-top:2px}
+button.ch-num:hover:not(:disabled){background:#ff8c00;border-color:#ff8c00;color:#fff}
+button.ch-num:disabled{cursor:not-allowed;opacity:1}
+button.ch-num.taken{background:#eee;border-color:#ddd;color:#aaa;text-decoration:line-through}
+button.ch-num.reserved{background:#fff7ec;border-color:#ffcf99;color:#c87000}
+button.ch-num.mine{background:#ff8c00;border-color:#ff8c00;color:#fff}
+button.ch-num.closed{border-color:#cfd9d4;color:#7a8a83}
+
 </style>
 </head>
 
@@ -768,6 +784,10 @@ Loading...
     <a href="#progressSection" class="svc-tile quick-action-btn" data-svc="100 days challenge progress">
       <svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><path d="M3 9.5h18M8 2.5v4M16 2.5v4"></path><path d="M7.5 14l2.8 2.8L16.5 11"></path></svg>
       <span>100 Days</span>
+    </a>
+    <a href="#challengeNumberSection" class="svc-tile quick-action-btn" data-svc="challenge number pick 100 days">
+      <svg viewBox="0 0 24 24"><path d="M9.5 4 8 20M16 4l-1.5 16"></path><path d="M5 9h15M4 15h15"></path></svg>
+      <span>Pick Number</span>
     </a>
     <a href="index.html#education" target="_blank" class="svc-tile quick-action-btn" data-svc="learn education articles">
       <svg viewBox="0 0 24 24"><path d="M12 6.5c-1.8-1.3-4.2-1.8-6.5-1.3v12.6c2.3-.5 4.7 0 6.5 1.3 1.8-1.3 4.2-1.8 6.5-1.3V5.2c-2.3-.5-4.7 0-6.5 1.3Z"></path><path d="M12 6.5v12.6"></path></svg>
@@ -1062,6 +1082,9 @@ update below once reviewed.
 <h2 id="progressSection" style="margin-top:30px; font-size:18px;">Savings Progress</h2>
 <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
 <p class="progress-label" id="progressLabel">No goal set yet</p>
+
+<h2 id="challengeNumberSection" style="margin-top:30px; font-size:18px;">100 Days Challenge Number</h2>
+<div id="challengeNumberBox"><p style="color:#777; font-size:14px;">Loading...</p></div>
 
 <h2 id="moreSection" style="margin-top:30px; font-size:18px;">MORE Participation</h2>
 <div class="dashboard-row"><span>Total MORE Supply</span><span>200</span></div>
@@ -2039,6 +2062,117 @@ function cancelTransfer(id) {
       .catch(function(error) { alert('Could not cancel: ' + error.message); });
 }
 
+// ---- 100 DAYS CHALLENGE: NUMBER PICKER ----
+var CHALLENGE_MAX = 20;
+var CHALLENGE_RESERVED = [1, 2];   // only the admin can give these
+
+function challengeSlotId(round, n) { return 'r' + round + '-' + n; }
+
+function loadChallengeNumbers(uid) {
+    var box = document.getElementById('challengeNumberBox');
+    if (!box) return;
+    db.collection('settings').doc('challenge').get().then(function(doc) {
+        var s = doc.exists ? doc.data() : {};
+        var round = s.round || 1;
+        var open = s.open === true;
+        return db.collection('challengeSlots').where('round', '==', round).get().then(function(snap) {
+            var taken = {};
+            snap.forEach(function(d) { var x = d.data(); taken[x.number] = x; });
+            renderChallengeNumbers(uid, open, taken);
+        });
+    }).catch(function() {
+        box.innerHTML = '<p style="color:#b3261e; font-size:14px;">Unable to load challenge numbers right now.</p>';
+    });
+}
+
+function renderChallengeNumbers(uid, open, taken) {
+    var box = document.getElementById('challengeNumberBox');
+    var mine = null;
+    Object.keys(taken).forEach(function(k) { if (taken[k].memberUid === uid) mine = taken[k]; });
+
+    var html = '';
+    if (mine) {
+        html += '<div class="ch-mine"><small>YOUR NUMBER</small><strong>' + mine.number + '</strong>' +
+                '<span>' + (mine.assignedBy === 'admin' ? 'Given to you by SAVEMORE' : 'You picked this number') + '</span></div>';
+    } else if (open) {
+        html += '<p class="ch-note">Pick one number from 1 to 20 for the next 100 Days Savings Challenge. First come, first served. You can pick only one, and it cannot be changed once confirmed. Numbers 1 and 2 are reserved by SAVEMORE.</p>';
+    } else {
+        html += '<p class="ch-note">Number picking is not open yet. You will get a notification when it opens.</p>';
+    }
+
+    html += '<div class="ch-grid">';
+    for (var n = 1; n <= CHALLENGE_MAX; n++) {
+        var t = taken[n];
+        var reserved = CHALLENGE_RESERVED.indexOf(n) !== -1;
+        var cls = 'ch-num', label = '', disabled = true;
+        if (t && t.memberUid === uid) { cls += ' mine'; label = '<small>Yours</small>'; }
+        else if (t) { cls += ' taken'; label = '<small>Taken</small>'; }
+        else if (reserved) { cls += ' reserved'; label = '<small>Reserved</small>'; }
+        else if (open && !mine) { disabled = false; }
+        else { cls += ' closed'; }
+        html += '<button type="button" class="' + cls + '"' + (disabled ? ' disabled' : ' onclick="pickChallengeNumber(' + n + ')"') + '>' + n + label + '</button>';
+    }
+    html += '</div>';
+    box.innerHTML = html;
+}
+
+async function pickChallengeNumber(n) {
+    var user = auth.currentUser;
+    if (!user) return;
+    var uid = user.uid;
+    if (CHALLENGE_RESERVED.indexOf(n) !== -1) { alert('Numbers 1 and 2 are reserved by SAVEMORE.'); return; }
+    if (!confirm('Pick number ' + n + ' for the next 100 Days Savings Challenge?\n\nYou cannot change it afterwards.')) return;
+
+    try {
+        var sDoc = await db.collection('settings').doc('challenge').get();
+        var s = sDoc.exists ? sDoc.data() : {};
+        if (s.open !== true) { alert('Number picking is closed right now.'); loadChallengeNumbers(uid); return; }
+        var round = s.round || 1;
+
+        var slotRef = db.collection('challengeSlots').doc(challengeSlotId(round, n));
+        var pickRef = db.collection('members').doc(uid).collection('challengePicks').doc('r' + round);
+
+        await db.runTransaction(async function(tx) {
+            var slotSnap = await tx.get(slotRef);
+            var pickSnap = await tx.get(pickRef);
+            if (pickSnap.exists) throw new Error('ALREADY_HAVE');
+            if (slotSnap.exists) throw new Error('TAKEN');
+            tx.set(slotRef, {
+                round: round,
+                number: n,
+                memberUid: uid,
+                memberId: currentMemberId,
+                assignedBy: 'member',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            tx.set(pickRef, {
+                round: round,
+                number: n,
+                assignedBy: 'member',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        notifyAdminEvent(
+            '🔢 Challenge Number Picked',
+            'Member: ' + currentMemberName,
+            'Member ID: ' + currentMemberId,
+            'Number: ' + n,
+            'Round: ' + round
+        );
+        alert('Done! Your 100 Days Challenge number is ' + n + '.');
+    } catch (error) {
+        if (error && error.message === 'TAKEN') {
+            alert('Sorry, number ' + n + ' was just taken. Please pick another one.');
+        } else if (error && error.message === 'ALREADY_HAVE') {
+            alert('You already have a number for this challenge.');
+        } else {
+            alert('Could not save your number: ' + (error && error.message ? error.message : 'please try again.'));
+        }
+    }
+    loadChallengeNumbers(uid);
+}
+
 // ---- DASHBOARD ----
 function saveWhatsappPref(box) {
     var user = auth.currentUser;
@@ -2138,6 +2272,7 @@ function loadDashboard(user) {
             loadTransfers(user.uid);
             loadWithdrawalRequests(user.uid);
             loadPaymentClaims(user.uid);
+            loadChallengeNumbers(user.uid);
 
             var now = new Date();
             document.getElementById('statementMonth').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');

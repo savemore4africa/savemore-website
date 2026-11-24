@@ -454,6 +454,19 @@ button.secondary {
     background: #eef7f2;
     outline: none;
 }
+/* ---- Challenge numbers ---- */
+.ch-status{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.ch-pill{font-size:12px;font-weight:bold;padding:4px 12px;border-radius:14px}
+.ch-pill.on{background:#e3f4ea;color:#075e3b}
+.ch-pill.off{background:#fdecea;color:#b3261e}
+.ch-status button{width:auto;margin:0;padding:8px 16px;font-size:13px}
+table.ch-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
+table.ch-table th{text-align:left;padding:6px;border-bottom:1px solid #ddd}
+table.ch-table td{padding:6px;border-bottom:1px solid #eee;vertical-align:middle}
+.ch-tag{font-size:10px;font-weight:bold;color:#c87000;background:#fff2df;padding:1px 7px;border-radius:8px;margin-left:6px}
+.ch-assign{background:#f3f8f5;border-radius:10px;padding:14px}
+.ch-assign select{width:100%;padding:10px;margin-bottom:10px;border:1px solid #ccc;border-radius:8px;font-size:14px;background:#fff}
+
 </style>
 </head>
 
@@ -556,6 +569,10 @@ PIN (in addition to your password) every time you log in.
 <button type="button" class="menu-item" role="menuitem" data-svc="more transfers" onclick="adminMenuGo('sectionTransfers')">
 <svg viewBox="0 0 24 24"><path d="M4 8h13M13.5 4.5 17 8l-3.5 3.5"></path><path d="M20 16H7M10.5 12.5 7 16l3.5 3.5"></path></svg>
 <span>MORE Transfers</span>
+</button>
+<button type="button" class="menu-item" role="menuitem" data-svc="100 days challenge numbers pick assign" onclick="adminMenuGo('sectionChallenge')">
+<svg viewBox="0 0 24 24"><path d="M9.5 4 8 20M16 4l-1.5 16"></path><path d="M5 9h15M4 15h15"></path></svg>
+<span>Challenge Numbers</span>
 </button>
 <button type="button" class="menu-item" role="menuitem" data-svc="total balances" onclick="adminMenuGo('sectionBalances')">
 <svg viewBox="0 0 24 24"><path d="M4 20.5V11M10.5 20.5V6.5M17 20.5V14"></path><path d="M3 20.5h18"></path></svg>
@@ -710,6 +727,14 @@ Member-to-member MORE sales. Approving moves the units from the seller to the bu
 </p>
 <div id="moreTransfersList">Loading...</div>
 <button class="secondary" onclick="loadMoreTransfers()" style="margin-top:10px;">Refresh</button>
+</div>
+
+<div class="member-card" id="sectionChallenge" style="border-left-color:#ff8c00;">
+<h3 style="color:#ff8c00;">100 Days Challenge Numbers</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">
+Members pick a number from 1 to 20 while picking is open. Numbers 1 and 2 are reserved: members cannot pick them, only you can give them out. You can also give any other number to a member yourself.
+</p>
+<div id="challengeAdminBody">Loading...</div>
 </div>
 
 <div class="member-card" id="sectionBalances" style="border-left-color:#075e3b;">
@@ -1128,12 +1153,14 @@ function proceedToAdminPanel() {
             loadUsdtPrice();
             loadMoreTransfers();
             loadAnnouncements();
+            loadChallengeAdmin();
         }).catch(function() {
             loadMembers();
             loadMoreSettings();
             loadUsdtPrice();
             loadMoreTransfers();
             loadAnnouncements();
+            loadChallengeAdmin();
         });
     });
 }
@@ -1270,6 +1297,190 @@ function jumpToPending(detailsPrefix, memberId) {
     setTimeout(function() {
         (target || card).scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 60);
+}
+
+// ---- 100 DAYS CHALLENGE: NUMBER SLOTS ----
+var CHALLENGE_MAX = 20;
+var CHALLENGE_RESERVED = [1, 2];
+var challengeState = { round: 1, open: false, slots: {}, members: [] };
+
+function challengeSlotId(round, n) { return 'r' + round + '-' + n; }
+
+function loadChallengeAdmin() {
+    var body = document.getElementById('challengeAdminBody');
+    if (!body) return;
+    Promise.all([
+        db.collection('settings').doc('challenge').get(),
+        db.collection('members').get()
+    ]).then(function(res) {
+        var s = res[0].exists ? res[0].data() : {};
+        challengeState.round = s.round || 1;
+        challengeState.open = s.open === true;
+        challengeState.members = [];
+        res[1].forEach(function(d) {
+            var m = d.data();
+            challengeState.members.push({ uid: d.id, name: m.name || 'Unnamed', memberId: m.memberId || '' });
+        });
+        challengeState.members.sort(function(x, y) { return x.name.localeCompare(y.name); });
+        return db.collection('challengeSlots').where('round', '==', challengeState.round).get();
+    }).then(function(snap) {
+        challengeState.slots = {};
+        snap.forEach(function(d) { var x = d.data(); challengeState.slots[x.number] = x; });
+        renderChallengeAdmin();
+    }).catch(function(error) {
+        body.innerHTML = '<p style="color:#b3261e;">Unable to load challenge numbers: ' + escapeHtml(error.message) + '</p>';
+    });
+}
+
+function renderChallengeAdmin() {
+    var st = challengeState;
+    var body = document.getElementById('challengeAdminBody');
+    var byUid = {};
+    st.members.forEach(function(m) { byUid[m.uid] = m; });
+
+    var html = '<div class="ch-status">' +
+        '<span class="ch-pill ' + (st.open ? 'on' : 'off') + '">Picking is ' + (st.open ? 'OPEN' : 'CLOSED') + '</span>' +
+        '<span style="font-size:13px; color:#555;">Round ' + st.round + '</span>' +
+        '<button onclick="toggleChallengePicking()">' + (st.open ? 'Close picking' : 'Open picking') + '</button>' +
+        '<button class="secondary" onclick="startNewChallengeRound()">Start new round</button>' +
+        '</div>';
+
+    html += '<table class="ch-table"><tr><th>No.</th><th>Held by</th><th></th></tr>';
+    var heldUids = {};
+    for (var n = 1; n <= CHALLENGE_MAX; n++) {
+        var slot = st.slots[n];
+        var reserved = CHALLENGE_RESERVED.indexOf(n) !== -1;
+        var holder = '<span style="color:#999;">' + (reserved ? 'Reserved — not given yet' : 'Available') + '</span>';
+        var action = '';
+        if (slot) {
+            heldUids[slot.memberUid] = true;
+            var m = byUid[slot.memberUid];
+            holder = '<strong>' + escapeHtml(m ? m.name : 'Unknown member') + '</strong>' +
+                     '<div style="font-size:11px; color:#888;">' + escapeHtml(slot.memberId || '') + ' · ' + (slot.assignedBy === 'admin' ? 'given by admin' : 'picked by member') + '</div>';
+            action = '<button style="padding:4px 10px; font-size:12px; background:#999; width:auto; margin:0;" onclick="releaseChallengeNumber(' + n + ')">Release</button>';
+        }
+        html += '<tr><td><strong>' + n + '</strong>' + (reserved ? '<span class="ch-tag">RESERVED</span>' : '') + '</td><td>' + holder + '</td><td>' + action + '</td></tr>';
+    }
+    html += '</table>';
+
+    var numOpts = '';
+    for (var k = 1; k <= CHALLENGE_MAX; k++) {
+        if (!st.slots[k]) {
+            numOpts += '<option value="' + k + '">' + k + (CHALLENGE_RESERVED.indexOf(k) !== -1 ? ' (reserved)' : '') + '</option>';
+        }
+    }
+    var memOpts = '';
+    st.members.forEach(function(m) {
+        if (!heldUids[m.uid]) memOpts += '<option value="' + escapeHtml(m.uid) + '">' + escapeHtml(m.name) + (m.memberId ? ' — ' + escapeHtml(m.memberId) : '') + '</option>';
+    });
+
+    html += '<div class="ch-assign"><p style="font-weight:bold; color:#075e3b; margin-bottom:8px; font-size:14px;">Give a number to a member</p>';
+    if (!numOpts) {
+        html += '<p style="font-size:13px; color:#777;">All 20 numbers are taken.</p>';
+    } else if (!memOpts) {
+        html += '<p style="font-size:13px; color:#777;">Every member already has a number.</p>';
+    } else {
+        html += '<select id="chAssignNumber">' + numOpts + '</select>' +
+                '<select id="chAssignMember">' + memOpts + '</select>' +
+                '<button onclick="assignChallengeNumber()">Give number</button>';
+    }
+    html += '</div>';
+    body.innerHTML = html;
+}
+
+function toggleChallengePicking() {
+    var willOpen = !challengeState.open;
+    var msg = willOpen
+        ? 'Open number picking for round ' + challengeState.round + '? Members will be able to pick 3 to 20.'
+        : 'Close number picking? Members will no longer be able to pick.';
+    if (!confirm(msg)) return;
+    db.collection('settings').doc('challenge').set({
+        open: willOpen,
+        round: challengeState.round,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).then(function() {
+        logActivity('Challenge number picking ' + (willOpen ? 'opened' : 'closed'), 'Round ' + challengeState.round);
+        if (willOpen && confirm('Also post an announcement so every member is told picking is open?')) {
+            db.collection('announcements').add({
+                title: '100 Days Challenge: pick your number',
+                message: 'Number picking is now open. Go to My Dashboard, then 100 Days Challenge Number, and pick a number from 3 to 20 before it is taken.',
+                postedBy: (currentAdminUser && currentAdminUser.email) || 'admin',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(loadAnnouncements).catch(function() {});
+        }
+        loadChallengeAdmin();
+    }).catch(function(error) {
+        alert('Failed to update: ' + error.message);
+    });
+}
+
+function startNewChallengeRound() {
+    var next = challengeState.round + 1;
+    if (!confirm('Start round ' + next + ' for the next challenge?\n\nAll 20 numbers become free again and picking will be closed until you open it. Round ' + challengeState.round + ' numbers are kept as a record.')) return;
+    db.collection('settings').doc('challenge').set({
+        open: false,
+        round: next,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).then(function() {
+        logActivity('Challenge new round started', 'Round ' + next);
+        loadChallengeAdmin();
+    }).catch(function(error) {
+        alert('Failed to start new round: ' + error.message);
+    });
+}
+
+async function assignChallengeNumber() {
+    var n = parseInt(document.getElementById('chAssignNumber').value, 10);
+    var uid = document.getElementById('chAssignMember').value;
+    if (!n || !uid) return;
+    var m = challengeState.members.filter(function(x) { return x.uid === uid; })[0] || {};
+    if (!confirm('Give number ' + n + ' to ' + (m.name || 'this member') + '?')) return;
+
+    var round = challengeState.round;
+    var slotRef = db.collection('challengeSlots').doc(challengeSlotId(round, n));
+    var pickRef = db.collection('members').doc(uid).collection('challengePicks').doc('r' + round);
+    try {
+        await db.runTransaction(async function(tx) {
+            var slotSnap = await tx.get(slotRef);
+            var pickSnap = await tx.get(pickRef);
+            if (slotSnap.exists) throw new Error('Number ' + n + ' was just taken.');
+            if (pickSnap.exists) throw new Error('That member already has a number.');
+            tx.set(slotRef, {
+                round: round, number: n, memberUid: uid, memberId: m.memberId || '',
+                assignedBy: 'admin', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            tx.set(pickRef, {
+                round: round, number: n, assignedBy: 'admin',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        pushMemberNotification(uid, 'Your 100 Days Challenge number',
+            'SAVEMORE has given you number ' + n + ' for the next 100 Days Savings Challenge.');
+        logActivity('Challenge number given', '#' + n + ' to ' + (m.name || uid) + ' (round ' + round + ')');
+    } catch (error) {
+        alert('Could not give number: ' + error.message);
+    }
+    loadChallengeAdmin();
+}
+
+function releaseChallengeNumber(n) {
+    var slot = challengeState.slots[n];
+    if (!slot) return;
+    var m = challengeState.members.filter(function(x) { return x.uid === slot.memberUid; })[0] || {};
+    if (!confirm('Release number ' + n + ' from ' + (m.name || 'this member') + '? The number becomes available again and the member can pick another.')) return;
+
+    var round = challengeState.round;
+    var batch = db.batch();
+    batch.delete(db.collection('challengeSlots').doc(challengeSlotId(round, n)));
+    batch.delete(db.collection('members').doc(slot.memberUid).collection('challengePicks').doc('r' + round));
+    batch.commit().then(function() {
+        pushMemberNotification(slot.memberUid, '100 Days Challenge number released',
+            'Your number ' + n + ' has been released by SAVEMORE. Contact us if you have any question.');
+        logActivity('Challenge number released', '#' + n + ' from ' + (m.name || slot.memberUid) + ' (round ' + round + ')');
+        loadChallengeAdmin();
+    }).catch(function(error) {
+        alert('Failed to release: ' + error.message);
+    });
 }
 
 function loadMoreSettings() {

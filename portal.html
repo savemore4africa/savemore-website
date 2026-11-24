@@ -2065,8 +2065,10 @@ function cancelTransfer(id) {
 // ---- 100 DAYS CHALLENGE: NUMBER PICKER ----
 var CHALLENGE_MAX = 20;
 var CHALLENGE_RESERVED = [1, 2];   // only the admin can give these
+var CHALLENGE_SHARED = 20;         // always open to everyone
 
-function challengeSlotId(round, n) { return 'r' + round + '-' + n; }
+function challengeSlotId(round, n, uid) { return 'r' + round + '-' + n + '-' + uid; }
+function challengeLockId(round, n) { return 'r' + round + '-' + n; }
 
 function loadChallengeNumbers(uid) {
     var box = document.getElementById('challengeNumberBox');
@@ -2076,39 +2078,54 @@ function loadChallengeNumbers(uid) {
         var round = s.round || 1;
         var open = s.open === true;
         return db.collection('challengeSlots').where('round', '==', round).get().then(function(snap) {
-            var taken = {};
-            snap.forEach(function(d) { var x = d.data(); taken[x.number] = x; });
-            renderChallengeNumbers(uid, open, taken);
+            var holders = {};
+            snap.forEach(function(d) {
+                var x = d.data();
+                if (!holders[x.number]) holders[x.number] = [];
+                holders[x.number].push(x);
+            });
+            renderChallengeNumbers(uid, open, holders);
         });
     }).catch(function() {
         box.innerHTML = '<p style="color:#b3261e; font-size:14px;">Unable to load challenge numbers right now.</p>';
     });
 }
 
-function renderChallengeNumbers(uid, open, taken) {
+function renderChallengeNumbers(uid, open, holders) {
     var box = document.getElementById('challengeNumberBox');
-    var mine = null;
-    Object.keys(taken).forEach(function(k) { if (taken[k].memberUid === uid) mine = taken[k]; });
+    var mine = [];
+    Object.keys(holders).forEach(function(k) {
+        holders[k].forEach(function(h) { if (h.memberUid === uid) mine.push(h); });
+    });
+    mine.sort(function(a, b) { return a.number - b.number; });
+    var hasAny = mine.length > 0;
 
     var html = '';
-    if (mine) {
-        html += '<div class="ch-mine"><small>YOUR NUMBER</small><strong>' + mine.number + '</strong>' +
-                '<span>' + (mine.assignedBy === 'admin' ? 'Given to you by SAVEMORE' : 'You picked this number') + '</span></div>';
+    if (hasAny) {
+        var nums = mine.map(function(h) { return h.number; }).join(', ');
+        var byAdmin = mine.some(function(h) { return h.assignedBy === 'admin'; });
+        html += '<div class="ch-mine"><small>' + (mine.length > 1 ? 'YOUR NUMBERS' : 'YOUR NUMBER') + '</small><strong>' + nums + '</strong>' +
+                '<span>' + (byAdmin ? 'Given to you by SAVEMORE' : 'You picked this number') + '</span></div>';
     } else if (open) {
-        html += '<p class="ch-note">Pick one number from 1 to 20 for the next 100 Days Savings Challenge. First come, first served. You can pick only one, and it cannot be changed once confirmed. Numbers 1 and 2 are reserved by SAVEMORE.</p>';
+        html += '<p class="ch-note">Pick one number from 1 to 20 for the next 100 Days Savings Challenge. First come, first served. You can pick only one, and it cannot be changed once confirmed. Numbers 1 and 2 are reserved by SAVEMORE. Number 20 is always available to everyone.</p>';
     } else {
         html += '<p class="ch-note">Number picking is not open yet. You will get a notification when it opens.</p>';
     }
 
     html += '<div class="ch-grid">';
     for (var n = 1; n <= CHALLENGE_MAX; n++) {
-        var t = taken[n];
+        var list = holders[n] || [];
+        var isMine = list.some(function(h) { return h.memberUid === uid; });
         var reserved = CHALLENGE_RESERVED.indexOf(n) !== -1;
         var cls = 'ch-num', label = '', disabled = true;
-        if (t && t.memberUid === uid) { cls += ' mine'; label = '<small>Yours</small>'; }
-        else if (t) { cls += ' taken'; label = '<small>Taken</small>'; }
+        if (isMine) { cls += ' mine'; label = '<small>Yours</small>'; }
+        else if (n === CHALLENGE_SHARED) {
+            if (open && !hasAny) { disabled = false; label = '<small>Open to all</small>'; }
+            else { cls += ' closed'; label = '<small>Open to all</small>'; }
+        }
+        else if (list.length) { cls += ' taken'; label = '<small>Taken</small>'; }
         else if (reserved) { cls += ' reserved'; label = '<small>Reserved</small>'; }
-        else if (open && !mine) { disabled = false; }
+        else if (open && !hasAny) { disabled = false; }
         else { cls += ' closed'; }
         html += '<button type="button" class="' + cls + '"' + (disabled ? ' disabled' : ' onclick="pickChallengeNumber(' + n + ')"') + '>' + n + label + '</button>';
     }
@@ -2129,14 +2146,23 @@ async function pickChallengeNumber(n) {
         if (s.open !== true) { alert('Number picking is closed right now.'); loadChallengeNumbers(uid); return; }
         var round = s.round || 1;
 
-        var slotRef = db.collection('challengeSlots').doc(challengeSlotId(round, n));
+        var slotRef = db.collection('challengeSlots').doc(challengeSlotId(round, n, uid));
+        var lockRef = db.collection('challengeLocks').doc(challengeLockId(round, n));
         var pickRef = db.collection('members').doc(uid).collection('challengePicks').doc('r' + round);
 
         await db.runTransaction(async function(tx) {
-            var slotSnap = await tx.get(slotRef);
             var pickSnap = await tx.get(pickRef);
             if (pickSnap.exists) throw new Error('ALREADY_HAVE');
-            if (slotSnap.exists) throw new Error('TAKEN');
+            if (n !== CHALLENGE_SHARED) {
+                var lockSnap = await tx.get(lockRef);
+                if (lockSnap.exists) throw new Error('TAKEN');
+                tx.set(lockRef, {
+                    round: round,
+                    number: n,
+                    memberUid: uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
             tx.set(slotRef, {
                 round: round,
                 number: n,
@@ -2147,7 +2173,7 @@ async function pickChallengeNumber(n) {
             });
             tx.set(pickRef, {
                 round: round,
-                number: n,
+                numbers: [n],
                 assignedBy: 'member',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });

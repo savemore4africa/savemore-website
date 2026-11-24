@@ -732,7 +732,7 @@ Member-to-member MORE sales. Approving moves the units from the seller to the bu
 <div class="member-card" id="sectionChallenge" style="border-left-color:#ff8c00;">
 <h3 style="color:#ff8c00;">100 Days Challenge Numbers</h3>
 <p style="font-size:13px; color:#777; margin-bottom:12px;">
-Members pick a number from 1 to 20 while picking is open. Numbers 1 and 2 are reserved: members cannot pick them, only you can give them out. You can also give any other number to a member yourself.
+Members pick one number from 1 to 20 while picking is open. Numbers 1 and 2 are reserved for you to give out. Number 20 is always open to every member. You can give any number to any member, give one member several numbers, and give the same number to several members.
 </p>
 <div id="challengeAdminBody">Loading...</div>
 </div>
@@ -1302,9 +1302,11 @@ function jumpToPending(detailsPrefix, memberId) {
 // ---- 100 DAYS CHALLENGE: NUMBER SLOTS ----
 var CHALLENGE_MAX = 20;
 var CHALLENGE_RESERVED = [1, 2];
+var CHALLENGE_SHARED = 20;   // always open to everyone
 var challengeState = { round: 1, open: false, slots: {}, members: [] };
 
-function challengeSlotId(round, n) { return 'r' + round + '-' + n; }
+function challengeSlotId(round, n, uid) { return 'r' + round + '-' + n + '-' + uid; }
+function challengeLockId(round, n) { return 'r' + round + '-' + n; }
 
 function loadChallengeAdmin() {
     var body = document.getElementById('challengeAdminBody');
@@ -1325,7 +1327,11 @@ function loadChallengeAdmin() {
         return db.collection('challengeSlots').where('round', '==', challengeState.round).get();
     }).then(function(snap) {
         challengeState.slots = {};
-        snap.forEach(function(d) { var x = d.data(); challengeState.slots[x.number] = x; });
+        snap.forEach(function(d) {
+            var x = d.data();
+            if (!challengeState.slots[x.number]) challengeState.slots[x.number] = [];
+            challengeState.slots[x.number].push(x);
+        });
         renderChallengeAdmin();
     }).catch(function(error) {
         body.innerHTML = '<p style="color:#b3261e;">Unable to load challenge numbers: ' + escapeHtml(error.message) + '</p>';
@@ -1345,40 +1351,44 @@ function renderChallengeAdmin() {
         '<button class="secondary" onclick="startNewChallengeRound()">Start new round</button>' +
         '</div>';
 
-    html += '<table class="ch-table"><tr><th>No.</th><th>Held by</th><th></th></tr>';
-    var heldUids = {};
+    html += '<table class="ch-table"><tr><th>No.</th><th>Held by</th></tr>';
     for (var n = 1; n <= CHALLENGE_MAX; n++) {
-        var slot = st.slots[n];
+        var list = st.slots[n] || [];
         var reserved = CHALLENGE_RESERVED.indexOf(n) !== -1;
-        var holder = '<span style="color:#999;">' + (reserved ? 'Reserved — not given yet' : 'Available') + '</span>';
-        var action = '';
-        if (slot) {
-            heldUids[slot.memberUid] = true;
-            var m = byUid[slot.memberUid];
-            holder = '<strong>' + escapeHtml(m ? m.name : 'Unknown member') + '</strong>' +
-                     '<div style="font-size:11px; color:#888;">' + escapeHtml(slot.memberId || '') + ' · ' + (slot.assignedBy === 'admin' ? 'given by admin' : 'picked by member') + '</div>';
-            action = '<button style="padding:4px 10px; font-size:12px; background:#999; width:auto; margin:0;" onclick="releaseChallengeNumber(' + n + ')">Release</button>';
+        var tag = reserved ? '<span class="ch-tag">RESERVED</span>' : (n === CHALLENGE_SHARED ? '<span class="ch-tag">ALWAYS OPEN</span>' : '');
+        var holder = '';
+        if (!list.length) {
+            holder = '<span style="color:#999;">' + (reserved ? 'Reserved — not given yet' : (n === CHALLENGE_SHARED ? 'No one yet' : 'Available')) + '</span>';
+        } else {
+            list.forEach(function(h) {
+                var m = byUid[h.memberUid];
+                holder += '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px; padding:3px 0;">' +
+                    '<div><strong>' + escapeHtml(m ? m.name : 'Unknown member') + '</strong>' +
+                    '<div style="font-size:11px; color:#888;">' + escapeHtml(h.memberId || '') + ' · ' + (h.assignedBy === 'admin' ? 'given by admin' : 'picked by member') + '</div></div>' +
+                    '<button style="padding:4px 10px; font-size:12px; background:#999; width:auto; margin:0;" onclick="releaseChallengeNumber(' + n + ', \'' + h.memberUid + '\')">Release</button>' +
+                    '</div>';
+            });
         }
-        html += '<tr><td><strong>' + n + '</strong>' + (reserved ? '<span class="ch-tag">RESERVED</span>' : '') + '</td><td>' + holder + '</td><td>' + action + '</td></tr>';
+        html += '<tr><td><strong>' + n + '</strong>' + tag + '</td><td>' + holder + '</td></tr>';
     }
     html += '</table>';
 
     var numOpts = '';
     for (var k = 1; k <= CHALLENGE_MAX; k++) {
-        if (!st.slots[k]) {
-            numOpts += '<option value="' + k + '">' + k + (CHALLENGE_RESERVED.indexOf(k) !== -1 ? ' (reserved)' : '') + '</option>';
-        }
+        var cnt = (st.slots[k] || []).length;
+        numOpts += '<option value="' + k + '">' + k +
+            (CHALLENGE_RESERVED.indexOf(k) !== -1 ? ' (reserved)' : '') +
+            (cnt ? ' — held by ' + cnt : '') + '</option>';
     }
     var memOpts = '';
     st.members.forEach(function(m) {
-        if (!heldUids[m.uid]) memOpts += '<option value="' + escapeHtml(m.uid) + '">' + escapeHtml(m.name) + (m.memberId ? ' — ' + escapeHtml(m.memberId) : '') + '</option>';
+        memOpts += '<option value="' + escapeHtml(m.uid) + '">' + escapeHtml(m.name) + (m.memberId ? ' — ' + escapeHtml(m.memberId) : '') + '</option>';
     });
 
-    html += '<div class="ch-assign"><p style="font-weight:bold; color:#075e3b; margin-bottom:8px; font-size:14px;">Give a number to a member</p>';
-    if (!numOpts) {
-        html += '<p style="font-size:13px; color:#777;">All 20 numbers are taken.</p>';
-    } else if (!memOpts) {
-        html += '<p style="font-size:13px; color:#777;">Every member already has a number.</p>';
+    html += '<div class="ch-assign"><p style="font-weight:bold; color:#075e3b; margin-bottom:4px; font-size:14px;">Give a number to a member</p>' +
+        '<p style="font-size:12px; color:#777; margin-bottom:10px;">A member can hold several numbers, and the same number can be given to several members.</p>';
+    if (!memOpts) {
+        html += '<p style="font-size:13px; color:#777;">No members yet.</p>';
     } else {
         html += '<select id="chAssignNumber">' + numOpts + '</select>' +
                 '<select id="chAssignMember">' + memOpts + '</select>' +
@@ -1434,25 +1444,37 @@ async function assignChallengeNumber() {
     var uid = document.getElementById('chAssignMember').value;
     if (!n || !uid) return;
     var m = challengeState.members.filter(function(x) { return x.uid === uid; })[0] || {};
-    if (!confirm('Give number ' + n + ' to ' + (m.name || 'this member') + '?')) return;
+    var existing = (challengeState.slots[n] || []).length;
+    var note = (existing && n !== CHALLENGE_SHARED) ? '\n\nNumber ' + n + ' is already held by ' + existing + ' other member(s); it will be shared.' : '';
+    if (!confirm('Give number ' + n + ' to ' + (m.name || 'this member') + '?' + note)) return;
 
     var round = challengeState.round;
-    var slotRef = db.collection('challengeSlots').doc(challengeSlotId(round, n));
+    var slotRef = db.collection('challengeSlots').doc(challengeSlotId(round, n, uid));
+    var lockRef = db.collection('challengeLocks').doc(challengeLockId(round, n));
     var pickRef = db.collection('members').doc(uid).collection('challengePicks').doc('r' + round);
     try {
         await db.runTransaction(async function(tx) {
             var slotSnap = await tx.get(slotRef);
             var pickSnap = await tx.get(pickRef);
-            if (slotSnap.exists) throw new Error('Number ' + n + ' was just taken.');
-            if (pickSnap.exists) throw new Error('That member already has a number.');
+            if (slotSnap.exists) throw new Error('This member already has number ' + n + '.');
             tx.set(slotRef, {
                 round: round, number: n, memberUid: uid, memberId: m.memberId || '',
                 assignedBy: 'admin', createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            tx.set(pickRef, {
-                round: round, number: n, assignedBy: 'admin',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            if (n !== CHALLENGE_SHARED) {
+                tx.set(lockRef, {
+                    round: round, number: n, memberUid: uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            }
+            if (pickSnap.exists) {
+                tx.update(pickRef, { numbers: firebase.firestore.FieldValue.arrayUnion(n) });
+            } else {
+                tx.set(pickRef, {
+                    round: round, numbers: [n], assignedBy: 'admin',
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
         });
         pushMemberNotification(uid, 'Your 100 Days Challenge number',
             'SAVEMORE has given you number ' + n + ' for the next 100 Days Savings Challenge.');
@@ -1463,20 +1485,33 @@ async function assignChallengeNumber() {
     loadChallengeAdmin();
 }
 
-function releaseChallengeNumber(n) {
-    var slot = challengeState.slots[n];
-    if (!slot) return;
-    var m = challengeState.members.filter(function(x) { return x.uid === slot.memberUid; })[0] || {};
-    if (!confirm('Release number ' + n + ' from ' + (m.name || 'this member') + '? The number becomes available again and the member can pick another.')) return;
+function releaseChallengeNumber(n, uid) {
+    var st = challengeState;
+    var m = st.members.filter(function(x) { return x.uid === uid; })[0] || {};
+    if (!confirm('Release number ' + n + ' from ' + (m.name || 'this member') + '?')) return;
 
-    var round = challengeState.round;
+    var round = st.round;
+    var othersOnN = (st.slots[n] || []).filter(function(h) { return h.memberUid !== uid; }).length;
+    var memberNumCount = 0;
+    Object.keys(st.slots).forEach(function(k) {
+        if (st.slots[k].some(function(h) { return h.memberUid === uid; })) memberNumCount++;
+    });
+
     var batch = db.batch();
-    batch.delete(db.collection('challengeSlots').doc(challengeSlotId(round, n)));
-    batch.delete(db.collection('members').doc(slot.memberUid).collection('challengePicks').doc('r' + round));
+    batch.delete(db.collection('challengeSlots').doc(challengeSlotId(round, n, uid)));
+    if (n !== CHALLENGE_SHARED && othersOnN === 0) {
+        batch.delete(db.collection('challengeLocks').doc(challengeLockId(round, n)));
+    }
+    var pickRef = db.collection('members').doc(uid).collection('challengePicks').doc('r' + round);
+    if (memberNumCount <= 1) {
+        batch.delete(pickRef);
+    } else {
+        batch.update(pickRef, { numbers: firebase.firestore.FieldValue.arrayRemove(n) });
+    }
     batch.commit().then(function() {
-        pushMemberNotification(slot.memberUid, '100 Days Challenge number released',
+        pushMemberNotification(uid, '100 Days Challenge number released',
             'Your number ' + n + ' has been released by SAVEMORE. Contact us if you have any question.');
-        logActivity('Challenge number released', '#' + n + ' from ' + (m.name || slot.memberUid) + ' (round ' + round + ')');
+        logActivity('Challenge number released', '#' + n + ' from ' + (m.name || uid) + ' (round ' + round + ')');
         loadChallengeAdmin();
     }).catch(function(error) {
         alert('Failed to release: ' + error.message);

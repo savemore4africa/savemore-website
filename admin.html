@@ -467,6 +467,13 @@ table.ch-table td{padding:6px;border-bottom:1px solid #eee;vertical-align:middle
 .ch-assign{background:#f3f8f5;border-radius:10px;padding:14px}
 .ch-assign select{width:100%;padding:10px;margin-bottom:10px;border:1px solid #ccc;border-radius:8px;font-size:14px;background:#fff}
 
+/* ---- Member activity ---- */
+table.act-table{width:100%;border-collapse:collapse;font-size:13px}
+table.act-table th{text-align:left;padding:6px;border-bottom:1px solid #ddd}
+table.act-table td{padding:6px;border-bottom:1px solid #eee}
+.act-old{color:#b3261e;font-weight:bold}
+.act-new{color:#075e3b;font-weight:bold}
+
 </style>
 </head>
 
@@ -573,6 +580,10 @@ PIN (in addition to your password) every time you log in.
 <button type="button" class="menu-item" role="menuitem" data-svc="100 days challenge numbers pick assign" onclick="adminMenuGo('sectionChallenge')">
 <svg viewBox="0 0 24 24"><path d="M9.5 4 8 20M16 4l-1.5 16"></path><path d="M5 9h15M4 15h15"></path></svg>
 <span>Challenge Numbers</span>
+</button>
+<button type="button" class="menu-item" role="menuitem" data-svc="member activity last visit portal login" onclick="adminMenuGo('sectionActivity')">
+<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+<span>Member Activity</span>
 </button>
 <button type="button" class="menu-item" role="menuitem" data-svc="total balances" onclick="adminMenuGo('sectionBalances')">
 <svg viewBox="0 0 24 24"><path d="M4 20.5V11M10.5 20.5V6.5M17 20.5V14"></path><path d="M3 20.5h18"></path></svg>
@@ -727,6 +738,12 @@ Member-to-member MORE sales. Approving moves the units from the seller to the bu
 </p>
 <div id="moreTransfersList">Loading...</div>
 <button class="secondary" onclick="loadMoreTransfers()" style="margin-top:10px;">Refresh</button>
+</div>
+
+<div class="member-card" id="sectionActivity" style="border-left-color:#3346a8;">
+<h3 style="color:#3346a8;">Member Portal Activity</h3>
+<p style="font-size:13px; color:#777; margin-bottom:12px;">When each member last opened their portal. Members who have not visited since this feature started show as "Not yet".</p>
+<div id="memberActivityBody">Loading...</div>
 </div>
 
 <div class="member-card" id="sectionChallenge" style="border-left-color:#ff8c00;">
@@ -1297,6 +1314,69 @@ function jumpToPending(detailsPrefix, memberId) {
     setTimeout(function() {
         (target || card).scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 60);
+}
+
+// ---- MEMBER PORTAL ACTIVITY ----
+function formatVisitAgo(date) {
+    var secs = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (secs < 60) return 'Just now';
+    var mins = Math.floor(secs / 60);
+    if (mins < 60) return mins + ' min ago';
+    var hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + ' hour' + (hrs > 1 ? 's' : '') + ' ago';
+    var days = Math.floor(hrs / 24);
+    if (days < 60) return days + ' day' + (days > 1 ? 's' : '') + ' ago';
+    return Math.floor(days / 30) + ' months ago';
+}
+
+function loadMemberPresence() {
+    var body = document.getElementById('memberActivityBody');
+    db.collection('memberPresence').get().then(function(snap) {
+        var seen = {};
+        snap.forEach(function(d) {
+            var x = d.data();
+            if (x.lastVisit && x.lastVisit.toDate) seen[d.id] = x.lastVisit.toDate();
+        });
+
+        // Update each member card
+        Object.keys(memberCache).forEach(function(uid) {
+            var el = document.getElementById('lastSeen-' + uid);
+            if (!el) return;
+            if (seen[uid]) {
+                el.textContent = 'Last portal visit: ' + formatVisitAgo(seen[uid]) + ' (' + seen[uid].toLocaleString('en-NG') + ')';
+                el.style.color = (Date.now() - seen[uid].getTime() > 30 * 86400000) ? '#b3261e' : '#075e3b';
+            } else {
+                el.textContent = 'Last portal visit: Not yet';
+                el.style.color = '#999';
+            }
+        });
+
+        // Activity list: most recent first, "Not yet" last
+        var rows = Object.keys(memberCache).map(function(uid) {
+            return { uid: uid, name: memberCache[uid].name, at: seen[uid] || null };
+        });
+        rows.sort(function(x, y) {
+            if (x.at && y.at) return y.at - x.at;
+            if (x.at) return -1;
+            if (y.at) return 1;
+            return x.name.localeCompare(y.name);
+        });
+        var recent = rows.filter(function(r) { return r.at && (Date.now() - r.at.getTime()) <= 7 * 86400000; }).length;
+        var html = '<p style="font-size:13px; color:#555; margin-bottom:10px;">' + recent + ' of ' + rows.length + ' members visited in the last 7 days.</p>' +
+            '<div style="max-height:360px; overflow-y:auto;"><table class="act-table"><tr><th>Member</th><th>Last visit</th></tr>';
+        rows.forEach(function(r) {
+            var cls = '', txt = 'Not yet';
+            if (r.at) {
+                txt = formatVisitAgo(r.at) + '<div style="font-size:11px; color:#888; font-weight:normal;">' + escapeHtml(r.at.toLocaleString('en-NG')) + '</div>';
+                cls = (Date.now() - r.at.getTime() > 30 * 86400000) ? 'act-old' : 'act-new';
+            }
+            html += '<tr><td>' + escapeHtml(r.name) + '</td><td class="' + cls + '" style="' + (r.at ? '' : 'color:#999;') + '">' + txt + '</td></tr>';
+        });
+        html += '</table></div>';
+        if (body) body.innerHTML = html;
+    }).catch(function(error) {
+        if (body) body.innerHTML = '<p style="color:#b3261e;">Unable to load activity: ' + escapeHtml(error.message) + '</p>';
+    });
 }
 
 // ---- 100 DAYS CHALLENGE: NUMBER SLOTS ----
@@ -1871,6 +1951,7 @@ function loadMembers() {
         }
 
         buildMemberGroups(list);
+        setTimeout(loadMemberPresence, 0);
 
         snapshot.forEach(function(doc) {
             var m = doc.data();
@@ -1914,6 +1995,7 @@ function loadMembers() {
                     '<div class="member-meta">ID: ' + escapeHtml(m.memberId || 'Not assigned') +
                         (m.memberId ? '' : ' <button style="padding:2px 10px; font-size:11px; margin-left:6px;" onclick="event.preventDefault(); event.stopPropagation(); assignMemberId(\'' + id + '\');">Generate ID</button>') +
                         ' · ' + escapeHtml(m.email || '') + ' · ' + escapeHtml(m.phone || '') + '</div>' +
+                    '<div class="member-meta" id="lastSeen-' + id + '" style="color:#999;">Last portal visit: …</div>' +
                 '</summary>' +
                 '<div style="margin-top:16px;">' +
                 '<div class="field-row">' +

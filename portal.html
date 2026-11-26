@@ -2062,6 +2062,17 @@ function cancelTransfer(id) {
       .catch(function(error) { alert('Could not cancel: ' + error.message); });
 }
 
+// ---- LAST VISIT TRACKING (shown to admin) ----
+function recordPortalVisit(uid) {
+    try {
+        db.collection('memberPresence').doc(uid).set({
+            lastVisit: firebase.firestore.FieldValue.serverTimestamp(),
+            memberId: currentMemberId || '',
+            name: currentMemberName || ''
+        }).catch(function() {});
+    } catch (e) {}
+}
+
 // ---- 100 DAYS CHALLENGE: NUMBER PICKER ----
 var CHALLENGE_MAX = 20;
 var CHALLENGE_RESERVED = [1, 2];   // only the admin can give these
@@ -2299,6 +2310,7 @@ function loadDashboard(user) {
             loadWithdrawalRequests(user.uid);
             loadPaymentClaims(user.uid);
             loadChallengeNumbers(user.uid);
+            recordPortalVisit(user.uid);
 
             var now = new Date();
             document.getElementById('statementMonth').value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');

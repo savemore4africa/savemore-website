@@ -735,7 +735,7 @@ Loading...
 <div class="bal-stat"><span>Available for Withdrawal</span><strong id="summaryAvailable">₦0</strong></div>
 <div class="bal-stat"><span>MORE</span><strong id="summaryMore">0</strong></div>
 <div class="bal-stat"><span>100 Days Challenge</span><strong id="summaryChallenge">₦0</strong></div>
-<div class="bal-stat bal-stat-wide"><span>In-Dollar Savings</span><strong id="summaryDollar">0 USDT</strong></div>
+<div class="bal-stat bal-stat-wide"><span>In-Dollar Savings</span><strong id="summaryDollar">0 USDT</strong><small id="summaryDollarNaira" style="display:block; font-size:11px; opacity:.8; font-weight:normal;"></small></div>
 </div>
 <p class="bal-updated" id="balUpdated"></p>
 </div>
@@ -1048,6 +1048,7 @@ After transferring, select the product and amount below, then tap "I've Made Pay
 
 <h2 id="dollarSection" style="margin-top:30px; font-size:18px;">In-Dollar Savings Account</h2>
 <div class="dashboard-row"><span>My USDT Balance</span><span id="dashDollar">0 USDT</span></div>
+<div class="dashboard-row"><span>Naira Equivalent</span><span id="dashDollarNaira">—</span></div>
 <div class="dashboard-row"><span>Current USDT Price</span><span id="dashUsdtPrice">Not set yet</span></div>
 <div class="dashboard-row"><span>Price Last Updated</span><span id="dashUsdtUpdated">—</span></div>
 <p style="font-size:12px; color:#888; margin: 6px 0 0;">
@@ -1056,7 +1057,7 @@ time of deposit, and sold at the applicable rate at withdrawal. Your
 balance above is shown in USDT and is kept separate from your naira
 savings — it is not automatically converted or combined with them. The
 USDT selling price shown is set by SAVEMORE and may be updated from time
-to time; it does not affect your USDT balance itself.
+to time; it does not affect your USDT balance itself. The naira equivalent is your USDT balance multiplied by the current USDT price, shown as a guide only.
 </p>
 
 <div style="margin-top:20px; padding:16px; background:#eef7f2; border-radius:10px;">
@@ -1579,11 +1580,28 @@ async function verifyTxPin() {
 }
 var currentMoreRefValue = 0;
 
+var usdtPriceNow = 0;
+var usdtBalanceNow = 0;
+function updateUsdtEquivalent() {
+    var a = document.getElementById('dashDollarNaira');
+    var b = document.getElementById('summaryDollarNaira');
+    var text = '—', short = '';
+    if (usdtPriceNow > 0) {
+        var eq = (usdtBalanceNow * usdtPriceNow).toLocaleString('en-NG', { maximumFractionDigits: 2 });
+        text = '≈ ₦' + eq;
+        short = usdtBalanceNow > 0 ? '≈ ₦' + eq : '';
+    }
+    if (a) a.textContent = text;
+    if (b) b.textContent = short;
+}
+
 function loadUsdtPriceDisplay() {
     db.collection('settings').doc('usdt').get().then(function(doc) {
         if (doc.exists) {
             var data = doc.data();
             var price = data.pricePerUsdt || 0;
+            usdtPriceNow = price;
+            updateUsdtEquivalent();
             if (price > 0) {
                 document.getElementById('dashUsdtPrice').textContent = '₦' + price.toLocaleString('en-NG') + ' / USDT';
             } else {
@@ -2273,6 +2291,8 @@ function loadDashboard(user) {
             document.getElementById('dashInvestment').textContent = '₦' + investment.toLocaleString('en-NG');
             document.getElementById('dashEmergency').textContent = '₦' + emergency.toLocaleString('en-NG');
             document.getElementById('dashDollar').textContent = dollar.toLocaleString('en-NG') + ' USDT';
+            usdtBalanceNow = dollar;
+            updateUsdtEquivalent();
             document.getElementById('dashChallenge').textContent = '₦' + challenge.toLocaleString('en-NG');
             document.getElementById('dashSavings').innerHTML = '<strong>₦' + nairaTotal.toLocaleString('en-NG') + '</strong>';
 

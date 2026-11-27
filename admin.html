@@ -1611,11 +1611,26 @@ function loadMoreSettings() {
     });
 }
 
+var usdtPriceNow = 0;
+function usdtEquivText(bal) {
+    if (!usdtPriceNow || !bal) return '';
+    return '≈ ₦' + (bal * usdtPriceNow).toLocaleString('en-NG', { maximumFractionDigits: 2 });
+}
+function refreshUsdtEquivalents() {
+    document.querySelectorAll('.usdt-eq').forEach(function(el) {
+        var bal = parseFloat(el.getAttribute('data-bal')) || 0;
+        var t = usdtEquivText(bal);
+        el.textContent = t ? (el.getAttribute('data-prefix') || '') + t : '';
+    });
+}
+
 function loadUsdtPrice() {
     db.collection('settings').doc('usdt').get().then(function(doc) {
         if (doc.exists) {
             var data = doc.data();
             document.getElementById('usdtPrice').value = data.pricePerUsdt || '';
+            usdtPriceNow = parseFloat(data.pricePerUsdt) || 0;
+            refreshUsdtEquivalents();
             if (data.updatedAt) {
                 var d = data.updatedAt.toDate();
                 document.getElementById('usdtPriceUpdated').textContent = d.toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' });
@@ -1952,6 +1967,7 @@ function loadMembers() {
 
         buildMemberGroups(list);
         setTimeout(loadMemberPresence, 0);
+        setTimeout(refreshUsdtEquivalents, 0);
 
         snapshot.forEach(function(doc) {
             var m = doc.data();
@@ -1965,7 +1981,7 @@ function loadMembers() {
             var nairaBalanceSummary = (prodSummary.investment || 0) + (prodSummary.emergency || 0) + (prodSummary.challenge || 0);
             var usdtBalanceSummary = prodSummary.dollar || 0;
             var usdtBadge = usdtBalanceSummary > 0
-                ? ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef2ff; color:#3346a8;">USDT: ' + usdtBalanceSummary.toLocaleString('en-NG') + '</span>'
+                ? ' <span style="font-size:12px; padding:2px 8px; border-radius:10px; background:#eef2ff; color:#3346a8;">USDT: ' + usdtBalanceSummary.toLocaleString('en-NG') + '<span class="usdt-eq" data-bal="' + usdtBalanceSummary + '" data-prefix=" · "></span></span>'
                 : '';
             var referralCount = (m.memberId && referralCounts[m.memberId]) ? referralCounts[m.memberId] : 0;
             var referralBadge = referralCount > 0
@@ -2084,6 +2100,7 @@ function loadMembers() {
                     '<div>' +
                         '<label>In-Dollar Savings (USDT)</label>' +
                         '<input type="number" id="prod-dollar-' + id + '" value="' + ((m.savingsByProduct && m.savingsByProduct.dollar) || 0) + '">' +
+                        '<div class="usdt-eq" data-bal="' + ((m.savingsByProduct && m.savingsByProduct.dollar) || 0) + '" style="font-size:12px; color:#3346a8; margin-top:4px;"></div>' +
                     '</div>' +
                     '<div>' +
                         '<label>100 Days Challenge (₦)</label>' +
